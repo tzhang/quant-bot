@@ -2,6 +2,25 @@
 
 本文档记录了量化交易系统开发环境的所有重要变更。
 
+## [1.1.1] - 2025-10-02
+
+### 🔧 修复
+- 技术因子计算模块修复：
+  - 修复 `MACD` 手动回退实现的维度问题，避免 `Data must be 1-dimensional` 错误。
+  - 修复 `BBands` 手动回退实现的维度问题，统一使用一维 `Series` 并以 `pd.concat` 构建结果。
+  - 增强 `calculate_all_factors` 的拼接逻辑，`join` 改为 `concat` 以避免索引层级不匹配导致的 `MergeError`。
+- 绩效分析模块修复：
+  - 新增 `_ensure_series` 统一处理 `Series/DataFrame/array-like` 输入，避免布尔歧义。
+  - 修复 `metrics` 中 `std` 的布尔判定，确保为标量并在 `vol > 0` 时计算夏普率。
+  - 统一 `equity_curve/max_drawdown/plot_*` 的输入处理逻辑，提升健壮性。
+
+### 🧪 验证
+- 在 Python 3.12 虚拟环境中运行 `examples/mvp_demo.py`，端到端输出绩效指标：
+  - `cum_return ≈ 0.1699`，`ann_return ≈ 0.1714`，`ann_vol ≈ 0.1017`，`sharpe ≈ 1.6064`，`max_drawdown ≈ -0.0834`。
+
+### 📚 文档
+- 更新 `VERSION.md` 版本号为 `1.1.1`。
+
 ## [1.0.0] - 2024-12-19
 
 ### 🎉 首次发布
