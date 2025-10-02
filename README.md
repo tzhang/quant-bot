@@ -35,10 +35,12 @@
 
 ## 🛠️ 技术栈
 
-- **后端**: Python 3.9+, FastAPI, SQLAlchemy
+- **后端**: Python 3.12+, FastAPI, SQLAlchemy
 - **数据库**: PostgreSQL, Redis
 - **数据处理**: Pandas, NumPy, SciPy
 - **机器学习**: Scikit-learn, Statsmodels
+- **量化分析**: TA-Lib, QuantLib, Zipline-reloaded, Riskfolio-lib
+- **高性能计算**: Numba (JIT编译)
 - **可视化**: Matplotlib, Seaborn, Plotly
 - **前端**: Streamlit
 - **测试**: Pytest, Coverage
@@ -71,8 +73,9 @@ my-quant/
 ### 1. 环境准备
 
 确保你的系统已安装:
-- Python 3.9+
+- Python 3.12+ (推荐使用Python 3.12以获得最佳库兼容性)
 - Git
+- TA-Lib系统依赖 (macOS: `brew install ta-lib`)
 - PostgreSQL (可选，用于生产环境)
 - Redis (可选，用于缓存)
 
