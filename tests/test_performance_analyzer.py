@@ -46,3 +46,47 @@ def test_metrics_sharpe_zero_when_volatility_zero():
     m = pa.metrics(ret_zero)
     assert m["ann_vol"] == 0.0
     assert m["sharpe"] == 0.0
+
+
+def test_metrics_extended_indicators_present_and_valid():
+    pa = PerformanceAnalyzer()
+    ret = make_returns_series(n=252)
+    m = pa.metrics(ret)
+    for key in ("sortino", "calmar", "hit_rate"):
+        assert key in m
+        assert isinstance(m[key], float)
+        assert np.isfinite(m[key])
+
+
+def test_plot_functions_return_figures():
+    pa = PerformanceAnalyzer()
+    # Generate synthetic returns and price series
+    ret = make_returns_series(n=120, seed=42)
+    # Price from cumulative returns
+    price = (1 + ret).cumprod() * 100
+    df = pd.DataFrame({"Close": price})
+    # Simple signal based on normalized returns
+    sig = ((ret - ret.rolling(20).min()) / (ret.rolling(20).max() - ret.rolling(20).min() + 1e-12)).fillna(0).clip(0, 1)
+    # Benchmark returns: slightly different series
+    bench = ret.shift(1).fillna(0) * 0.8
+
+    fig_eq = pa.plot_equity(ret)
+    assert fig_eq is not None
+
+    fig_dd = pa.plot_drawdown(ret)
+    assert fig_dd is not None
+
+    fig_vs = pa.plot_equity_vs_benchmark(ret, benchmark_returns=bench)
+    assert fig_vs is not None
+
+    fig_sig = pa.plot_signal_price(df, sig)
+    assert fig_sig is not None
+
+    # Factor score and rolling beta plots
+    score = ((ret - ret.mean()) / (ret.std() + 1e-12)).fillna(0)
+    fig_score = pa.plot_factor_score(score, window=20)
+    assert fig_score is not None
+
+    beta_series = pd.Series(0.8, index=df.index)
+    fig_beta = pa.plot_rolling_beta(beta_series)
+    assert fig_beta is not None

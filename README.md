@@ -353,3 +353,44 @@ make docker-compose-down
 ---
 
 **Happy Trading! 📈**
+
+### 因子合成与基准（FACTOR_SCORE + Beta）
+
+下面示例展示如何使用`FactorEngine.compute_factor_score`进行因子合成，并引入基准收益计算滚动Beta，使得`FACTOR_SCORE`可包含风险暴露信息。随后将`FACTOR_SCORE`进行滚动Min-Max归一化以生成连续仓位信号，用于回测。
+
+```python
+import datetime as dt
+from src.data import DataManager
+from src.factors import FactorEngine
+from src.backtest import BacktestEngine
+from src.performance import PerformanceAnalyzer
+
+dm = DataManager(use_cache=True)
+start = dt.date.today().replace(year=dt.date.today().year - 1)
+end = dt.date.today()
+
+# 获取标的与基准
+data = dm.get_stock_data("SPY", start, end)
+df = data["SPY"]
+benchmark = dm.get_stock_data("^GSPC", start, end)["^GSPC"]
+benchmark_returns = benchmark["Close"].pct_change().fillna(0.0)
+
+# 计算因子并合成得分（包含可选Beta）
+fe = FactorEngine()
+factors = fe.compute_factor_score(df, benchmark_returns=benchmark_returns)
+
+# 将FACTOR_SCORE转为[0,1]信号（60日滚动Min-Max归一）
+score = factors["FACTOR_SCORE"].fillna(0.0)
+roll_min = score.rolling(60).min()
+roll_max = score.rolling(60).max()
+signal = ((score - roll_min) / (roll_max - roll_min + 1e-12)).clip(0.0, 1.0).fillna(0.0)
+
+# 回测与绩效分析
+bt = BacktestEngine(trading_cost_bps=10)
+res = bt.run(df, signal)
+perf = PerformanceAnalyzer()
+metrics = perf.metrics(res["returns"])
+print("Metrics:", metrics)
+```
+
+默认权重包括`RSI14`、`MACD_12_26_9`、`VOL20_ANN`、`VAR95_ANN`、`RET_DAILY`、`SMA20`、`EMA20`，当提供`benchmark_returns`时还会自动纳入`BETA60`。你可以通过传入`weights`字典或修改`normalize`/`winsorize`参数自定义合成过程。
