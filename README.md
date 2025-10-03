@@ -1,5 +1,7 @@
 # 量化交易系统 (Quant Trading System)
 
+[![Python CI](https://github.com/tzhang/quant-bot/actions/workflows/python-ci.yml/badge.svg)](https://github.com/tzhang/quant-bot/actions/workflows/python-ci.yml)
+
 一个专为两人初创团队设计的完整量化交易系统，包含数据获取、因子计算、策略回测、绩效分析等核心功能。
 
 ## 🚀 项目特色
@@ -195,7 +197,7 @@ make pre-commit
 - 使用 **flake8** 进行代码检查
 - 使用 **mypy** 进行类型检查
 - 使用 **pytest** 进行测试
-- 测试覆盖率要求 > 80%
+- 当前 CI 覆盖率阈值为 55%，后续会逐步提升
 
 ## 🧪 测试
 
@@ -209,8 +211,8 @@ make pre-commit
 ### 运行测试
 
 ```bash
-# 运行所有测试
-make test
+# 运行所有测试（与CI配置一致，禁用自动插件加载）
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -p pytest_cov -m "not external"
 
 # 运行快速测试（排除慢速测试）
 make test-fast
@@ -218,7 +220,7 @@ make test-fast
 # 运行特定标记的测试
 pytest -m "unit"          # 只运行单元测试
 pytest -m "integration"   # 只运行集成测试
-pytest -m "not slow"      # 排除慢速测试
+pytest -m "not external"  # 排除外部依赖测试
 
 # 运行特定文件的测试
 pytest tests/test_data.py

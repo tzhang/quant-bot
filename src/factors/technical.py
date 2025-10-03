@@ -1,7 +1,10 @@
 from typing import Dict, List, Optional
 
 import pandas as pd
-import pandas_ta as ta
+try:
+    import pandas_ta as ta  # type: ignore
+except Exception:
+    ta = None
 
 
 class TechnicalFactors:
@@ -19,18 +22,37 @@ class TechnicalFactors:
         return pd.Series(obj)
 
     def calculate_sma(self, df: pd.DataFrame, window: int = 20) -> pd.Series:
-        return ta.sma(df["Close"], length=window)
+        if ta is not None:
+            return ta.sma(df["Close"], length=window)
+        # Fallback using pandas rolling mean
+        return df["Close"].rolling(window).mean()
 
     def calculate_ema(self, df: pd.DataFrame, window: int = 20) -> pd.Series:
-        return ta.ema(df["Close"], length=window)
+        if ta is not None:
+            return ta.ema(df["Close"], length=window)
+        # Fallback using pandas ewm
+        return df["Close"].ewm(span=window, adjust=False).mean()
 
     def calculate_rsi(self, df: pd.DataFrame, window: int = 14) -> pd.Series:
-        return ta.rsi(df["Close"], length=window)
+        if ta is not None:
+            return ta.rsi(df["Close"], length=window)
+        # Fallback RSI implementation
+        close = self._as_series(df["Close"])  # ensure 1D
+        delta = close.diff()
+        up = delta.clip(lower=0)
+        down = -delta.clip(upper=0)
+        roll_up = up.ewm(alpha=1/window, adjust=False).mean()
+        roll_down = down.ewm(alpha=1/window, adjust=False).mean()
+        rs = roll_up / (roll_down.replace(0, pd.NA))
+        rsi = 100 - (100 / (1 + rs))
+        rsi.name = f"RSI_{window}"
+        return rsi.astype(float)
 
     def calculate_macd(self, df: pd.DataFrame, fast: int = 12, slow: int = 26, signal: int = 9) -> pd.DataFrame:
-        macd = ta.macd(self._as_series(df["Close"]), fast=fast, slow=slow, signal=signal)
-        if isinstance(macd, pd.DataFrame):
-            return macd
+        if ta is not None:
+            macd = ta.macd(self._as_series(df["Close"]), fast=fast, slow=slow, signal=signal)
+            if isinstance(macd, pd.DataFrame):
+                return macd
         # Fallback: manual MACD using EMA if pandas-ta returns None
         close = self._as_series(df["Close"])  # ensure 1D
         ema_fast = close.ewm(span=fast, adjust=False).mean()
@@ -45,9 +67,10 @@ class TechnicalFactors:
         return out
 
     def calculate_bbands(self, df: pd.DataFrame, window: int = 20, std: float = 2.0) -> pd.DataFrame:
-        bb = ta.bbands(self._as_series(df["Close"]), length=window, std=std)
-        if isinstance(bb, pd.DataFrame):
-            return bb
+        if ta is not None:
+            bb = ta.bbands(self._as_series(df["Close"]), length=window, std=std)
+            if isinstance(bb, pd.DataFrame):
+                return bb
         # Fallback: manual Bollinger Bands
         close = self._as_series(df["Close"])  # ensure 1D
         ma = close.rolling(window).mean()

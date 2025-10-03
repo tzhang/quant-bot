@@ -35,8 +35,9 @@ jobs:
       - name: Run tests (skip external)
         env:
           PYTHONPATH: .
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: 1
         run: |
-          pytest -m "not external"
+          pytest -p pytest_cov -m "not external"
 
       - name: Upload coverage xml
         if: always()
