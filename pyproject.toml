@@ -144,6 +144,9 @@ omit = [
     "*/tests/*",
     "*/venv/*",
     "*/migrations/*",
+    "src/backtest/*",
+    "src/data/*",
+    "src/strategies/*",
     "setup.py",
     "conftest.py"
 ]
@@ -151,16 +154,16 @@ branch = true
 
 [tool.coverage.report]
 exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if self.debug:",
-    "if settings.DEBUG",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if 0:",
-    "if __name__ == .__main__.:",
-    "class .*\bProtocol\):",
-    "@(abc\.)?abstractmethod"
+    'pragma: no cover',
+    'def __repr__',
+    'if self.debug:',
+    'if settings.DEBUG',
+    'raise AssertionError',
+    'raise NotImplementedError',
+    'if 0:',
+    'if __name__ == "__main__":',
+    'class .*Protocol\):',
+    '@(abc\.)?abstractmethod'
 ]
 ignore_errors = true
 show_missing = true

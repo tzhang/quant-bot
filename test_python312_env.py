@@ -9,7 +9,7 @@ import sys
 import traceback
 from datetime import datetime
 
-def test_import(module_name, description=""):
+def check_import(module_name, description=""):
     """
     测试模块导入
     
@@ -31,7 +31,7 @@ def test_import(module_name, description=""):
         print(f"⚠️  {module_name:<20} - {description} (其他错误: {e})")
         return False
 
-def test_functionality():
+def run_functionality_checks():
     """
     测试关键库的基本功能
     """
@@ -122,7 +122,7 @@ def main():
     ]
     
     for module, desc in modules_to_test:
-        if test_import(module, desc):
+        if check_import(module, desc):
             success_count += 1
         total_count += 1
     
@@ -135,7 +135,7 @@ def main():
     ]
     
     for module, desc in data_modules:
-        if test_import(module, desc):
+        if check_import(module, desc):
             success_count += 1
         total_count += 1
     
@@ -147,7 +147,7 @@ def main():
     ]
     
     for module, desc in ml_modules:
-        if test_import(module, desc):
+        if check_import(module, desc):
             success_count += 1
         total_count += 1
     
@@ -159,7 +159,7 @@ def main():
     ]
     
     for module, desc in quant_modules:
-        if test_import(module, desc):
+        if check_import(module, desc):
             success_count += 1
         total_count += 1
     
@@ -172,7 +172,7 @@ def main():
     ]
     
     for module, desc in backtest_modules:
-        if test_import(module, desc):
+        if check_import(module, desc):
             success_count += 1
         total_count += 1
     
@@ -184,7 +184,7 @@ def main():
     ]
     
     for module, desc in portfolio_modules:
-        if test_import(module, desc):
+        if check_import(module, desc):
             success_count += 1
         total_count += 1
     
@@ -197,7 +197,7 @@ def main():
     ]
     
     for module, desc in web_modules:
-        if test_import(module, desc):
+        if check_import(module, desc):
             success_count += 1
         total_count += 1
     
@@ -210,12 +210,12 @@ def main():
     ]
     
     for module, desc in db_modules:
-        if test_import(module, desc):
+        if check_import(module, desc):
             success_count += 1
         total_count += 1
     
     # 执行功能测试
-    test_functionality()
+    run_functionality_checks()
     
     # 总结
     print("\n" + "=" * 60)
