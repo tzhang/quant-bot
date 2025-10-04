@@ -1,7 +1,7 @@
 # 量化交易系统 Makefile
 # 提供常用的开发、测试、部署命令
 
-.PHONY: help install install-dev clean test test-fast test-cov lint format type-check security-check pre-commit setup-dev run-api run-streamlit docker-build docker-run backup restore
+.PHONY: help install install-dev clean test test-fast test-cov lint format type-check security-check pre-commit setup-dev run-api run-streamlit docker-build docker-run backup restore db-setup
 
 # 默认目标
 help:
@@ -26,6 +26,8 @@ help:
 	@echo "  docker-run     - 运行Docker容器"
 	@echo "  backup         - 备份数据"
 	@echo "  restore        - 恢复数据"
+	@echo "  db-setup       - 统一创建数据库、建表并验证"
+	@echo "  data-fetch-nasdaq - 批量抓取NASDAQ-100数据并入库"
 
 # 变量定义
 PYTHON := python3
@@ -138,7 +140,7 @@ run-streamlit: check-venv
 # 数据库相关命令
 db-init: check-venv
 	@echo "初始化数据库..."
-	$(ACTIVATE) && python -c "from src.data.database import init_db; init_db()"
+	$(ACTIVATE) && python src/database/init_db.py
 
 db-migrate: check-venv
 	@echo "运行数据库迁移..."
@@ -146,7 +148,75 @@ db-migrate: check-venv
 
 db-reset: check-venv
 	@echo "重置数据库..."
-	$(ACTIVATE) && python -c "from src.data.database import reset_db; reset_db()"
+	@PG_BIN="$$(brew --prefix postgresql@17)/bin"; \
+	set -a; [ -f ".env" ] && . .env; set +a; \
+	echo "启动PostgreSQL服务..."; \
+	brew services start postgresql@17 >/dev/null 2>&1 || true; \
+	echo "执行删除并重建所有表..."; \
+	$(ACTIVATE) && python src/database/reset_db.py; \
+	echo "验证表是否存在..."; \
+	"$$PG_BIN"/psql -h "$${POSTGRES_HOST:-localhost}" -p "$${POSTGRES_PORT:-5432}" -U "$${POSTGRES_USER:-$$USER}" -d "$${POSTGRES_DB:-quant_trading}" -c "\\dt"
+
+# 统一创建数据库、建表并验证
+db-setup: check-venv
+	@echo "统一创建数据库、建表并验证..."
+	@PG_BIN="$$(brew --prefix postgresql@17)/bin"; \
+	set -a; [ -f ".env" ] && . .env; set +a; \
+	echo "启动PostgreSQL服务..."; \
+	brew services start postgresql@17 >/dev/null 2>&1 || true; \
+	echo "创建数据库 '$$POSTGRES_DB'（若已存在则忽略）..."; \
+	"$$PG_BIN"/createdb -h "$${POSTGRES_HOST:-localhost}" -p "$${POSTGRES_PORT:-5432}" -U "$${POSTGRES_USER:-$$USER}" "$${POSTGRES_DB:-quant_trading}" >/dev/null 2>&1 || echo "数据库已存在或无法创建，继续"; \
+	echo "运行初始化脚本建表..."; \
+	$(ACTIVATE) && python src/database/init_db.py; \
+	echo "验证表是否存在..."; \
+	"$$PG_BIN"/psql -h "$${POSTGRES_HOST:-localhost}" -p "$${POSTGRES_PORT:-5432}" -U "$${POSTGRES_USER:-$$USER}" -d "$${POSTGRES_DB:-quant_trading}" -c "\\dt"
+
+# 数据库备份（支持日志与压缩，自定义格式 .dump/.dump.gz）
+db-backup: check-venv
+	@echo "备份数据库..."
+	@PG_BIN="$$(brew --prefix postgresql@17)/bin"; \
+	CLI_BACKUP_DIR="$${BACKUP_DIR}"; CLI_BACKUP_COMPRESS="$${BACKUP_COMPRESS}"; \
+	set -a; [ -f ".env" ] && . .env; set +a; \
+	[ -n "$${CLI_BACKUP_DIR}" ] && BACKUP_DIR="$${CLI_BACKUP_DIR}"; \
+	[ -n "$${CLI_BACKUP_COMPRESS}" ] && BACKUP_COMPRESS="$${CLI_BACKUP_COMPRESS}"; \
+	mkdir -p "$${BACKUP_DIR:-backups}"; mkdir -p logs; \
+	DB_NAME="$${POSTGRES_DB:-quant_trading}"; STAMP="$$(date +%Y%m%d_%H%M%S)"; \
+	LOG_FILE="logs/db_backup_$$STAMP.log"; \
+	echo "日志文件: $$LOG_FILE" | tee -a "$$LOG_FILE"; \
+	echo "数据库: $$DB_NAME, 目录: $${BACKUP_DIR:-backups}, 压缩: $${BACKUP_COMPRESS:-false}" | tee -a "$$LOG_FILE"; \
+	if [ "$${BACKUP_COMPRESS:-false}" = "true" ] || [ "$${BACKUP_COMPRESS:-0}" = "1" ]; then \
+		BACKUP_FILE="$${BACKUP_DIR:-backups}/$$DB_NAME_$${STAMP}.dump.gz"; \
+		echo "备份文件: $$BACKUP_FILE" | tee -a "$$LOG_FILE"; \
+		"$$PG_BIN"/pg_dump -h "$${POSTGRES_HOST:-localhost}" -p "$${POSTGRES_PORT:-5432}" -U "$${POSTGRES_USER:-$$USER}" -d "$$DB_NAME" --format=custom --verbose 2>> "$$LOG_FILE" | gzip > "$$BACKUP_FILE"; \
+	else \
+		BACKUP_FILE="$${BACKUP_DIR:-backups}/$$DB_NAME_$${STAMP}.dump"; \
+		echo "备份文件: $$BACKUP_FILE" | tee -a "$$LOG_FILE"; \
+		"$$PG_BIN"/pg_dump -h "$${POSTGRES_HOST:-localhost}" -p "$${POSTGRES_PORT:-5432}" -U "$${POSTGRES_USER:-$$USER}" -d "$$DB_NAME" --format=custom --verbose --file="$$BACKUP_FILE" 2>&1 | tee -a "$$LOG_FILE"; \
+	fi; \
+	echo "✅ 备份完成" | tee -a "$$LOG_FILE"
+
+# 数据库恢复（支持 .dump/.dump.gz，使用 pg_restore 并记录日志）
+db-restore: check-venv
+	@echo "从备份文件恢复数据库..."
+	@if [ -z "$(file)" ]; then \
+		echo "❌ 请提供备份文件: make db-restore file=backups/quant_trading_YYYYMMDD_HHMMSS.dump[.gz]"; \
+		exit 1; \
+	fi
+	@PG_BIN="$$(brew --prefix postgresql@17)/bin"; \
+	CLI_BACKUP_DIR="$${BACKUP_DIR}"; \
+	set -a; [ -f ".env" ] && . .env; set +a; \
+	[ -n "$${CLI_BACKUP_DIR}" ] && BACKUP_DIR="$${CLI_BACKUP_DIR}"; \
+	mkdir -p logs; STAMP="$$(date +%Y%m%d_%H%M%S)"; LOG_FILE="logs/db_restore_$$STAMP.log"; \
+	echo "日志文件: $$LOG_FILE" | tee -a "$$LOG_FILE"; \
+	echo "目标数据库: $${POSTGRES_DB:-quant_trading}" | tee -a "$$LOG_FILE"; \
+	if echo "$(file)" | grep -qE "\\.gz$$"; then \
+		echo "检测到压缩备份，使用管道解压后恢复" | tee -a "$$LOG_FILE"; \
+		gunzip -c "$(file)" | "$$PG_BIN"/pg_restore -h "$${POSTGRES_HOST:-localhost}" -p "$${POSTGRES_PORT:-5432}" -U "$${POSTGRES_USER:-$$USER}" -d "$${POSTGRES_DB:-quant_trading}" --clean --if-exists --no-owner --no-privileges --verbose 2>&1 | tee -a "$$LOG_FILE"; \
+	else \
+		echo "使用未压缩备份进行恢复" | tee -a "$$LOG_FILE"; \
+		"$$PG_BIN"/pg_restore -h "$${POSTGRES_HOST:-localhost}" -p "$${POSTGRES_PORT:-5432}" -U "$${POSTGRES_USER:-$$USER}" -d "$${POSTGRES_DB:-quant_trading}" --clean --if-exists --no-owner --no-privileges --verbose "$(file)" 2>&1 | tee -a "$$LOG_FILE"; \
+	fi; \
+	echo "✅ 恢复完成" | tee -a "$$LOG_FILE"
 
 # Docker相关命令
 docker-build:
@@ -179,6 +249,12 @@ restore:
 perf-test: check-venv
 	@echo "运行性能测试..."
 	$(ACTIVATE) && pytest $(TEST_DIR) -v -m "performance"
+
+# 批量抓取NASDAQ-100数据并入库（支持环境变量覆盖）
+data-fetch-nasdaq: check-venv
+	@echo "批量抓取NASDAQ-100数据并入库..."
+	@set -a; [ -f ".env" ] && . .env; set +a; \
+	$(ACTIVATE) && MAX_TICKERS="$${MAX_TICKERS:-100}" BATCH_SIZE="$${BATCH_SIZE:-1000}" THROTTLE_SEC="$${THROTTLE_SEC:-0.5}" USE_PARQUET="$${USE_PARQUET:-false}" DATA_START_DATE="$${DATA_START_DATE}" DATA_END_DATE="$${DATA_END_DATE}" DATA_CACHE_DIR="$${DATA_CACHE_DIR:-data_cache/nasdaq}" python src/data/fetch_nasdaq.py
 
 # 生成文档
 docs: check-venv
