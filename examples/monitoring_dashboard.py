@@ -19,7 +19,18 @@ import pandas as pd
 import numpy as np
 from collections import deque, defaultdict
 
-# 配置日志
+# 导入配置和券商工厂
+try:
+    from config import config, load_config_from_file
+    from broker_factory import broker_factory, TradingSystemInterface
+    HAS_BROKER_FACTORY = True
+    logger = logging.getLogger(__name__)
+    logger.info("券商工厂模块加载成功")
+except ImportError as e:
+    print(f"警告: 券商工厂模块未找到 ({e})，将使用模拟数据")
+    HAS_BROKER_FACTORY = False
+
+# 设置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -75,15 +86,19 @@ class Alert:
     acknowledged: bool = False
 
 class DataCollector:
-    """数据收集器"""
+    """数据收集器，负责收集系统指标、交易数据和市场数据"""
     
-    def __init__(self):
+    def __init__(self, trading_system: Optional[TradingSystemInterface] = None):
         self.system_metrics = deque(maxlen=1000)
         self.trading_metrics = deque(maxlen=1000)
         self.market_data = {}
         self.alerts = deque(maxlen=500)
         self.is_running = False
         self.collection_thread = None
+        self.trading_system = trading_system
+        
+        # 监控股票列表
+        self.watchlist = ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA"]
     
     def start_collection(self):
         """开始数据收集"""
@@ -178,7 +193,44 @@ class DataCollector:
     
     def _collect_trading_metrics(self) -> TradingMetrics:
         """收集交易指标"""
-        # 模拟交易数据
+        if self.trading_system and HAS_BROKER_FACTORY:
+            try:
+                # 尝试从真实的交易系统获取数据
+                logger.debug("尝试获取投资组合状态...")
+                portfolio_status = self.trading_system.get_portfolio_status()
+                logger.debug(f"投资组合状态: {portfolio_status}")
+                
+                logger.debug("尝试获取详细持仓...")
+                positions = self.trading_system.get_detailed_positions()
+                logger.debug(f"持仓数量: {len(positions) if positions else 0}")
+                
+                logger.debug("尝试计算投资组合绩效...")
+                performance = self.trading_system.calculate_portfolio_performance()
+                logger.debug(f"绩效数据: {performance}")
+                
+                # 计算交易指标
+                total_trades = len(self.trading_system.trade_history) if hasattr(self.trading_system, 'trade_history') else 0
+                successful_trades = len([t for t in self.trading_system.trade_history if t.get('status') == 'filled']) if hasattr(self.trading_system, 'trade_history') else 0
+                failed_trades = total_trades - successful_trades
+                
+                return TradingMetrics(
+                    timestamp=datetime.now().isoformat(),
+                    total_trades=total_trades,
+                    successful_trades=successful_trades,
+                    failed_trades=failed_trades,
+                    total_volume=sum([p.get('market_value', 0) for p in positions]) if positions else 0,
+                    total_profit=performance.get('total_return', 0) if performance else 0,
+                    win_rate=successful_trades / total_trades if total_trades > 0 else 0,
+                    avg_profit_per_trade=performance.get('avg_return_per_trade', 0) if performance else 0,
+                    active_positions=len(positions) if positions else 0,
+                    portfolio_value=portfolio_status.get('total_value', 0) if portfolio_status else 0
+                )
+            except Exception as e:
+                logger.error(f"获取真实交易数据失败，详细错误: {type(e).__name__}: {str(e)}")
+                import traceback
+                logger.error(f"错误堆栈: {traceback.format_exc()}")
+        
+        # 模拟交易数据（作为备用）
         total_trades = np.random.randint(100, 1000)
         successful_trades = int(total_trades * np.random.uniform(0.6, 0.9))
         failed_trades = total_trades - successful_trades
@@ -198,7 +250,30 @@ class DataCollector:
     
     def _collect_market_data(self):
         """收集市场数据"""
-        symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'NVDA', 'META', 'NFLX']
+        if self.trading_system and HAS_BROKER_FACTORY:
+            try:
+                # 尝试从真实的交易系统获取市场数据
+                market_data = self.trading_system.connector.get_market_data(self.watchlist)
+                
+                for symbol, data in market_data.items():
+                    self.market_data[symbol] = MarketData(
+                        symbol=symbol,
+                        timestamp=datetime.now().isoformat(),
+                        price=data.get('price', 0),
+                        volume=data.get('volume', 0),
+                        change=data.get('change', 0),
+                        change_percent=data.get('change_percent', 0),
+                        bid=data.get('bid', 0),
+                        ask=data.get('ask', 0),
+                        high_24h=data.get('high', 0),
+                        low_24h=data.get('low', 0)
+                    )
+                return
+            except Exception as e:
+                logger.warning(f"获取真实市场数据失败，使用模拟数据: {str(e)}")
+        
+        # 模拟市场数据（作为备用）
+        symbols = self.watchlist
         
         for symbol in symbols:
             # 模拟市场数据
@@ -273,13 +348,13 @@ class DataCollector:
 class MonitoringDashboard:
     """监控面板"""
     
-    def __init__(self, host='localhost', port=5000):
+    def __init__(self, host='localhost', port=5000, trading_system: Optional[TradingSystemInterface] = None):
         self.host = host
         self.port = port
         self.app = Flask(__name__)
         self.app.config['SECRET_KEY'] = 'trading_system_secret_key'
         self.socketio = SocketIO(self.app, cors_allowed_origins="*")
-        self.data_collector = DataCollector()
+        self.data_collector = DataCollector(trading_system)
         
         self._setup_routes()
         self._setup_socketio_events()
@@ -944,8 +1019,9 @@ def create_dashboard_template():
     """创建仪表板HTML模板文件"""
     import os
     
-    # 创建templates目录
-    templates_dir = '/Users/tony/codebase/my-quant/examples/templates'
+    # 创建templates目录在当前工作目录下
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    templates_dir = os.path.join(current_dir, 'templates')
     os.makedirs(templates_dir, exist_ok=True)
     
     # 写入HTML模板
@@ -957,11 +1033,21 @@ def create_dashboard_template():
 
 # 示例使用
 if __name__ == "__main__":
+    # 尝试初始化交易系统
+    trading_system = None
+    if HAS_BROKER_FACTORY:
+        try:
+            # 使用券商工厂创建交易系统实例
+            # trading_system = broker_factory.create_trading_system('firstrade', config)
+            logger.info("券商工厂可用，但需要配置凭据")
+        except Exception as e:
+            logger.warning(f"初始化交易系统失败: {str(e)}")
+    
     # 创建HTML模板
     create_dashboard_template()
     
     # 启动监控面板
-    dashboard = MonitoringDashboard(host='0.0.0.0', port=8080)
+    dashboard = MonitoringDashboard(host='0.0.0.0', port=8080, trading_system=trading_system)
     
     try:
         dashboard.run(debug=False)

@@ -25,7 +25,7 @@ Firstrade 交易系统是一个专为量化交易设计的Python平台，提供�
 
 ### 系统要求
 
-- Python 3.8+
+- **Python 3.12** (强制要求)
 - macOS 10.15+ / Windows 10+ / Linux
 - 内存: 最少4GB，推荐8GB+
 - 网络: 稳定的互联网连接

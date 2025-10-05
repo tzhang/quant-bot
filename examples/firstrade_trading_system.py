@@ -53,24 +53,24 @@ except ImportError:
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
-    from firstrade import Firstrade
+    from firstrade.account import FTSession
     HAS_FIRSTRADE_API = True
 except ImportError:
     print("警告: Firstrade API未安装，将使用模拟模式")
     HAS_FIRSTRADE_API = False
-    # 创建模拟的Firstrade类
-    class Firstrade:
+    # 创建模拟的FTSession类
+    class FTSession:
         def __init__(self, username, password, pin=None):
             self.username = username
             self.password = password
             self.pin = pin
             self.logged_in = False
         
-        def login(self):
-            self.logged_in = True
-            return True
+        def is_logged_in(self):
+            return self.logged_in
         
         def get_account(self):
+            self.logged_in = True
             return {"account_value": 100000, "buying_power": 50000}
         
         def get_positions(self):
@@ -366,15 +366,28 @@ class FirstradeConnector:
             bool: 登录是否成功
         """
         def _login():
-            self.ft = Firstrade(username=self.username, password=self.password, pin=self.pin)
+            self.ft = FTSession(
+                username=self.username, 
+                password=self.password, 
+                pin=self.pin
+            )
             
-            # 尝试获取账户信息来验证登录
-            account_info = self.ft.get_account()
-            if account_info:
+            # 检查登录状态
+            if hasattr(self.ft, 'is_logged_in') and self.ft.is_logged_in():
                 self.is_logged_in = True
-                self.logger.info(f"成功登录Firstrade账户: {account_info.get('account_number', 'Unknown')}")
+                self.logger.info("成功登录Firstrade账户")
                 return True
             else:
+                # 尝试获取账户信息来验证登录
+                try:
+                    account_info = self.ft.get_account()
+                    if account_info:
+                        self.is_logged_in = True
+                        self.logger.info(f"成功登录Firstrade账户: {account_info.get('account_number', 'Unknown')}")
+                        return True
+                except:
+                    pass
+                
                 self.logger.error("登录失败：无法获取账户信息")
                 return False
         

@@ -21,7 +21,8 @@ from typing import Dict, Optional
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
-    from firstrade.account import FTSession
+    from firstrade.account import FTSession, FTAccountData
+    from firstrade import symbols
     HAS_FIRSTRADE_API = True
     print("✅ Firstrade API已成功导入")
 except ImportError as e:
@@ -99,24 +100,36 @@ class FirstradeRealEnvironmentTester:
         try:
             logger.info("开始测试Firstrade连接...")
             
-            # 创建会话
-            self.ft = FTSession()
-            
-            # 尝试登录
-            logger.info("正在登录...")
-            login_result = self.ft.login(
+            # 创建会话并登录
+            logger.info("正在创建会话并登录...")
+            # 根据搜索结果，FTSession 只接受 username, password, pin 三个参数
+            self.ft = FTSession(
                 username=self.username,
                 password=self.password,
                 pin=self.pin
             )
             
-            if login_result:
-                logger.info("✅ 登录成功！")
-                self.test_results['login'] = {'status': 'success', 'message': '登录成功'}
-                return True
-            else:
-                logger.error("❌ 登录失败")
-                self.test_results['login'] = {'status': 'failed', 'message': '登录失败'}
+            # 检查登录状态
+            need_code = self.ft.login()
+            if need_code:
+                code = input("请输入发送到您邮箱/手机的验证码: ")
+                self.ft.login_two(code)
+            
+            # 验证登录状态
+            try:
+                # 创建账户数据对象来验证登录
+                ft_accounts = FTAccountData(self.ft)
+                if ft_accounts.account_numbers:
+                    logger.info("✅ 登录成功！")
+                    self.test_results['login'] = {'status': 'success', 'message': '登录成功'}
+                    return True
+                else:
+                    logger.error("❌ 登录失败 - 无法获取账户信息")
+                    self.test_results['login'] = {'status': 'failed', 'message': '登录失败 - 无法获取账户信息'}
+                    return False
+            except Exception as verify_error:
+                logger.error(f"❌ 登录验证失败: {verify_error}")
+                self.test_results['login'] = {'status': 'error', 'message': f'登录验证失败: {verify_error}'}
                 return False
                 
         except Exception as e:
@@ -130,23 +143,24 @@ class FirstradeRealEnvironmentTester:
             logger.info("正在获取账户信息...")
             
             # 获取账户数据
-            account_data = self.ft.get_account()
+            ft_accounts = FTAccountData(self.ft)
             
-            if account_data:
+            if ft_accounts.all_accounts:
                 logger.info("✅ 账户信息获取成功")
                 
                 # 安全地显示账户信息（隐藏敏感数据）
-                safe_info = {}
-                for key, value in account_data.items():
-                    if 'account' in key.lower() and isinstance(value, (int, float)):
-                        safe_info[key] = f"${value:,.2f}" if value else "N/A"
-                    elif 'number' in key.lower() or 'id' in key.lower():
-                        safe_info[key] = "***" + str(value)[-4:] if value else "N/A"
-                    else:
-                        safe_info[key] = value
+                account_count = len(ft_accounts.account_numbers)
+                logger.info(f"账户数量: {account_count}")
                 
-                logger.info(f"账户信息: {safe_info}")
-                self.test_results['account_info'] = {'status': 'success', 'data': safe_info}
+                # 显示账户余额信息（隐藏具体金额）
+                if ft_accounts.account_balances:
+                    logger.info("账户余额信息已获取（具体金额已隐藏）")
+                
+                self.test_results['account_info'] = {
+                    'status': 'success', 
+                    'account_count': account_count,
+                    'message': f'成功获取 {account_count} 个账户信息'
+                }
                 return True
             else:
                 logger.warning("⚠️ 未获取到账户信息")
@@ -164,27 +178,41 @@ class FirstradeRealEnvironmentTester:
             logger.info("正在获取持仓信息...")
             
             # 获取持仓数据
-            positions = self.ft.get_positions()
+            ft_accounts = FTAccountData(self.ft)
             
-            if positions is not None:
-                logger.info(f"✅ 持仓信息获取成功，共有 {len(positions)} 个持仓")
+            if ft_accounts.account_numbers:
+                # 获取第一个账户的持仓信息
+                first_account = ft_accounts.account_numbers[0]
+                positions = ft_accounts.get_positions(account=first_account)
                 
-                # 显示持仓概要（不显示具体数量和金额）
-                if positions:
-                    symbols = [pos.get('symbol', 'Unknown') for pos in positions[:5]]  # 只显示前5个
-                    logger.info(f"持仓股票（前5个）: {', '.join(symbols)}")
+                if positions and 'items' in positions:
+                    position_count = len(positions['items'])
+                    logger.info(f"✅ 持仓信息获取成功，共有 {position_count} 个持仓")
+                    
+                    # 显示持仓概要（不显示具体数量和金额）
+                    if positions['items']:
+                        symbols = [pos.get('symbol', 'Unknown') for pos in positions['items'][:5]]  # 只显示前5个
+                        logger.info(f"持仓股票（前5个）: {', '.join(symbols)}")
+                    else:
+                        logger.info("当前无持仓")
+                    
+                    self.test_results['positions'] = {
+                        'status': 'success', 
+                        'count': position_count,
+                        'message': f'获取到 {position_count} 个持仓'
+                    }
+                    return True
                 else:
-                    logger.info("当前无持仓")
-                
-                self.test_results['positions'] = {
-                    'status': 'success', 
-                    'count': len(positions),
-                    'message': f'获取到 {len(positions)} 个持仓'
-                }
-                return True
+                    logger.info("✅ 持仓信息获取成功，当前无持仓")
+                    self.test_results['positions'] = {
+                        'status': 'success', 
+                        'count': 0,
+                        'message': '当前无持仓'
+                    }
+                    return True
             else:
-                logger.warning("⚠️ 未获取到持仓信息")
-                self.test_results['positions'] = {'status': 'warning', 'message': '未获取到持仓信息'}
+                logger.warning("⚠️ 未获取到账户信息")
+                self.test_results['positions'] = {'status': 'warning', 'message': '未获取到账户信息'}
                 return False
                 
         except Exception as e:
@@ -197,39 +225,52 @@ class FirstradeRealEnvironmentTester:
         try:
             logger.info(f"正在获取 {symbol} 的报价信息...")
             
-            # 获取股票报价
-            quote = self.ft.get_quote(symbol)
+            # 根据搜索结果，SymbolQuote 需要 session 和 symbol 两个参数
+            quote = symbols.SymbolQuote(self.ft, symbol)
             
-            if quote:
+            if quote and hasattr(quote, 'symbol'):
                 logger.info(f"✅ {symbol} 报价获取成功")
                 
                 # 显示报价信息
-                price = quote.get('last_price', quote.get('price', 'N/A'))
-                change = quote.get('change', 'N/A')
-                change_percent = quote.get('change_percent', 'N/A')
-                volume = quote.get('volume', 'N/A')
+                logger.info(f"   股票代码: {quote.symbol}")
+                if hasattr(quote, 'last'):
+                    logger.info(f"   最新价格: ${quote.last}")
+                if hasattr(quote, 'bid'):
+                    logger.info(f"   买价: ${quote.bid}")
+                if hasattr(quote, 'ask'):
+                    logger.info(f"   卖价: ${quote.ask}")
+                if hasattr(quote, 'change'):
+                    logger.info(f"   价格变化: {quote.change}")
+                if hasattr(quote, 'volume'):
+                    logger.info(f"   成交量: {quote.volume}")
+                if hasattr(quote, 'company_name'):
+                    logger.info(f"   公司名称: {quote.company_name}")
                 
-                logger.info(f"{symbol} 价格: ${price}, 变化: {change} ({change_percent}%), 成交量: {volume}")
+                price = getattr(quote, 'last', 'N/A')
                 
                 self.test_results['quote'] = {
                     'status': 'success',
                     'symbol': symbol,
-                    'data': {
-                        'price': price,
-                        'change': change,
-                        'change_percent': change_percent,
-                        'volume': volume
-                    }
+                    'price': str(price),
+                    'message': f'{symbol} 报价获取成功'
                 }
                 return True
             else:
-                logger.warning(f"⚠️ 未获取到 {symbol} 的报价信息")
-                self.test_results['quote'] = {'status': 'warning', 'message': f'未获取到 {symbol} 报价'}
+                logger.warning(f"⚠️ 未获取到 {symbol} 的报价信息或数据无效")
+                self.test_results['quote'] = {
+                    'status': 'warning', 
+                    'symbol': symbol,
+                    'message': f'未获取到 {symbol} 的报价信息或数据无效'
+                }
                 return False
                 
         except Exception as e:
             logger.error(f"❌ {symbol} 报价获取失败: {e}")
-            self.test_results['quote'] = {'status': 'error', 'message': str(e)}
+            self.test_results['quote'] = {
+                'status': 'error', 
+                'symbol': symbol,
+                'message': str(e)
+            }
             return False
     
     def run_comprehensive_test(self) -> Dict:

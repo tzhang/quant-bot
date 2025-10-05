@@ -42,7 +42,7 @@ pip install yfinance requests
 ```
 
 **预防措施**:
-- 使用Python 3.8+版本
+- 使用Python 3.12版本（强制要求）
 - 定期更新pip和setuptools
 - 在虚拟环境中安装依赖
 

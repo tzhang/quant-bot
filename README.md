@@ -58,10 +58,12 @@
 
 ### 环境要求
 
-- Python 3.8+
+- **Python 3.12** (强制要求，必须使用此版本)
 - 操作系统: Windows/macOS/Linux
 - 内存: 建议4GB以上
 - 磁盘空间: 建议1GB以上
+
+> ⚠️ **重要提醒**: 本项目强制要求使用 Python 3.12 版本。其他版本可能导致依赖库兼容性问题。
 
 ### 安装步骤
 
@@ -71,22 +73,36 @@
    cd quant-bot
    ```
 
-2. **安装依赖**
+2. **创建Python 3.12虚拟环境**
+   ```bash
+   # 确保使用Python 3.12
+   python3.12 --version  # 应显示 Python 3.12.x
+   
+   # 创建虚拟环境
+   python3.12 -m venv venv
+   
+   # 激活虚拟环境
+   source venv/bin/activate  # Linux/macOS
+   # 或
+   venv\Scripts\activate     # Windows
+   ```
+
+3. **安装依赖**
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **环境检测**
+4. **环境检测**
    ```bash
    python test_environment.py
    ```
 
-4. **快速体验**
+5. **快速体验**
    ```bash
    python examples/quick_start_demo.py
    ```
 
-5. **策略测试演示** (v1.4.0 新增)
+6. **策略测试演示** (v1.4.0 新增)
    ```bash
    python examples/strategy_testing_demo.py
    ```

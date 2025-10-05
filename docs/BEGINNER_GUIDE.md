@@ -392,7 +392,7 @@ SyntaxError: invalid syntax
 # 检查Python版本
 python --version
 
-# 需要Python 3.8+，建议使用pyenv管理版本
+# 需要Python 3.12（强制要求），建议使用pyenv管理版本
 pyenv install 3.9.0
 pyenv local 3.9.0
 ```

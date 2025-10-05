@@ -39,7 +39,7 @@ def check_required_packages() -> bool:
         ('matplotlib', '图表绘制'),
         ('seaborn', '统计图表'),
         ('scipy', '科学计算'),
-        ('scikit-learn', '机器学习')
+        ('sklearn', '机器学习')
     ]
     
     # 可选包（增强功能）

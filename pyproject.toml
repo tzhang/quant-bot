@@ -7,7 +7,7 @@ name = "quant-trading-system"
 version = "1.0.0"
 description = "量化交易系统"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 authors = [
     {name = "Quant Team", email = "team@quantsystem.com"},
 ]
@@ -17,9 +17,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Office/Business :: Financial :: Investment",
 ]
 keywords = ["quantitative", "trading", "finance", "investment", "backtest"]
@@ -33,7 +31,7 @@ Documentation = "https://quant-trading-system.readthedocs.io"
 # Black代码格式化配置
 [tool.black]
 line-length = 88
-target-version = ['py39', 'py310', 'py311']
+target-version = ['py312']
 include = '\.pyi?$'
 extend-exclude = '''
 # A regex preceded by ^/ will apply only to files and directories
