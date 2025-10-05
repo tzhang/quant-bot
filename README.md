@@ -4,6 +4,18 @@
 
 ## ✨ 主要特性
 
+### 🎯 策略开发与回测 (v1.4.0 新增)
+- **完整策略框架**: 6种内置量化策略（均值回归、动量、RSI、布林带、MACD、波动率突破）
+- **增强回测引擎**: 支持风险管理、仓位管理、走势前进分析
+- **批量策略测试**: 多策略并行测试、性能对比、参数优化
+- **交互式仪表板**: 净值曲线、性能雷达图、风险收益散点图、回撤分析
+
+### 🧠 多因子量化模型 (v1.4.0 新增)
+- **多因子计算**: 动量、均值回归、波动率、成交量、RSI、MACD、布林带
+- **投资组合构建**: 等权重、因子加权、风险平价
+- **模型训练**: 线性回归、随机森林
+- **策略性能评估**: 全面的策略性能分析和可视化
+
 ### 📊 数据管理
 - **智能缓存系统**: 支持磁盘缓存和TTL过期机制
 - **多数据源支持**: 集成Yahoo Finance等主流数据源
@@ -37,6 +49,7 @@
 ## 🎯 适用场景
 
 - **量化研究**: 因子挖掘、策略回测、风险分析
+- **策略开发**: 多策略开发、参数优化、性能评估
 - **投资决策**: 股票筛选、组合优化、风险控制
 - **教学培训**: 量化投资教学、实践演示
 - **个人投资**: 个人投资者的量化工具
@@ -73,6 +86,11 @@
    python examples/quick_start_demo.py
    ```
 
+5. **策略测试演示** (v1.4.0 新增)
+   ```bash
+   python examples/strategy_testing_demo.py
+   ```
+
 ### 5分钟快速体验
 
 运行快速开始演示，体验系统核心功能：
@@ -88,6 +106,22 @@ python examples/quick_start_demo.py
 - 📋 可视化图表 (5种交互式图表)
 - 🎯 结果解读 (个性化分析建议)
 
+### 策略开发与回测演示 (v1.4.0 新增)
+
+运行策略测试演示，体验完整的策略开发流程：
+
+```bash
+python examples/strategy_testing_demo.py
+```
+
+演示内容包括：
+- 🎯 6种量化策略测试 (均值回归、动量、RSI、布林带、MACD、波动率突破)
+- 📊 批量策略性能对比 (夏普比率、最大回撤、年化收益)
+- 📈 交互式策略仪表板 (净值曲线、性能雷达图、风险收益散点图)
+- 📋 策略回撤分析 (最大回撤、回撤持续时间、回撤恢复)
+- 🔥 月度收益热力图 (直观展示策略月度表现)
+- 📁 自动生成报告 (HTML交互式报告 + PNG图片导出)
+
 ## 📚 文档指南
 
 ### 🎓 初学者资源
@@ -98,6 +132,7 @@ python examples/quick_start_demo.py
 ### 📖 使用教程
 - **[数据获取教程](examples/data_tutorial.py)** - 数据获取和缓存使用
 - **[因子计算教程](examples/factor_tutorial.py)** - 因子计算和评估实战
+- **[策略测试教程](examples/strategy_testing_demo.py)** - 策略开发与回测实战 (v1.4.0 新增)
 - **[图表解读指南](docs/CHART_INTERPRETATION_GUIDE.md)** - 图表分析和解读
 
 ### 🔧 进阶资源
@@ -138,6 +173,54 @@ ic_results = evaluator.calculate_ic(momentum, data['AAPL']['close'])
 
 print(f"IC均值: {ic_results['ic_mean']:.4f}")
 print(f"IC信息比率: {ic_results['ic_ir']:.4f}")
+```
+
+### 策略开发与回测 (v1.4.0 新增)
+
+```python
+from src.strategies.templates import MACDStrategy
+from src.strategies.strategy_tester import StrategyTester
+from src.visualization.strategy_dashboard import StrategyDashboard
+
+# 创建MACD策略
+strategy = MACDStrategy(fast_period=12, slow_period=26, signal_period=9)
+
+# 策略回测
+tester = StrategyTester(initial_capital=100000)
+result = tester.backtest_strategy(strategy, data['AAPL'])
+
+print(f"策略收益: {result['metrics']['cum_return']:.2%}")
+print(f"夏普比率: {result['metrics']['sharpe']:.4f}")
+print(f"最大回撤: {result['metrics']['max_drawdown']:.2%}")
+
+# 生成策略仪表板
+dashboard = StrategyDashboard()
+dashboard.create_comprehensive_dashboard(
+    [result], 
+    ['MACD策略'], 
+    output_file='strategy_dashboard.html'
+)
+```
+
+### 多因子量化模型 (v1.4.0 新增)
+
+```python
+from src.strategies.multi_factor import MultiFactorModel
+
+# 创建多因子模型
+model = MultiFactorModel()
+
+# 计算多因子
+factors = model.calculate_factors(data)
+print(f"计算了 {len(factors.columns)} 个因子")
+
+# 构建投资组合
+portfolio = model.build_portfolio(factors, method='factor_weighted')
+print(f"投资组合包含 {len(portfolio)} 只股票")
+
+# 模型训练
+model.train_model(factors, returns, model_type='linear')
+predictions = model.predict(factors)
 ```
 
 ### 生成评估图表

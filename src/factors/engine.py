@@ -4,14 +4,16 @@ import pandas as pd
 
 from .technical import TechnicalFactors
 from .risk import RiskFactors
+from .fundamental_factors import FundamentalFactorCalculator
 
 
 class FactorEngine:
-    """Orchestrates factor calculations across technical and risk factors."""
+    """Orchestrates factor calculations across technical, risk, and fundamental factors."""
 
     def __init__(self) -> None:
         self.tech = TechnicalFactors()
         self.risk = RiskFactors()
+        self.fundamental = FundamentalFactorCalculator()
 
     def compute_technical(self, df: pd.DataFrame) -> pd.DataFrame:
         return self.tech.calculate_all_factors(df)
@@ -24,10 +26,56 @@ class FactorEngine:
             risk_factors["BETA60"] = beta
         return risk_factors
 
-    def compute_all(self, df: pd.DataFrame) -> pd.DataFrame:
+    def compute_fundamental(self, symbol: str, price_data: pd.DataFrame, 
+                          financial_data: pd.DataFrame, market_cap: float = None) -> Dict[str, float]:
+        """
+        计算基本面因子
+        
+        Args:
+            symbol: 股票代码
+            price_data: 价格数据
+            financial_data: 财务数据
+            market_cap: 市值（可选）
+            
+        Returns:
+            Dict[str, float]: 基本面因子字典
+        """
+        all_factors = self.fundamental.calculate_all_factors(symbol, price_data, financial_data, market_cap)
+        
+        # 将嵌套字典展平为单层字典
+        flat_factors = {}
+        for category, factors in all_factors.items():
+            for factor_name, value in factors.items():
+                flat_factors[f"{category}_{factor_name}"] = value
+        
+        return flat_factors
+
+    def compute_all(self, df: pd.DataFrame, symbol: str = None, 
+                   financial_data: pd.DataFrame = None, market_cap: float = None) -> pd.DataFrame:
+        """
+        计算所有因子（技术、风险、基本面）
+        
+        Args:
+            df: 价格数据
+            symbol: 股票代码（用于基本面因子）
+            financial_data: 财务数据（用于基本面因子）
+            market_cap: 市值（用于基本面因子）
+            
+        Returns:
+            pd.DataFrame: 包含所有因子的数据框
+        """
         out = self.compute_technical(df)
         risk = self.compute_risk(df)
-        return out.join(risk, how="left")
+        result = out.join(risk, how="left")
+        
+        # 如果提供了基本面数据，计算基本面因子
+        if symbol and financial_data is not None:
+            fundamental_factors = self.compute_fundamental(symbol, df, financial_data, market_cap)
+            # 将基本面因子添加到结果中（作为常数列）
+            for factor_name, value in fundamental_factors.items():
+                result[factor_name] = value
+        
+        return result
 
     def normalize_factors(self, factors: pd.DataFrame, method: str = "zscore") -> pd.DataFrame:
         """Normalize factors using z-score standardization."""

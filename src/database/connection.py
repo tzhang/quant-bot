@@ -196,15 +196,21 @@ class DatabaseManager:
 # 全局数据库管理器实例
 db_manager = DatabaseManager()
 
-
+# 便捷函数
 def get_db_session():
-    """获取数据库会话的便捷函数"""
+    """获取数据库会话"""
     return db_manager.get_session()
 
-
 def get_redis():
-    """获取Redis客户端的便捷函数"""
+    """获取Redis客户端"""
     return db_manager.get_redis_client()
 
+def get_engine():
+    """获取数据库引擎"""
+    return db_manager.get_postgresql_engine()
 
-__all__ = ['DatabaseManager', 'db_manager', 'get_db_session', 'get_redis']
+def init_database():
+    """初始化数据库"""
+    db_manager.create_tables()
+
+__all__ = ['DatabaseManager', 'db_manager', 'get_db_session', 'get_redis', 'get_engine', 'init_database']
