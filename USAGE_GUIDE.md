@@ -54,87 +54,131 @@ print(f"系统版本: {quant.get_version()}")
 
 ## 📊 数据管理
 
-### 获取股票数据
+### 正确的数据获取方法
+
+**重要提示**: 请使用 `DataManager` 类进行数据获取，而不是 `FactorEngine.get_data()`
 
 ```python
-# 基本用法
-data = data_manager.get_data(
-    symbols=['AAPL', 'MSFT', 'GOOGL'],
-    period='2y',  # 时间周期
-    interval='1d'  # 数据频率
-)
+from src.data.data_manager import DataManager
 
-# 指定日期范围
+# 创建数据管理器
+data_manager = DataManager()
+
+# 获取单只股票数据
 data = data_manager.get_data(
-    symbols=['AAPL'],
+    symbol='AAPL',
     start_date='2023-01-01',
-    end_date='2023-12-31'
+    end_date='2024-01-01',
+    data_type='ohlcv'
 )
 
-# 获取基本面数据
-fundamental_data = data_manager.get_fundamental_data(['AAPL'])
-print(fundamental_data['AAPL']['market_cap'])
+# 获取多只股票数据
+symbols = ['AAPL', 'GOOGL', 'MSFT']
+for symbol in symbols:
+    data = data_manager.get_data(
+        symbol=symbol,
+        start_date='2023-01-01',
+        end_date='2024-01-01'
+    )
+    print(f"{symbol} 数据形状: {data.shape}")
 ```
 
-### 数据缓存管理
+### 使用缓存数据避免API限制
 
 ```python
-# 清理缓存
-data_manager.clear_cache()
+import pandas as pd
+from pathlib import Path
 
-# 获取缓存统计
-cache_stats = data_manager.get_cache_stats()
-print(f"缓存命中率: {cache_stats['hit_rate']:.2%}")
+def load_cached_data(symbol='AAPL'):
+    """加载缓存的股票数据"""
+    cache_dir = Path('data_cache')
+    cache_files = list(cache_dir.glob(f'ohlcv_{symbol}_*.csv'))
+    
+    if cache_files:
+        cache_file = cache_files[0]
+        # 读取CSV文件，跳过前两行
+        df = pd.read_csv(cache_file, skiprows=2)
+        df = df.iloc[:, 1:]  # 去掉第一列
+        df.columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+        df.index = pd.to_datetime(df.index)
+        df.index.name = 'Date'
+        return df
+    return None
 
-# 预热缓存
-data_manager.warm_cache(['AAPL', 'MSFT'], period='1y')
+# 使用缓存数据
+cached_data = load_cached_data('AAPL')
+if cached_data is not None:
+    print(f"成功加载缓存数据: {cached_data.shape}")
+```
+
+### 数据获取最佳实践
+
+```python
+import time
+
+def safe_get_data(data_manager, symbol, start_date, end_date, max_retries=3):
+    """安全的数据获取函数，包含重试机制"""
+    for attempt in range(max_retries):
+        try:
+            data = data_manager.get_data(symbol, start_date, end_date)
+            return data
+        except Exception as e:
+            print(f"尝试 {attempt + 1}/{max_retries} 失败: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)  # 指数退避
+            else:
+                print(f"❌ {symbol} 数据获取最终失败")
+                return None
+
+# 批量获取数据时添加延迟
+symbols = ['AAPL', 'GOOGL', 'MSFT']
+for symbol in symbols:
+    data = safe_get_data(data_manager, symbol, '2023-01-01', '2024-01-01')
+    if data is not None:
+        print(f"✅ {symbol} 数据获取成功")
+    time.sleep(1)  # 避免API限制
 ```
 
 ## 🧮 因子计算
 
-### 创建因子引擎
+### 正确的因子计算流程
 
 ```python
-# 创建因子引擎
-factor_engine = quant.create_factor_engine()
+from src.factors.engine import FactorEngine
+from src.data.data_manager import DataManager
 
-# 计算技术因子
+# 1. 获取数据
+data_manager = DataManager()
+data = data_manager.get_data('AAPL', '2023-01-01', '2024-01-01')
+
+# 2. 创建因子引擎
+factor_engine = FactorEngine()
+
+# 3. 计算技术因子
 tech_factors = factor_engine.compute_technical(data)
 print(f"计算了 {len(tech_factors.columns)} 个技术因子")
 
-# 计算基本面因子
-fundamental_factors = factor_engine.compute_fundamental(
-    price_data=data,
-    fundamental_data=fundamental_data
-)
+# 4. 计算风险因子
+risk_factors = factor_engine.compute_risk(data)
+print(f"计算了 {len(risk_factors.columns)} 个风险因子")
+
+# 5. 计算所有因子
+all_factors = factor_engine.compute_all(data)
+print(f"总共计算了 {len(all_factors.columns)} 个因子")
 ```
 
-### 多因子模型
+### 因子标准化和处理
 
 ```python
-from src.factors import MultiFactorModel, FactorConfig, ModelConfig
+# 因子标准化
+normalized_factors = factor_engine.normalize_factors(all_factors)
 
-# 配置因子
-factor_config = FactorConfig(
-    technical_factors=['momentum_20', 'rsi_14', 'volatility_20'],
-    fundamental_factors=['pe_ratio', 'pb_ratio', 'roe'],
-    risk_factors=['market_beta', 'size_factor']
-)
+# 因子去极值
+winsorized_factors = factor_engine.winsorize_factors(all_factors)
 
-# 配置模型
-model_config = ModelConfig(
-    model_type='ridge',  # 'linear', 'ridge', 'lasso', 'random_forest'
-    alpha=0.1,
-    lookback_window=252,
-    rebalance_frequency='monthly'
-)
-
-# 创建和训练模型
-model = MultiFactorModel(factor_config, model_config)
-model.fit(factor_data, return_data)
-
-# 预测收益
-predictions = model.predict(new_factor_data)
+# 计算因子得分
+factor_scores = factor_engine.compute_factor_score(all_factors)
+print(f"因子得分: {factor_scores}")
 ```
 
 ## 📈 投资组合优化
@@ -442,34 +486,90 @@ class MyCustomFactor(BaseFactor):
 factor_engine.register_factor('my_custom_factor', MyCustomFactor)
 ```
 
+## 📋 示例脚本
+
+系统提供了多个示例脚本帮助您快速上手：
+
+### 1. 数据获取教程
+```bash
+# 基础数据获取演示
+python examples/data_tutorial.py
+
+# 数据获取演示（避免API限制）
+python examples/data_fetch_demo.py
+
+# 缓存数据使用演示
+python examples/cached_data_demo.py
+```
+
+### 2. 因子分析教程
+```bash
+# 因子计算教程
+python examples/factor_tutorial.py
+
+# 因子评估演示
+python examples/factor_evaluation.py
+```
+
+### 3. 策略测试
+```bash
+# 策略测试演示
+python examples/strategy_testing_demo.py
+
+# MVP演示
+python examples/mvp_demo.py
+```
+
 ## 🚨 常见问题
 
 ### Q: 数据获取失败怎么办？
-A: 检查网络连接和API密钥配置，可以尝试清理缓存后重新获取。
+**A**: 
+1. 检查网络连接
+2. 使用缓存数据：`python examples/cached_data_demo.py`
+3. 添加请求延迟避免API限制
+4. 检查 yfinance 库版本
 
-### Q: 回测结果不准确？
-A: 确保数据质量，检查交易成本设置，验证策略逻辑的正确性。
+### Q: FactorEngine 没有 get_data 方法？
+**A**: 
+请使用 `DataManager` 类获取数据：
+```python
+from src.data.data_manager import DataManager
+data_manager = DataManager()
+data = data_manager.get_data('AAPL', '2023-01-01', '2024-01-01')
+```
 
-### Q: 内存使用过高？
-A: 使用数据分批处理，及时清理不需要的变量，调整缓存大小。
+### Q: yfinance 出现 YFRateLimitError？
+**A**: 
+1. 使用缓存数据避免频繁请求
+2. 添加请求间隔：`time.sleep(1)`
+3. 使用重试机制
+4. 考虑使用代理服务器
 
-### Q: 计算速度慢？
-A: 启用并行计算，使用缓存机制，优化数据结构。
+### Q: 数据库连接失败？
+**A**: 
+系统可以在没有数据库的情况下正常运行，使用文件缓存作为替代。
+
+### Q: 缓存数据格式问题？
+**A**: 
+使用提供的 `load_cached_data()` 函数正确加载缓存数据。
 
 ## 📚 更多资源
 
+- [详细数据使用指南](docs/DATA_USAGE_GUIDE.md)
 - [API文档](docs/api.md)
 - [策略开发指南](docs/strategy_development.md)
 - [因子开发指南](docs/factor_development.md)
 - [最佳实践](docs/best_practices.md)
-- [常见问题解答](docs/faq.md)
+- [常见问题解答](docs/FAQ_TROUBLESHOOTING.md)
 
 ## 💡 提示和技巧
 
-1. **数据缓存**: 充分利用缓存机制，避免重复获取相同数据
-2. **批量处理**: 尽量批量处理多只股票，提高效率
-3. **内存管理**: 及时释放不需要的大型数据对象
-4. **参数调优**: 使用网格搜索或贝叶斯优化进行参数调优
-5. **风险控制**: 始终设置合理的风险限制和止损机制
+1. **优先使用缓存**: 充分利用 `data_cache` 目录中的缓存数据
+2. **避免API限制**: 添加适当的请求延迟，使用重试机制
+3. **正确的数据获取**: 使用 `DataManager` 而不是 `FactorEngine.get_data()`
+4. **批量处理**: 尽量批量处理多只股票，提高效率
+5. **内存管理**: 及时释放不需要的大型数据对象
+6. **参数调优**: 使用网格搜索或贝叶斯优化进行参数调优
+7. **风险控制**: 始终设置合理的风险限制和止损机制
 
-祝您使用愉快！如有问题，请随时联系我们。
+祝您使用愉快！如有问题，请参考 [FAQ文档](docs/FAQ_TROUBLESHOOTING.md) 或查看示例脚本。

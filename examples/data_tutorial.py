@@ -21,7 +21,7 @@ import seaborn as sns
 # 添加项目根目录到路径
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.factors.engine import FactorEngine
+from src.data.data_manager import DataManager
 
 def tutorial_1_basic_data_fetch():
     """
@@ -32,9 +32,9 @@ def tutorial_1_basic_data_fetch():
     print("📊 教程1: 基础数据获取")
     print("=" * 60)
     
-    # 初始化因子引擎
-    print("🔧 初始化因子引擎...")
-    engine = FactorEngine()
+    # 初始化数据管理器
+    print("🔧 初始化数据管理器...")
+    data_manager = DataManager()
     
     # 获取苹果公司股票数据
     print("📈 获取AAPL股票数据...")
@@ -42,7 +42,7 @@ def tutorial_1_basic_data_fetch():
     period = '3m'  # 3个月数据
     
     try:
-        data = engine.get_data([symbol], period=period)
+        data = data_manager.get_data([symbol], period=period)
         
         print(f"✅ 成功获取 {symbol} 股票数据")
         print(f"   数据形状: {data.shape}")
@@ -72,8 +72,8 @@ def tutorial_2_multiple_stocks():
     print("📊 教程2: 多只股票数据获取")
     print("=" * 60)
     
-    # 初始化因子引擎
-    engine = FactorEngine()
+    # 初始化数据管理器
+    data_manager = DataManager()
     
     # 定义股票池
     symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN']
@@ -82,19 +82,26 @@ def tutorial_2_multiple_stocks():
     try:
         # 获取数据
         print("📥 正在获取数据...")
-        data = engine.get_data(symbols, period='2m')
+        data = data_manager.get_data(symbols, period='2m')
         
         print(f"✅ 成功获取 {len(symbols)} 只股票数据")
         print(f"   总数据形状: {data.shape}")
         
         # 分析每只股票的数据
         print("\n📈 各股票数据概览:")
-        for symbol in symbols:
-            symbol_data = data[data['symbol'] == symbol]
-            if not symbol_data.empty:
-                latest_price = symbol_data['close'].iloc[-1]
-                price_change = (symbol_data['close'].iloc[-1] / symbol_data['close'].iloc[0] - 1) * 100
-                print(f"   {symbol}: 最新价格 ${latest_price:.2f}, 期间涨跌 {price_change:+.2f}%")
+        if len(symbols) == 1:
+            # 单只股票情况
+            latest_price = data['Close'].iloc[-1]
+            price_change = (data['Close'].iloc[-1] / data['Close'].iloc[0] - 1) * 100
+            print(f"   {symbols[0]}: 最新价格 ${latest_price:.2f}, 期间涨跌 {price_change:+.2f}%")
+        else:
+            # 多只股票情况
+            for symbol in symbols:
+                if symbol in data.columns.get_level_values(0):
+                    symbol_data = data[symbol]
+                    latest_price = symbol_data['Close'].iloc[-1]
+                    price_change = (symbol_data['Close'].iloc[-1] / symbol_data['Close'].iloc[0] - 1) * 100
+                    print(f"   {symbol}: 最新价格 ${latest_price:.2f}, 期间涨跌 {price_change:+.2f}%")
         
         return data
         
@@ -133,19 +140,19 @@ def tutorial_3_cache_mechanism():
     
     # 演示缓存效果
     print("\n⏱️  缓存性能测试:")
-    engine = FactorEngine()
+    data_manager = DataManager()
     symbol = 'AAPL'
     
     # 第一次获取（可能需要下载）
     import time
     start_time = time.time()
-    data1 = engine.get_data([symbol], period='1m')
+    data1 = data_manager.get_data([symbol], period='1m')
     first_time = time.time() - start_time
     print(f"   首次获取耗时: {first_time:.2f} 秒")
     
     # 第二次获取（使用缓存）
     start_time = time.time()
-    data2 = engine.get_data([symbol], period='1m')
+    data2 = data_manager.get_data([symbol], period='1m')
     second_time = time.time() - start_time
     print(f"   缓存获取耗时: {second_time:.2f} 秒")
     
@@ -165,8 +172,8 @@ def tutorial_4_data_processing():
     print("=" * 60)
     
     # 获取数据
-    engine = FactorEngine()
-    data = engine.get_data(['AAPL'], period='2m')
+    data_manager = DataManager()
+    data = data_manager.get_data(['AAPL'], period='2m')
     
     if data is None or data.empty:
         print("❌ 无法获取数据，跳过数据处理教程")
@@ -176,48 +183,70 @@ def tutorial_4_data_processing():
     print(f"   数据形状: {data.shape}")
     print(f"   时间范围: {data.index[0]} 到 {data.index[-1]}")
     
+    # 处理单只股票数据
+    if len(data.columns.levels) > 1:
+        # 多级列索引，提取AAPL数据
+        close_data = data[('AAPL', 'Close')]
+    else:
+        # 单级列索引
+        close_data = data['Close']
+    
     # 计算收益率
     print("\n💰 计算收益率:")
-    data['returns'] = data['close'].pct_change()
-    data['log_returns'] = np.log(data['close'] / data['close'].shift(1))
+    returns = close_data.pct_change()
+    log_returns = np.log(close_data / close_data.shift(1))
     
-    print(f"   日收益率均值: {data['returns'].mean():.4f}")
-    print(f"   日收益率标准差: {data['returns'].std():.4f}")
-    print(f"   年化收益率: {data['returns'].mean() * 252:.2%}")
-    print(f"   年化波动率: {data['returns'].std() * np.sqrt(252):.2%}")
+    print(f"   日收益率均值: {returns.mean():.4f}")
+    print(f"   日收益率标准差: {returns.std():.4f}")
+    print(f"   年化收益率: {returns.mean() * 252:.2%}")
+    print(f"   年化波动率: {returns.std() * np.sqrt(252):.2%}")
     
     # 计算技术指标
     print("\n📈 计算技术指标:")
     
     # 移动平均线
-    data['sma_5'] = data['close'].rolling(window=5).mean()
-    data['sma_20'] = data['close'].rolling(window=20).mean()
+    sma_5 = close_data.rolling(window=5).mean()
+    sma_20 = close_data.rolling(window=20).mean()
     
     # 布林带
-    data['bb_middle'] = data['close'].rolling(window=20).mean()
-    data['bb_std'] = data['close'].rolling(window=20).std()
-    data['bb_upper'] = data['bb_middle'] + (data['bb_std'] * 2)
-    data['bb_lower'] = data['bb_middle'] - (data['bb_std'] * 2)
+    bb_middle = close_data.rolling(window=20).mean()
+    bb_std = close_data.rolling(window=20).std()
+    bb_upper = bb_middle + (bb_std * 2)
+    bb_lower = bb_middle - (bb_std * 2)
     
     # RSI
-    delta = data['close'].diff()
+    delta = close_data.diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
     rs = gain / loss
-    data['rsi'] = 100 - (100 / (1 + rs))
+    rsi = 100 - (100 / (1 + rs))
     
     print("   ✅ 5日移动平均线")
     print("   ✅ 20日移动平均线")
     print("   ✅ 布林带 (上轨、中轨、下轨)")
     print("   ✅ RSI相对强弱指数")
     
+    # 创建处理后的数据框
+    processed_data = pd.DataFrame({
+        'close': close_data,
+        'returns': returns,
+        'sma_5': sma_5,
+        'sma_20': sma_20,
+        'bb_upper': bb_upper,
+        'bb_middle': bb_middle,
+        'bb_lower': bb_lower,
+        'rsi': rsi
+    })
+    
     # 显示最新指标值
-    latest = data.iloc[-1]
+    latest = processed_data.iloc[-1]
     print(f"\n📊 最新指标值 ({latest.name.strftime('%Y-%m-%d')}):")
     print(f"   收盘价: ${latest['close']:.2f}")
     print(f"   5日均线: ${latest['sma_5']:.2f}")
     print(f"   20日均线: ${latest['sma_20']:.2f}")
     print(f"   RSI: {latest['rsi']:.1f}")
+    
+    return processed_data
     
     return data
 
@@ -307,12 +336,12 @@ def tutorial_6_troubleshooting():
     print("🔧 教程6: 常见问题排查")
     print("=" * 60)
     
-    engine = FactorEngine()
+    data_manager = DataManager()
     
     # 问题1: 无效股票代码
     print("❌ 问题1: 无效股票代码")
     try:
-        invalid_data = engine.get_data(['INVALID_SYMBOL'], period='1m')
+        invalid_data = data_manager.get_data(['INVALID_SYMBOL'], period='1m')
         print("   意外：无效代码竟然返回了数据")
     except Exception as e:
         print(f"   预期错误: {str(e)}")
@@ -328,7 +357,7 @@ def tutorial_6_troubleshooting():
     # 问题3: 数据缺失处理
     print("\n📊 问题3: 数据缺失处理")
     try:
-        data = engine.get_data(['AAPL'], period='1m')
+        data = data_manager.get_data(['AAPL'], period='1m')
         if data is not None:
             # 检查缺失值
             missing_count = data.isnull().sum().sum()

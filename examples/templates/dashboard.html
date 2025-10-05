@@ -1,0 +1,524 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firstrade交易系统监控面板</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 300;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-online {
+            background-color: #4CAF50;
+        }
+        
+        .status-offline {
+            background-color: #f44336;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 0.5rem;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .metric-label {
+            font-weight: 500;
+        }
+        
+        .metric-value {
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 1rem;
+        }
+        
+        .alert {
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+        
+        .alert-info {
+            background-color: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+        
+        .alert-warning {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        
+        .alert-error {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        
+        .alert-critical {
+            background-color: #f5c6cb;
+            border-color: #dc3545;
+            color: #721c24;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.7; }
+        }
+        
+        .market-data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .market-item {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .market-symbol {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #333;
+        }
+        
+        .market-price {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+        
+        .market-change {
+            font-size: 0.9rem;
+        }
+        
+        .positive {
+            color: #4CAF50;
+        }
+        
+        .negative {
+            color: #f44336;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Firstrade交易系统监控面板 <span id="status-indicator" class="status-indicator status-offline"></span></h1>
+    </div>
+    
+    <div class="dashboard">
+        <!-- 系统指标 -->
+        <div class="card">
+            <h3>系统指标</h3>
+            <div id="system-metrics">
+                <div class="loading">加载中...</div>
+            </div>
+            <div class="chart-container">
+                <canvas id="system-chart"></canvas>
+            </div>
+        </div>
+        
+        <!-- 交易指标 -->
+        <div class="card">
+            <h3>交易指标</h3>
+            <div id="trading-metrics">
+                <div class="loading">加载中...</div>
+            </div>
+            <div class="chart-container">
+                <canvas id="trading-chart"></canvas>
+            </div>
+        </div>
+        
+        <!-- 市场数据 -->
+        <div class="card">
+            <h3>市场数据</h3>
+            <div id="market-data" class="market-data-grid">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+        
+        <!-- 警报 -->
+        <div class="card">
+            <h3>系统警报</h3>
+            <div id="alerts">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // WebSocket连接
+        const socket = io();
+        
+        // 图表实例
+        let systemChart, tradingChart;
+        
+        // 连接状态
+        socket.on('connect', function() {
+            console.log('已连接到服务器');
+            document.getElementById('status-indicator').className = 'status-indicator status-online';
+            
+            // 请求初始数据
+            socket.emit('request_data', {type: 'system_metrics'});
+            socket.emit('request_data', {type: 'trading_metrics'});
+            socket.emit('request_data', {type: 'market_data'});
+            socket.emit('request_data', {type: 'alerts'});
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('与服务器断开连接');
+            document.getElementById('status-indicator').className = 'status-indicator status-offline';
+        });
+        
+        // 系统指标更新
+        socket.on('system_metrics', function(data) {
+            updateSystemMetrics(data);
+            updateSystemChart(data);
+        });
+        
+        socket.on('system_metrics_update', function(data) {
+            updateSystemMetrics([data]);
+            updateSystemChart([data]);
+        });
+        
+        // 交易指标更新
+        socket.on('trading_metrics', function(data) {
+            updateTradingMetrics(data);
+            updateTradingChart(data);
+        });
+        
+        socket.on('trading_metrics_update', function(data) {
+            updateTradingMetrics([data]);
+            updateTradingChart([data]);
+        });
+        
+        // 市场数据更新
+        socket.on('market_data', function(data) {
+            updateMarketData(data);
+        });
+        
+        socket.on('market_data_update', function(data) {
+            updateMarketData(data);
+        });
+        
+        // 警报更新
+        socket.on('alerts', function(data) {
+            updateAlerts(data);
+        });
+        
+        socket.on('new_alerts', function(data) {
+            updateAlerts(data, true);
+        });
+        
+        // 更新系统指标
+        function updateSystemMetrics(data) {
+            if (!data || data.length === 0) return;
+            
+            const latest = data[data.length - 1];
+            const container = document.getElementById('system-metrics');
+            
+            container.innerHTML = `
+                <div class="metric">
+                    <span class="metric-label">CPU使用率</span>
+                    <span class="metric-value">${latest.cpu_usage.toFixed(1)}%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">内存使用率</span>
+                    <span class="metric-value">${latest.memory_usage.toFixed(1)}%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">磁盘使用率</span>
+                    <span class="metric-value">${latest.disk_usage.toFixed(1)}%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">活跃连接</span>
+                    <span class="metric-value">${latest.active_connections}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">错误数</span>
+                    <span class="metric-value">${latest.error_count}</span>
+                </div>
+            `;
+        }
+        
+        // 更新交易指标
+        function updateTradingMetrics(data) {
+            if (!data || data.length === 0) return;
+            
+            const latest = data[data.length - 1];
+            const container = document.getElementById('trading-metrics');
+            
+            container.innerHTML = `
+                <div class="metric">
+                    <span class="metric-label">总交易数</span>
+                    <span class="metric-value">${latest.total_trades}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">成功交易</span>
+                    <span class="metric-value">${latest.successful_trades}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">胜率</span>
+                    <span class="metric-value">${(latest.win_rate * 100).toFixed(1)}%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">总盈利</span>
+                    <span class="metric-value ${latest.total_profit >= 0 ? 'positive' : 'negative'}">
+                        $${latest.total_profit.toLocaleString()}
+                    </span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">投资组合价值</span>
+                    <span class="metric-value">$${latest.portfolio_value.toLocaleString()}</span>
+                </div>
+            `;
+        }
+        
+        // 更新市场数据
+        function updateMarketData(data) {
+            const container = document.getElementById('market-data');
+            
+            if (!data || Object.keys(data).length === 0) {
+                container.innerHTML = '<div class="loading">暂无市场数据</div>';
+                return;
+            }
+            
+            let html = '';
+            for (const [symbol, info] of Object.entries(data)) {
+                const changeClass = info.change >= 0 ? 'positive' : 'negative';
+                const changeSign = info.change >= 0 ? '+' : '';
+                
+                html += `
+                    <div class="market-item">
+                        <div class="market-symbol">${symbol}</div>
+                        <div class="market-price">$${info.price.toFixed(2)}</div>
+                        <div class="market-change ${changeClass}">
+                            ${changeSign}${info.change.toFixed(2)} (${changeSign}${info.change_percent.toFixed(2)}%)
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        // 更新警报
+        function updateAlerts(data, isNew = false) {
+            const container = document.getElementById('alerts');
+            
+            if (!data || data.length === 0) {
+                if (!isNew) {
+                    container.innerHTML = '<div class="loading">暂无警报</div>';
+                }
+                return;
+            }
+            
+            let html = '';
+            data.forEach(alert => {
+                const alertClass = `alert-${alert.level.toLowerCase()}`;
+                const time = new Date(alert.timestamp).toLocaleTimeString();
+                
+                html += `
+                    <div class="alert ${alertClass}">
+                        <strong>[${alert.level}] ${alert.category}</strong><br>
+                        ${alert.message}<br>
+                        <small>${time}</small>
+                    </div>
+                `;
+            });
+            
+            if (isNew) {
+                container.innerHTML = html + container.innerHTML;
+            } else {
+                container.innerHTML = html;
+            }
+        }
+        
+        // 初始化图表
+        function initCharts() {
+            // 系统指标图表
+            const systemCtx = document.getElementById('system-chart').getContext('2d');
+            systemChart = new Chart(systemCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'CPU使用率',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }, {
+                        label: '内存使用率',
+                        data: [],
+                        borderColor: 'rgb(255, 99, 132)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+            
+            // 交易指标图表
+            const tradingCtx = document.getElementById('trading-chart').getContext('2d');
+            tradingChart = new Chart(tradingCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '投资组合价值',
+                        data: [],
+                        borderColor: 'rgb(54, 162, 235)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+        
+        // 更新系统图表
+        function updateSystemChart(data) {
+            if (!systemChart || !data || data.length === 0) return;
+            
+            data.forEach(item => {
+                const time = new Date(item.timestamp).toLocaleTimeString();
+                systemChart.data.labels.push(time);
+                systemChart.data.datasets[0].data.push(item.cpu_usage);
+                systemChart.data.datasets[1].data.push(item.memory_usage);
+                
+                // 保持最多20个数据点
+                if (systemChart.data.labels.length > 20) {
+                    systemChart.data.labels.shift();
+                    systemChart.data.datasets[0].data.shift();
+                    systemChart.data.datasets[1].data.shift();
+                }
+            });
+            
+            systemChart.update();
+        }
+        
+        // 更新交易图表
+        function updateTradingChart(data) {
+            if (!tradingChart || !data || data.length === 0) return;
+            
+            data.forEach(item => {
+                const time = new Date(item.timestamp).toLocaleTimeString();
+                tradingChart.data.labels.push(time);
+                tradingChart.data.datasets[0].data.push(item.portfolio_value);
+                
+                // 保持最多20个数据点
+                if (tradingChart.data.labels.length > 20) {
+                    tradingChart.data.labels.shift();
+                    tradingChart.data.datasets[0].data.shift();
+                }
+            });
+            
+            tradingChart.update();
+        }
+        
+        // 页面加载完成后初始化图表
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+        });
+    </script>
+</body>
+</html>

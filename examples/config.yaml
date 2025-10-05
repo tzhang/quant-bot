@@ -1,0 +1,227 @@
+# Firstrade交易系统配置文件
+# 该文件包含系统运行所需的所有配置参数
+
+# Firstrade账户配置
+account:
+  # 用户名（请在实际使用时填入真实用户名）
+  username: "your_username_here"
+  # 密码（请在实际使用时填入真实密码，建议使用环境变量）
+  password: "your_password_here"
+  # PIN码（如果需要）
+  pin: "your_pin_here"
+  
+# 交易配置
+trading:
+  # 是否启用模拟交易模式（true=模拟，false=真实交易）
+  dry_run: true
+  # 是否需要用户确认真实交易
+  require_confirmation: true
+  # 默认交易股票列表
+  default_symbols: ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA"]
+  # 投资组合再平衡频率（天）
+  rebalance_frequency: 30
+
+# 风险管理配置
+risk_management:
+  # 风险等级 (low, medium, high, extreme)
+  risk_level: "medium"
+  # 每日最大交易次数
+  max_daily_trades: 10
+  # 单个股票最大仓位比例
+  max_position_size: 0.15
+  # 每日最大亏损比例
+  max_daily_loss: 0.05
+  # 最大总仓位比例
+  max_total_exposure: 0.8
+  # 最小现金储备比例
+  min_cash_reserve: 0.1
+  # 止损阈值
+  stop_loss_threshold: 0.08
+  # 止盈阈值
+  take_profit_threshold: 0.20
+  # 单笔订单最大金额
+  max_order_value: 50000
+  # 允许交易的股票列表（空表示不限制）
+  allowed_symbols: []
+  # 禁止交易的股票列表
+  forbidden_symbols: ["SPAC", "OTC"]
+  # 仅在交易时间内交易
+  trading_hours_only: true
+  # 启用熔断机制
+  enable_circuit_breaker: true
+
+# 数据获取配置
+data_fetcher:
+  # 数据源配置
+  sources:
+    # Alpha Vantage API密钥
+    alpha_vantage_key: "your_alpha_vantage_key"
+    # Yahoo Finance（免费，无需API密钥）
+    use_yahoo_finance: true
+    # 数据更新频率（秒）
+    update_frequency: 300
+  # 历史数据天数
+  historical_days: 252
+  # 实时数据刷新间隔（秒）
+  realtime_refresh: 60
+
+# 情感分析配置
+sentiment_analysis:
+  # 新闻源配置
+  news_sources:
+    - "reuters"
+    - "bloomberg"
+    - "cnbc"
+  # 社交媒体源
+  social_sources:
+    - "twitter"
+    - "reddit"
+  # 情感分析权重
+  sentiment_weight: 0.3
+  # 新闻数据天数
+  news_days: 7
+
+# 投资组合优化配置
+portfolio_optimization:
+  # 优化方法 (mean_variance, risk_parity, black_litterman)
+  method: "mean_variance"
+  # 风险厌恶系数
+  risk_aversion: 1.0
+  # 最小权重
+  min_weight: 0.01
+  # 最大权重
+  max_weight: 0.30
+  # 再平衡阈值
+  rebalance_threshold: 0.05
+
+# 技术指标配置
+technical_indicators:
+  # 移动平均线周期
+  ma_periods: [5, 10, 20, 50, 200]
+  # RSI周期
+  rsi_period: 14
+  # MACD参数
+  macd_fast: 12
+  macd_slow: 26
+  macd_signal: 9
+  # 布林带参数
+  bollinger_period: 20
+  bollinger_std: 2
+
+# 错误处理配置
+error_handling:
+  # 重试配置
+  retry:
+    # 最大重试次数
+    max_retries: 3
+    # 重试间隔（秒）
+    retry_delay: 1.0
+    # 退避倍数
+    backoff_factor: 2.0
+    # 重试的HTTP状态码
+    retry_status_codes: [429, 500, 502, 503, 504]
+  
+  # 熔断器配置
+  circuit_breaker:
+    # 失败阈值
+    failure_threshold: 5
+    # 恢复超时（秒）
+    recovery_timeout: 60
+    # 半开状态测试请求数
+    half_open_max_calls: 3
+
+# 日志配置
+logging:
+  # 日志级别 (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  level: "INFO"
+  # 日志文件路径
+  file_path: "logs/firstrade_system.log"
+  # 日志格式
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  # 日志文件最大大小（MB）
+  max_file_size: 10
+  # 保留的日志文件数量
+  backup_count: 5
+
+# 安全配置
+security:
+  # 会话超时时间（小时）
+  session_timeout: 1
+  # 凭据加密密钥文件路径
+  encryption_key_file: "security/encryption.key"
+  # 凭据存储文件路径
+  credentials_file: "security/credentials.enc"
+  # 启用SSL验证
+  ssl_verify: true
+
+# 性能配置
+performance:
+  # 最大并发请求数
+  max_concurrent_requests: 10
+  # 请求超时时间（秒）
+  request_timeout: 30
+  # 连接池大小
+  connection_pool_size: 20
+  # 内存使用限制（MB）
+  memory_limit: 512
+
+# 通知配置
+notifications:
+  # 启用邮件通知
+  email:
+    enabled: false
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    username: "your_email@gmail.com"
+    password: "your_app_password"
+    recipients: ["your_email@gmail.com"]
+  
+  # 启用Slack通知
+  slack:
+    enabled: false
+    webhook_url: "your_slack_webhook_url"
+    channel: "#trading-alerts"
+  
+  # 通知触发条件
+  triggers:
+    # 大额交易通知阈值
+    large_trade_threshold: 10000
+    # 重大亏损通知阈值
+    major_loss_threshold: 0.05
+    # 系统错误通知
+    system_errors: true
+
+# 数据存储配置
+storage:
+  # 数据库类型 (sqlite, postgresql, mysql)
+  database_type: "sqlite"
+  # 数据库连接字符串
+  database_url: "sqlite:///data/trading_data.db"
+  # 数据保留天数
+  data_retention_days: 365
+  # 自动备份
+  auto_backup: true
+  # 备份频率（天）
+  backup_frequency: 7
+
+# API配置
+api:
+  # API服务器端口
+  port: 8080
+  # 启用API服务器
+  enabled: false
+  # API密钥
+  api_key: "your_api_key_here"
+  # 允许的IP地址
+  allowed_ips: ["127.0.0.1", "localhost"]
+
+# 开发和调试配置
+development:
+  # 启用调试模式
+  debug: false
+  # 启用性能分析
+  profiling: false
+  # 测试模式
+  test_mode: false
+  # 模拟数据
+  use_mock_data: false
