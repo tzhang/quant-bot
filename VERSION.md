@@ -1,167 +1,75 @@
-# 量化交易系统开发环境 v1.3.0
+# 版本历史
 
-## 版本信息
-- **版本号**: 1.4.0
-- **发布日期**: 2025-01-04
-- **Python版本**: 3.12.11
-- **状态**: 稳定版本
-- **重大更新**: 策略开发与回测系统 + 多因子量化模型
+## v1.2.0-broker-support (2025-01-05)
 
-## 环境配置概览
+### 🚀 新增功能
+- **新增4个券商支持**: TD Ameritrade、Charles Schwab、E*TRADE、Robinhood
+- **统一券商接口**: 所有券商实现相同的 `TradingSystemInterface`
+- **配置系统增强**: 支持新券商的环境变量和配置类
+- **券商工厂模式**: 支持动态创建和管理多个券商实例
+- **完整测试套件**: 包含功能测试、配置集成测试和错误处理测试
+- **实时监控系统**: 添加系统监控、告警和仪表板功能
 
-### 🎯 核心特性
-- ✅ Python 3.12 完美兼容性
-- ✅ 完整的量化交易开发环境
-- ✅ 24个核心库成功集成（100%成功率）
-- ✅ 专业量化分析库全面支持
-- ✅ 高性能计算优化（Numba JIT）
-- ✅ 高级数据抓取优化系统（v1.3.0 新增）🆕
-- ✅ 智能反频率限制处理（v1.3.0 新增）🆕
-- ✅ 多源数据获取保障（v1.3.0 新增）🆕
-- ✅ 数据获取和技术分析功能验证
-- ✅ Web应用开发支持
-- ✅ 完整的测试和开发工具链
-- ✅ 两人团队协作方案
+### 📁 新增文件
+- `examples/td_ameritrade_adapter.py` - TD Ameritrade 适配器
+- `examples/charles_schwab_adapter.py` - Charles Schwab 适配器
+- `examples/etrade_adapter.py` - E*TRADE 适配器
+- `examples/robinhood_adapter.py` - Robinhood 适配器
+- `examples/test_new_brokers.py` - 新券商功能测试
+- `examples/test_config_integration.py` - 配置集成测试
+- `examples/run_all_tests.py` - 测试套件运行器
+- `examples/README_new_brokers.md` - 新券商使用文档
+- `src/monitoring/alert_system.py` - 告警系统
+- `src/monitoring/dashboard.py` - 监控仪表板
+- `src/monitoring/real_time_monitor.py` - 实时监控
 
-### 📦 已安装核心依赖
+### 🔧 修改文件
+- `examples/config.py` - 添加新券商配置类和环境变量支持
+- `examples/broker_factory.py` - 支持新券商创建和初始化
+- `src/monitoring/system_monitor.py` - 完善监控功能
 
-#### 数据处理与分析
-- pandas 2.3.3 - 数据处理和分析
-- numpy 2.2.6 - 数值计算
-- scipy 1.16.2 - 科学计算
+### 🎯 技术特性
+- **7个券商API统一支持**: Firstrade、Alpaca、Interactive Brokers、TD Ameritrade、Charles Schwab、E*TRADE、Robinhood
+- **沙盒模式**: 支持测试环境和生产环境切换
+- **干运行模式**: 支持模拟交易测试
+- **环境变量配置**: 安全的配置管理方式
+- **错误处理机制**: 完整的异常处理和日志记录
+- **可扩展架构**: 易于添加新的券商支持
 
-#### 数据获取
-- yfinance 0.2.66 - 金融数据获取
-- requests 2.32.3 - HTTP请求
-- beautifulsoup4 4.12.3 - 网页解析
-
-#### 机器学习
-- scikit-learn 1.7.2 - 机器学习算法
-- statsmodels 0.14.5 - 统计建模
-
-#### 技术分析
-- TA-Lib 0.4.32 - 专业技术分析库（150+指标）
-- pandas-ta 0.4.71b0 - 现代技术指标计算
-
-#### 高级量化分析
-- QuantLib 1.39 - 金融数学库
-- quantlib-python 1.18 - QuantLib Python绑定
-- numba 0.61.2 - JIT编译加速
-
-#### 量化回测框架
-- zipline-reloaded 3.1.1 - 专业回测框架
-- empyrical-reloaded - 投资组合性能分析
-- pyfolio-reloaded - 投资组合风险分析
-
-#### 投资组合优化
-- riskfolio-lib 7.0.1 - 现代投资组合理论
-- cvxpy 1.7.3 - 凸优化求解器
-
-#### 数据可视化
-- matplotlib 3.10.6 - 基础绘图
-- seaborn 0.13.2 - 统计可视化
-- plotly 6.3.0 - 交互式图表
-- bokeh 3.7.1 - Web可视化
-
-#### Web框架
-- FastAPI 0.118.0 - 现代Web API框架
-- Streamlit 1.50.0 - 数据应用快速开发
-- uvicorn 0.34.0 - ASGI服务器
-
-#### 数据库支持
-- SQLAlchemy 2.0.43 - ORM框架
-- psycopg2-binary 2.9.10 - PostgreSQL驱动
-- redis 6.4.0 - Redis客户端
-
-#### 开发工具
-- pytest 8.4.2 - 测试框架
-- black 24.12.0 - 代码格式化
-- flake8 7.1.1 - 代码检查
-- isort 5.13.2 - 导入排序
-- jupyter 1.1.1 - 交互式开发
-- ipython 8.31.0 - 增强Python shell
-
-#### 配置与工具
-- python-dotenv 1.0.1 - 环境变量管理
-- pydantic 2.10.6 - 数据验证
-- loguru 0.7.3 - 日志管理
-- click 8.1.8 - 命令行工具
-
-### 🚫 暂不兼容的库（Python 3.13）
-以下库因Python 3.13兼容性问题暂时注释：
-- TA-Lib - 技术分析库（已用pandas-ta替代）
-- numba - JIT编译器
-- quantlib-python - 量化金融库
-- zipline-reloaded - 回测框架
-- empyrical - 风险指标
-- pyfolio - 投资组合分析
-- riskfolio-lib - 风险管理
-
-### 📁 项目结构
-```
-my-quant/
-├── .env.example              # 环境变量模板
-├── .gitignore               # Git忽略文件
-├── .vscode/                 # VSCode配置
-├── Makefile                 # 构建脚本
-├── README.md                # 项目说明
-├── QUICKSTART.md            # 快速启动指南
-├── PYTHON_313_COMPATIBILITY.md  # Python 3.13兼容性说明
-├── VERSION.md               # 版本信息（本文件）
-├── requirements.txt         # 依赖列表
-├── pyproject.toml          # 项目配置
-├── pytest.ini             # 测试配置
-├── test_environment.py     # 环境测试脚本
-├── config/                 # 配置文件
-├── src/                    # 源代码
-│   ├── backtest/          # 回测模块
-│   ├── data/              # 数据模块
-│   ├── factors/           # 因子模块
-│   ├── performance/       # 性能分析
-│   ├── strategies/        # 策略模块
-│   └── utils/             # 工具函数
-├── tests/                  # 测试代码
-├── notebooks/              # Jupyter笔记本
-├── docs/                   # 文档
-├── logs/                   # 日志文件
-└── venv/                   # 虚拟环境
-```
-
-### ✅ 环境验证结果
-- Python版本: 3.13.5 ✅
-- 库导入测试: 17/17 成功 ✅
-- 数据获取测试: AAPL股票数据获取成功 ✅
-- 技术分析测试: SMA、RSI指标计算正常 ✅
-
-### 🚀 快速开始
-```bash
-# 激活虚拟环境
-source venv/bin/activate
-
-# 验证环境
-python test_environment.py
-
-# 启动Jupyter Lab
-jupyter lab
-
-# 运行测试
-pytest
-
-# 代码格式化
-make format
-```
-
-### 📚 相关文档
-- [快速启动指南](QUICKSTART.md)
-- [Python 3.13兼容性说明](PYTHON_313_COMPATIBILITY.md)
-- [系统开发需求](06-量化交易系统开发需求详细说明书.md)
-
-### 🔄 升级路径
-1. 监控不兼容库的Python 3.13支持进度
-2. 定期更新依赖版本
-3. 逐步集成更多量化金融专用库
-4. 扩展策略开发和回测功能
+### ✅ 测试覆盖
+- 券商适配器创建测试
+- 接口功能验证测试
+- 配置加载和集成测试
+- 错误处理机制测试
+- 券商工厂集成测试
 
 ---
 
-**版本1.0标志着量化交易开发环境的稳定基础已经建立，可以开始进行策略开发和系统构建。**
+## v1.2.0 (2024-12-XX)
+### 新增功能
+- 市场情绪分析工具
+- 投资组合策略分析
+- 高级数据可视化
+
+## v1.1.1 (2024-12-XX)
+### 修复
+- 数据库连接优化
+- 性能改进
+
+## v1.1.0 (2024-12-XX)
+### 新增功能
+- 多因子模型
+- 风险管理系统
+- 回测引擎
+
+## v1.0.1 (2024-12-XX)
+### 修复
+- 数据获取稳定性改进
+- 日志系统优化
+
+## v1.0.0 (2024-12-XX)
+### 初始版本
+- 基础量化交易框架
+- 数据获取和存储
+- 基本策略模板
+- 技术指标计算
