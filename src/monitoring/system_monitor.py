@@ -9,15 +9,60 @@ import threading
 import json
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Callable, Any
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from pathlib import Path
 import sqlite3
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import requests
+from enum import Enum
 
-from ..utils.logger import get_logger, logger_manager
+# 添加AlertLevel和AlertInfo的定义
+class AlertLevel(Enum):
+    """告警级别"""
+    DEBUG = "debug"
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+
+@dataclass
+class AlertInfo:
+    """告警信息"""
+    id: str
+    level: AlertLevel
+    title: str
+    message: str
+    timestamp: datetime
+    source: str
+    data: Dict[str, Any] = field(default_factory=dict)
+    resolved: bool = False
+    resolved_at: Optional[datetime] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """转换为字典"""
+        result = asdict(self)
+        result['level'] = self.level.value
+        result['timestamp'] = self.timestamp.isoformat()
+        if self.resolved_at:
+            result['resolved_at'] = self.resolved_at.isoformat()
+        return result
+
+# 尝试导入项目日志模块，如果失败则使用标准日志
+try:
+    from ..utils.logger import get_logger, logger_manager
+except ImportError:
+    import logging
+    
+    def get_logger(name):
+        return logging.getLogger(name)
+    
+    class LoggerManager:
+        def log_performance(self, *args, **kwargs):
+            pass
+    
+    logger_manager = LoggerManager()
 
 
 @dataclass
@@ -95,6 +140,8 @@ class AlertManager:
         self.rules: List[AlertRule] = []
         self.alert_history: Dict[str, List[datetime]] = {}
         self.notification_handlers: List[Callable] = []
+        self.alerts: List[AlertInfo] = []
+        self.alert_handlers: List[Callable] = []
     
     def add_rule(self, rule: AlertRule):
         """
@@ -114,6 +161,73 @@ class AlertManager:
             handler: 通知处理函数
         """
         self.notification_handlers.append(handler)
+    
+    def add_alert_handler(self, handler: Callable):
+        """
+        添加告警处理器
+        
+        Args:
+            handler: 告警处理函数
+        """
+        self.alert_handlers.append(handler)
+    
+    def create_alert(self, level: 'AlertLevel', title: str, message: str, source: str, data: Dict = None) -> 'AlertInfo':
+        """
+        创建告警
+        
+        Args:
+            level: 告警级别
+            title: 告警标题
+            message: 告警消息
+            source: 告警源
+            data: 附加数据
+            
+        Returns:
+            AlertInfo: 创建的告警信息
+        """
+        alert = AlertInfo(
+            id=f"alert_{len(self.alerts)}_{int(datetime.now().timestamp())}",
+            level=level,
+            title=title,
+            message=message,
+            timestamp=datetime.now(),
+            source=source,
+            data=data or {}
+        )
+        
+        self.alerts.append(alert)
+        
+        # 调用告警处理器
+        for handler in self.alert_handlers:
+            try:
+                handler(alert)
+            except Exception as e:
+                self.logger.error(f"告警处理器执行失败: {e}")
+        
+        return alert
+    
+    def resolve_alert(self, alert_id: str):
+        """
+        解决告警
+        
+        Args:
+            alert_id: 告警ID
+        """
+        for alert in self.alerts:
+            if alert.id == alert_id:
+                alert.resolved = True
+                alert.resolved_at = datetime.now()
+                self.logger.info(f"告警已解决: {alert_id}")
+                break
+    
+    def get_active_alerts(self) -> List['AlertInfo']:
+        """
+        获取活跃告警
+        
+        Returns:
+            List[AlertInfo]: 活跃告警列表
+        """
+        return [alert for alert in self.alerts if not getattr(alert, 'resolved', False)]
     
     def check_alerts(self, metrics: SystemMetrics):
         """
@@ -189,6 +303,25 @@ class MetricsCollector:
         """初始化指标收集器"""
         self.logger = get_logger('monitoring.collector')
         self.network_counters = psutil.net_io_counters()
+        self.metrics = []  # 添加指标存储列表
+    
+    def add_metric(self, name: str, value: float, unit: str = "", tags: Dict[str, str] = None):
+        """添加自定义指标"""
+        metric = {
+            'name': name,
+            'value': value,
+            'unit': unit,
+            'timestamp': datetime.now(),
+            'tags': tags or {}
+        }
+        self.metrics.append(metric)
+    
+    def get_metrics(self, since: datetime = None) -> List[Dict[str, Any]]:
+        """获取指标数据"""
+        if since is None:
+            return self.metrics
+        
+        return [m for m in self.metrics if m['timestamp'] >= since]
     
     def collect_system_metrics(self) -> SystemMetrics:
         """
@@ -499,9 +632,15 @@ class SystemMonitor:
         self.storage = MetricsStorage(self.config.get('db_path', 'monitoring.db'))
         self.alert_manager = AlertManager()
         
+        # 添加别名属性以兼容测试
+        self.metric_collector = self.collector
+        
         # 监控状态
         self.running = False
         self.monitor_thread = None
+        
+        # 添加 system_status 属性以兼容测试
+        self.system_status = "stopped"
         
         # 配置参数
         self.collect_interval = self.config.get('collect_interval', 60)  # 收集间隔（秒）
@@ -512,6 +651,32 @@ class SystemMonitor:
         
         # 设置通知处理器
         self._setup_notification_handlers()
+    
+    def get_metrics(self) -> List[Dict[str, Any]]:
+        """获取指标数据"""
+        return getattr(self.collector, 'metrics', [])
+    
+    def get_alerts(self) -> List[Dict[str, Any]]:
+        """获取告警数据"""
+        return [alert.to_dict() for alert in self.alert_manager.get_active_alerts()]
+    
+    def add_metric(self, metric: Dict[str, Any]):
+        """添加指标"""
+        if not hasattr(self.collector, 'metrics'):
+            self.collector.metrics = []
+        self.collector.metrics.append(metric)
+    
+    def create_alert(self, level: str, title: str, message: str, source: str = "system", data: Dict[str, Any] = None):
+        """创建告警"""
+        return self.alert_manager.create_alert(level, title, message, source, data)
+    
+    def get_system_status(self) -> Dict[str, Any]:
+        """获取系统状态"""
+        return {
+            "status": "running" if self.running else "stopped",
+            "metrics_count": len(getattr(self.collector, 'metrics', [])),
+            "alerts_count": len(self.alert_manager.get_active_alerts())
+        }
     
     def _setup_default_alerts(self):
         """设置默认告警规则"""
@@ -600,19 +765,30 @@ class SystemMonitor:
             return
         
         self.running = True
+        self.system_status = "running"  # 更新状态
         self.monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self.monitor_thread.start()
-        
         self.logger.info("系统监控已启动")
+    
+    def start_monitoring(self):
+        """启动监控（别名方法）"""
+        return self.start()
     
     def stop(self):
         """停止监控"""
-        self.running = False
+        if not self.running:
+            return
         
+        self.running = False
+        self.system_status = "stopped"  # 更新状态
         if self.monitor_thread and self.monitor_thread.is_alive():
             self.monitor_thread.join(timeout=5)
         
         self.logger.info("系统监控已停止")
+    
+    def stop_monitoring(self):
+        """停止监控（别名方法）"""
+        return self.stop()
     
     def _monitor_loop(self):
         """监控循环"""

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-券商工厂类 - 统一管理多个券商API
+券商工厂模式 - 统一管理多个券商接口
+支持Firstrade、Interactive Brokers、Alpaca等多个券商
 """
 
 import time
@@ -13,6 +14,12 @@ from abc import ABC, abstractmethod
 from config import config
 from firstrade_trading_system import FirstradeTradingSystem
 from alpaca_trading_system import AlpacaTradingSystem
+from interactive_brokers_adapter import InteractiveBrokersAdapter
+from alpaca_adapter import AlpacaAdapter
+from td_ameritrade_adapter import TDAmeritradeTradingSystemAdapter
+from charles_schwab_adapter import CharlesSchwabTradingSystemAdapter
+from etrade_adapter import ETradeTradingSystemAdapter
+from robinhood_adapter import RobinhoodTradingSystemAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -269,6 +276,71 @@ class BrokerFactory:
     def __init__(self):
         self.brokers: Dict[str, TradingSystemInterface] = {}
         self.primary_broker: Optional[str] = None
+        self.logger = logging.getLogger(__name__)
+        
+    @staticmethod
+    def create_broker(broker_type: str, **kwargs) -> TradingSystemInterface:
+        """创建券商适配器"""
+        broker_type = broker_type.lower()
+        
+        if broker_type == 'firstrade':
+            username = kwargs.get('username', 'demo_user')
+            password = kwargs.get('password', 'demo_pass')
+            pin = kwargs.get('pin', '1234')
+            dry_run = kwargs.get('dry_run', True)
+            return FirstradeAdapter(username, password, pin, dry_run)
+            
+        elif broker_type == 'ib' or broker_type == 'interactive_brokers':
+            host = kwargs.get('host', '127.0.0.1')
+            port = kwargs.get('port', 7497)
+            client_id = kwargs.get('client_id', 1)
+            return InteractiveBrokersAdapter(host, port, client_id)
+            
+        elif broker_type == 'alpaca':
+            api_key = kwargs.get('api_key', 'demo_key')
+            secret_key = kwargs.get('secret_key', 'demo_secret')
+            base_url = kwargs.get('base_url', 'https://paper-api.alpaca.markets')
+            dry_run = kwargs.get('dry_run', True)
+            return AlpacaAdapter(api_key, secret_key, base_url, dry_run)
+            
+        elif broker_type == 'td_ameritrade' or broker_type == 'td':
+            consumer_key = kwargs.get('consumer_key', 'demo_key')
+            consumer_secret = kwargs.get('consumer_secret', 'demo_secret')
+            access_token = kwargs.get('access_token', 'demo_token')
+            access_secret = kwargs.get('access_secret', 'demo_secret')
+            sandbox = kwargs.get('sandbox', True)
+            dry_run = kwargs.get('dry_run', True)
+            return TDAmeritradeTradingSystemAdapter(consumer_key, consumer_secret, access_token, access_secret, sandbox, dry_run)
+            
+        elif broker_type == 'charles_schwab' or broker_type == 'schwab':
+            app_key = kwargs.get('app_key', 'demo_key')
+            app_secret = kwargs.get('app_secret', 'demo_secret')
+            access_token = kwargs.get('access_token', 'demo_token')
+            refresh_token = kwargs.get('refresh_token', 'demo_refresh')
+            sandbox = kwargs.get('sandbox', True)
+            dry_run = kwargs.get('dry_run', True)
+            return CharlesSchwabTradingSystemAdapter(app_key, app_secret, access_token, refresh_token, sandbox, dry_run)
+            
+        elif broker_type == 'etrade' or broker_type == 'e_trade':
+            consumer_key = kwargs.get('consumer_key', 'demo_key')
+            consumer_secret = kwargs.get('consumer_secret', 'demo_secret')
+            access_token = kwargs.get('access_token', 'demo_token')
+            access_secret = kwargs.get('access_secret', 'demo_secret')
+            sandbox = kwargs.get('sandbox', True)
+            dry_run = kwargs.get('dry_run', True)
+            return ETradeTradingSystemAdapter(consumer_key, consumer_secret, access_token, access_secret, sandbox, dry_run)
+            
+        elif broker_type == 'robinhood' or broker_type == 'rh':
+            username = kwargs.get('username', 'demo_user')
+            password = kwargs.get('password', 'demo_pass')
+            device_token = kwargs.get('device_token', 'demo_device')
+            challenge_type = kwargs.get('challenge_type', 'sms')
+            sandbox = kwargs.get('sandbox', True)
+            dry_run = kwargs.get('dry_run', True)
+            return RobinhoodTradingSystemAdapter(username, password, device_token, challenge_type, sandbox, dry_run)
+            
+        else:
+            raise ValueError(f"不支持的券商类型: {broker_type}")
     
     def initialize_brokers(self) -> Dict[str, bool]:
         """初始化所有配置的券商"""
@@ -317,6 +389,102 @@ class BrokerFactory:
             except Exception as e:
                 results['alpaca'] = False
                 logger.error(f"Alpaca 初始化失败: {e}")
+        
+        # 初始化TD Ameritrade
+        if config.td_ameritrade.enabled and config.td_ameritrade.consumer_key and config.td_ameritrade.consumer_secret:
+            try:
+                td_ameritrade = TDAmeritradeTradingSystemAdapter(
+                    config.td_ameritrade.consumer_key,
+                    config.td_ameritrade.consumer_secret,
+                    config.td_ameritrade.access_token,
+                    config.td_ameritrade.access_secret,
+                    config.td_ameritrade.sandbox,
+                    config.td_ameritrade.dry_run
+                )
+                if td_ameritrade.connect():
+                    self.brokers['td_ameritrade'] = td_ameritrade
+                    results['td_ameritrade'] = True
+                    if not self.primary_broker:
+                        self.primary_broker = 'td_ameritrade'
+                    logger.info("TD Ameritrade 初始化成功")
+                else:
+                    results['td_ameritrade'] = False
+                    logger.error("TD Ameritrade 连接失败")
+            except Exception as e:
+                results['td_ameritrade'] = False
+                logger.error(f"TD Ameritrade 初始化失败: {e}")
+        
+        # 初始化Charles Schwab
+        if config.charles_schwab.enabled and config.charles_schwab.app_key and config.charles_schwab.app_secret:
+            try:
+                charles_schwab = CharlesSchwabTradingSystemAdapter(
+                    config.charles_schwab.app_key,
+                    config.charles_schwab.app_secret,
+                    config.charles_schwab.access_token,
+                    config.charles_schwab.refresh_token,
+                    config.charles_schwab.sandbox,
+                    config.charles_schwab.dry_run
+                )
+                if charles_schwab.connect():
+                    self.brokers['charles_schwab'] = charles_schwab
+                    results['charles_schwab'] = True
+                    if not self.primary_broker:
+                        self.primary_broker = 'charles_schwab'
+                    logger.info("Charles Schwab 初始化成功")
+                else:
+                    results['charles_schwab'] = False
+                    logger.error("Charles Schwab 连接失败")
+            except Exception as e:
+                results['charles_schwab'] = False
+                logger.error(f"Charles Schwab 初始化失败: {e}")
+        
+        # 初始化E*TRADE
+        if config.etrade.enabled and config.etrade.consumer_key and config.etrade.consumer_secret:
+            try:
+                etrade = ETradeTradingSystemAdapter(
+                    config.etrade.consumer_key,
+                    config.etrade.consumer_secret,
+                    config.etrade.access_token,
+                    config.etrade.access_secret,
+                    config.etrade.sandbox,
+                    config.etrade.dry_run
+                )
+                if etrade.connect():
+                    self.brokers['etrade'] = etrade
+                    results['etrade'] = True
+                    if not self.primary_broker:
+                        self.primary_broker = 'etrade'
+                    logger.info("E*TRADE 初始化成功")
+                else:
+                    results['etrade'] = False
+                    logger.error("E*TRADE 连接失败")
+            except Exception as e:
+                results['etrade'] = False
+                logger.error(f"E*TRADE 初始化失败: {e}")
+        
+        # 初始化Robinhood
+        if config.robinhood.enabled and config.robinhood.username and config.robinhood.password:
+            try:
+                robinhood = RobinhoodTradingSystemAdapter(
+                    config.robinhood.username,
+                    config.robinhood.password,
+                    config.robinhood.device_token,
+                    config.robinhood.challenge_type,
+                    config.robinhood.sandbox,
+                    config.robinhood.dry_run
+                )
+                if robinhood.connect():
+                    self.brokers['robinhood'] = robinhood
+                    results['robinhood'] = True
+                    if not self.primary_broker:
+                        self.primary_broker = 'robinhood'
+                    logger.info("Robinhood 初始化成功")
+                else:
+                    results['robinhood'] = False
+                    logger.error("Robinhood 连接失败")
+            except Exception as e:
+                results['robinhood'] = False
+                logger.error(f"Robinhood 初始化失败: {e}")
         
         # 如果没有真实券商可用，使用模拟券商
         if not self.brokers:
@@ -446,6 +614,81 @@ class BrokerFactory:
             'portfolio_value': total_portfolio_value,
             'day_change': total_day_change
         }
+
+class MultiBrokerManager:
+    """多券商管理器"""
+    
+    def __init__(self):
+        self.brokers = {}
+        self.logger = logging.getLogger(__name__)
+        
+    def add_broker(self, name: str, broker: TradingSystemInterface):
+        """添加券商"""
+        self.brokers[name] = broker
+        self.logger.info(f"已添加券商: {name}")
+        
+    def remove_broker(self, name: str):
+        """移除券商"""
+        if name in self.brokers:
+            self.brokers[name].disconnect()
+            del self.brokers[name]
+            self.logger.info(f"已移除券商: {name}")
+            
+    def connect_all(self) -> Dict[str, bool]:
+        """连接所有券商"""
+        results = {}
+        for name, broker in self.brokers.items():
+            try:
+                results[name] = broker.connect()
+                self.logger.info(f"券商 {name} 连接: {'成功' if results[name] else '失败'}")
+            except Exception as e:
+                results[name] = False
+                self.logger.error(f"券商 {name} 连接异常: {str(e)}")
+        return results
+        
+    def disconnect_all(self):
+        """断开所有券商连接"""
+        for name, broker in self.brokers.items():
+            try:
+                broker.disconnect()
+                self.logger.info(f"券商 {name} 已断开连接")
+            except Exception as e:
+                self.logger.error(f"券商 {name} 断开连接异常: {str(e)}")
+                
+    def get_all_account_info(self) -> Dict[str, Dict[str, Any]]:
+        """获取所有券商账户信息"""
+        results = {}
+        for name, broker in self.brokers.items():
+            try:
+                if hasattr(broker, 'get_account_info'):
+                    results[name] = broker.get_account_info()
+                else:
+                    results[name] = broker.get_portfolio_status()
+            except Exception as e:
+                results[name] = {"error": str(e)}
+        return results
+        
+    def get_all_positions(self) -> Dict[str, List[Dict[str, Any]]]:
+        """获取所有券商持仓"""
+        results = {}
+        for name, broker in self.brokers.items():
+            try:
+                results[name] = broker.get_positions()
+            except Exception as e:
+                results[name] = []
+                self.logger.error(f"获取 {name} 持仓失败: {str(e)}")
+        return results
+        
+    def get_broker_status(self) -> Dict[str, bool]:
+        """获取所有券商连接状态"""
+        results = {}
+        for name, broker in self.brokers.items():
+            try:
+                results[name] = broker.is_connected()
+            except Exception as e:
+                results[name] = False
+                self.logger.error(f"检查 {name} 状态失败: {str(e)}")
+        return results
 
 # 全局券商工厂实例
 broker_factory = BrokerFactory()

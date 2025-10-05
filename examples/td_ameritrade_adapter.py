@@ -1,0 +1,349 @@
+"""
+TD Ameritrade 券商适配器
+实现统一的交易系统接口
+"""
+
+import logging
+import time
+from datetime import datetime, timedelta
+from typing import Dict, List, Any, Optional
+import requests
+import json
+
+logger = logging.getLogger(__name__)
+
+class TDAmeritradeTradingSystem:
+    """TD Ameritrade 交易系统核心类"""
+    
+    def __init__(self, client_id: str, refresh_token: str = "", access_token: str = "", 
+                 redirect_uri: str = "https://localhost", sandbox: bool = True):
+        self.client_id = client_id
+        self.refresh_token = refresh_token
+        self.access_token = access_token
+        self.redirect_uri = redirect_uri
+        self.sandbox = sandbox
+        
+        # API 端点
+        if sandbox:
+            self.base_url = "https://api.tdameritrade.com/v1"
+        else:
+            self.base_url = "https://api.tdameritrade.com/v1"
+            
+        self.connected = False
+        self.account_id = None
+        
+    def authenticate(self) -> bool:
+        """认证并获取访问令牌"""
+        try:
+            if self.refresh_token:
+                # 使用刷新令牌获取新的访问令牌
+                url = f"{self.base_url}/oauth2/token"
+                data = {
+                    'grant_type': 'refresh_token',
+                    'refresh_token': self.refresh_token,
+                    'client_id': self.client_id
+                }
+                
+                response = requests.post(url, data=data)
+                if response.status_code == 200:
+                    token_data = response.json()
+                    self.access_token = token_data.get('access_token')
+                    logger.info("TD Ameritrade 认证成功")
+                    return True
+                else:
+                    logger.error(f"TD Ameritrade 认证失败: {response.text}")
+                    return False
+            else:
+                # 模拟模式，使用虚拟令牌
+                self.access_token = "demo_access_token"
+                logger.info("TD Ameritrade 模拟模式认证成功")
+                return True
+                
+        except Exception as e:
+            logger.error(f"TD Ameritrade 认证异常: {e}")
+            return False
+    
+    def get_accounts(self) -> List[Dict[str, Any]]:
+        """获取账户信息"""
+        try:
+            if not self.access_token:
+                return []
+                
+            # 模拟返回账户数据
+            return [{
+                'securitiesAccount': {
+                    'accountId': 'TD123456789',
+                    'type': 'MARGIN',
+                    'currentBalances': {
+                        'liquidationValue': 50000.0,
+                        'longMarketValue': 45000.0,
+                        'totalCash': 5000.0,
+                        'buyingPower': 100000.0
+                    },
+                    'positions': []
+                }
+            }]
+            
+        except Exception as e:
+            logger.error(f"获取TD Ameritrade账户信息失败: {e}")
+            return []
+    
+    def get_positions(self, account_id: str) -> List[Dict[str, Any]]:
+        """获取持仓信息"""
+        try:
+            # 模拟返回持仓数据
+            return [
+                {
+                    'instrument': {
+                        'symbol': 'AAPL',
+                        'assetType': 'EQUITY'
+                    },
+                    'longQuantity': 100,
+                    'shortQuantity': 0,
+                    'averagePrice': 150.0,
+                    'marketValue': 15500.0,
+                    'currentDayProfitLoss': 500.0,
+                    'currentDayProfitLossPercentage': 3.33
+                },
+                {
+                    'instrument': {
+                        'symbol': 'MSFT',
+                        'assetType': 'EQUITY'
+                    },
+                    'longQuantity': 50,
+                    'shortQuantity': 0,
+                    'averagePrice': 300.0,
+                    'marketValue': 15750.0,
+                    'currentDayProfitLoss': 750.0,
+                    'currentDayProfitLossPercentage': 5.0
+                }
+            ]
+            
+        except Exception as e:
+            logger.error(f"获取TD Ameritrade持仓信息失败: {e}")
+            return []
+    
+    def place_order(self, account_id: str, order_data: Dict[str, Any]) -> Dict[str, Any]:
+        """下单"""
+        try:
+            # 模拟下单成功
+            order_id = f"TD_{int(time.time())}"
+            logger.info(f"TD Ameritrade 模拟下单成功: {order_id}")
+            
+            return {
+                'orderId': order_id,
+                'status': 'FILLED',
+                'filledQuantity': order_data.get('quantity', 0),
+                'remainingQuantity': 0,
+                'price': order_data.get('price', 0)
+            }
+            
+        except Exception as e:
+            logger.error(f"TD Ameritrade 下单失败: {e}")
+            return {'error': str(e)}
+
+class TDAmeritradeTradingSystemAdapter:
+    """TD Ameritrade 交易系统适配器"""
+    
+    def __init__(self, client_id: str, refresh_token: str = "", access_token: str = "", 
+                 redirect_uri: str = "https://localhost", sandbox: bool = True, dry_run: bool = True):
+        self.client_id = client_id
+        self.refresh_token = refresh_token
+        self.access_token = access_token
+        self.redirect_uri = redirect_uri
+        self.sandbox = sandbox
+        self.dry_run = dry_run
+        
+        self.td_system = TDAmeritradeTradingSystem(
+            client_id=client_id,
+            refresh_token=refresh_token,
+            access_token=access_token,
+            redirect_uri=redirect_uri,
+            sandbox=sandbox
+        )
+        
+        self.connected = False
+        self.account_id = None
+        
+    def connect(self) -> bool:
+        """连接到TD Ameritrade API"""
+        try:
+            if self.td_system.authenticate():
+                accounts = self.td_system.get_accounts()
+                if accounts:
+                    self.account_id = accounts[0]['securitiesAccount']['accountId']
+                    self.connected = True
+                    logger.info(f"TD Ameritrade 连接成功，账户ID: {self.account_id}")
+                    return True
+            
+            logger.error("TD Ameritrade 连接失败")
+            return False
+            
+        except Exception as e:
+            logger.error(f"TD Ameritrade 连接异常: {e}")
+            return False
+    
+    def disconnect(self):
+        """断开连接"""
+        self.connected = False
+        self.account_id = None
+        logger.info("TD Ameritrade 连接已断开")
+    
+    def is_connected(self) -> bool:
+        """检查连接状态"""
+        return self.connected
+    
+    def get_portfolio_status(self) -> Dict[str, Any]:
+        """获取投资组合状态"""
+        try:
+            if not self.connected or not self.account_id:
+                return {'error': '未连接到TD Ameritrade'}
+            
+            accounts = self.td_system.get_accounts()
+            if not accounts:
+                return {'error': '无法获取账户信息'}
+            
+            account = accounts[0]['securitiesAccount']
+            balances = account['currentBalances']
+            
+            return {
+                'broker': 'TD Ameritrade',
+                'account_id': self.account_id,
+                'total_value': balances['liquidationValue'],
+                'cash': balances['totalCash'],
+                'buying_power': balances['buyingPower'],
+                'market_value': balances['longMarketValue'],
+                'day_change': 0.0,  # TD Ameritrade API 需要额外计算
+                'day_change_percent': 0.0,
+                'status': 'active'
+            }
+            
+        except Exception as e:
+            logger.error(f"获取TD Ameritrade投资组合状态失败: {e}")
+            return {'error': str(e)}
+    
+    def get_positions(self) -> List[Dict[str, Any]]:
+        """获取当前持仓"""
+        try:
+            if not self.connected or not self.account_id:
+                return []
+            
+            positions = self.td_system.get_positions(self.account_id)
+            
+            formatted_positions = []
+            for pos in positions:
+                instrument = pos['instrument']
+                formatted_positions.append({
+                    'symbol': instrument['symbol'],
+                    'quantity': pos['longQuantity'] - pos['shortQuantity'],
+                    'market_value': pos['marketValue'],
+                    'avg_cost': pos['averagePrice'],
+                    'unrealized_pl': pos['currentDayProfitLoss'],
+                    'unrealized_plpc': pos['currentDayProfitLossPercentage'],
+                    'asset_type': instrument['assetType'].lower()
+                })
+            
+            return formatted_positions
+            
+        except Exception as e:
+            logger.error(f"获取TD Ameritrade持仓失败: {e}")
+            return []
+    
+    def get_performance(self) -> Dict[str, Any]:
+        """获取交易表现"""
+        try:
+            portfolio = self.get_portfolio_status()
+            positions = self.get_positions()
+            
+            total_pl = sum(pos.get('unrealized_pl', 0) for pos in positions)
+            total_value = portfolio.get('total_value', 0)
+            
+            return {
+                'broker': 'TD Ameritrade',
+                'total_return': total_pl,
+                'total_return_percent': (total_pl / total_value * 100) if total_value > 0 else 0,
+                'day_return': total_pl,
+                'day_return_percent': (total_pl / total_value * 100) if total_value > 0 else 0,
+                'positions_count': len(positions),
+                'cash_balance': portfolio.get('cash', 0)
+            }
+            
+        except Exception as e:
+            logger.error(f"获取TD Ameritrade交易表现失败: {e}")
+            return {'error': str(e)}
+    
+    def place_order(self, symbol: str, quantity: int, side: str, **kwargs) -> Dict[str, Any]:
+        """下单"""
+        try:
+            if not self.connected or not self.account_id:
+                return {'error': '未连接到TD Ameritrade'}
+            
+            if self.dry_run:
+                logger.info(f"TD Ameritrade 模拟下单: {side} {quantity} {symbol}")
+                return {
+                    'order_id': f"TD_DRY_{int(time.time())}",
+                    'status': 'filled',
+                    'filled_qty': quantity,
+                    'avg_fill_price': kwargs.get('price', 100.0)
+                }
+            
+            # 构建订单数据
+            order_data = {
+                'orderType': kwargs.get('order_type', 'MARKET'),
+                'session': 'NORMAL',
+                'duration': 'DAY',
+                'orderStrategyType': 'SINGLE',
+                'orderLegCollection': [{
+                    'instruction': 'BUY' if side.upper() == 'BUY' else 'SELL',
+                    'quantity': quantity,
+                    'instrument': {
+                        'symbol': symbol,
+                        'assetType': 'EQUITY'
+                    }
+                }]
+            }
+            
+            if kwargs.get('price'):
+                order_data['price'] = kwargs['price']
+                order_data['orderType'] = 'LIMIT'
+            
+            result = self.td_system.place_order(self.account_id, order_data)
+            
+            return {
+                'order_id': result.get('orderId'),
+                'status': result.get('status', '').lower(),
+                'filled_qty': result.get('filledQuantity', 0),
+                'avg_fill_price': result.get('price', 0)
+            }
+            
+        except Exception as e:
+            logger.error(f"TD Ameritrade 下单失败: {e}")
+            return {'error': str(e)}
+    
+    def get_detailed_positions(self) -> List[Dict[str, Any]]:
+        """获取详细持仓信息"""
+        return self.get_positions()
+    
+    def calculate_portfolio_performance(self, days: int = 30) -> Dict[str, Any]:
+        """计算投资组合表现"""
+        try:
+            # 获取当前表现数据
+            performance = self.get_performance()
+            
+            # TD Ameritrade 需要历史数据来计算准确的表现
+            # 这里返回基本的表现数据
+            return {
+                'period_days': days,
+                'total_return': performance.get('total_return', 0),
+                'total_return_percent': performance.get('total_return_percent', 0),
+                'annualized_return': performance.get('total_return_percent', 0) * (365 / days),
+                'max_drawdown': 0,  # 需要历史数据计算
+                'sharpe_ratio': 0,  # 需要历史数据计算
+                'volatility': 0,    # 需要历史数据计算
+                'start_date': (datetime.now() - timedelta(days=days)).isoformat(),
+                'end_date': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"计算TD Ameritrade投资组合表现失败: {e}")
+            return {'error': str(e)}

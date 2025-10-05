@@ -30,8 +30,52 @@ class AlpacaConfig:
 class InteractiveBrokersConfig:
     """Interactive Brokers配置"""
     host: str = "127.0.0.1"
-    port: int = 7497  # TWS纸上交易端口
+    port: int = 7497
     client_id: int = 1
+    dry_run: bool = True
+    enabled: bool = False
+
+@dataclass
+class TDAmeritradConfig:
+    """TD Ameritrade配置"""
+    consumer_key: str = ""
+    consumer_secret: str = ""
+    access_token: str = ""
+    access_secret: str = ""
+    sandbox: bool = True
+    dry_run: bool = True
+    enabled: bool = False
+
+@dataclass
+class CharlesSchwabConfig:
+    """Charles Schwab配置"""
+    app_key: str = ""
+    app_secret: str = ""
+    access_token: str = ""
+    refresh_token: str = ""
+    sandbox: bool = True
+    dry_run: bool = True
+    enabled: bool = False
+
+@dataclass
+class ETradeConfig:
+    """E*TRADE配置"""
+    consumer_key: str = ""
+    consumer_secret: str = ""
+    access_token: str = ""
+    access_secret: str = ""
+    sandbox: bool = True
+    dry_run: bool = True
+    enabled: bool = False
+
+@dataclass
+class RobinhoodConfig:
+    """Robinhood配置"""
+    username: str = ""
+    password: str = ""
+    device_token: str = ""
+    challenge_type: str = "sms"
+    sandbox: bool = True
     dry_run: bool = True
     enabled: bool = False
 
@@ -67,6 +111,10 @@ class Config:
         self.firstrade = FirstradeConfig()
         self.alpaca = AlpacaConfig()
         self.interactive_brokers = InteractiveBrokersConfig()
+        self.td_ameritrade = TDAmeritradConfig()
+        self.charles_schwab = CharlesSchwabConfig()
+        self.etrade = ETradeConfig()
+        self.robinhood = RobinhoodConfig()
         self.system = SystemConfig()
         
         # 从环境变量加载配置
@@ -94,6 +142,42 @@ class Config:
         self.interactive_brokers.client_id = int(os.getenv("IB_CLIENT_ID", "1"))
         self.interactive_brokers.dry_run = os.getenv("IB_DRY_RUN", "true").lower() == "true"
         self.interactive_brokers.enabled = os.getenv("IB_ENABLED", "false").lower() == "true"
+        
+        # TD Ameritrade配置
+        self.td_ameritrade.consumer_key = os.getenv("TD_CONSUMER_KEY", "")
+        self.td_ameritrade.consumer_secret = os.getenv("TD_CONSUMER_SECRET", "")
+        self.td_ameritrade.access_token = os.getenv("TD_ACCESS_TOKEN", "")
+        self.td_ameritrade.access_secret = os.getenv("TD_ACCESS_SECRET", "")
+        self.td_ameritrade.sandbox = os.getenv("TD_SANDBOX", "true").lower() == "true"
+        self.td_ameritrade.dry_run = os.getenv("TD_DRY_RUN", "true").lower() == "true"
+        self.td_ameritrade.enabled = os.getenv("TD_ENABLED", "false").lower() == "true"
+        
+        # Charles Schwab配置
+        self.charles_schwab.app_key = os.getenv("SCHWAB_APP_KEY", "")
+        self.charles_schwab.app_secret = os.getenv("SCHWAB_APP_SECRET", "")
+        self.charles_schwab.access_token = os.getenv("SCHWAB_ACCESS_TOKEN", "")
+        self.charles_schwab.refresh_token = os.getenv("SCHWAB_REFRESH_TOKEN", "")
+        self.charles_schwab.sandbox = os.getenv("SCHWAB_SANDBOX", "true").lower() == "true"
+        self.charles_schwab.dry_run = os.getenv("SCHWAB_DRY_RUN", "true").lower() == "true"
+        self.charles_schwab.enabled = os.getenv("SCHWAB_ENABLED", "false").lower() == "true"
+        
+        # E*TRADE配置
+        self.etrade.consumer_key = os.getenv("ETRADE_CONSUMER_KEY", "")
+        self.etrade.consumer_secret = os.getenv("ETRADE_CONSUMER_SECRET", "")
+        self.etrade.access_token = os.getenv("ETRADE_ACCESS_TOKEN", "")
+        self.etrade.access_secret = os.getenv("ETRADE_ACCESS_SECRET", "")
+        self.etrade.sandbox = os.getenv("ETRADE_SANDBOX", "true").lower() == "true"
+        self.etrade.dry_run = os.getenv("ETRADE_DRY_RUN", "true").lower() == "true"
+        self.etrade.enabled = os.getenv("ETRADE_ENABLED", "false").lower() == "true"
+        
+        # Robinhood配置
+        self.robinhood.username = os.getenv("ROBINHOOD_USERNAME", "")
+        self.robinhood.password = os.getenv("ROBINHOOD_PASSWORD", "")
+        self.robinhood.device_token = os.getenv("ROBINHOOD_DEVICE_TOKEN", "")
+        self.robinhood.challenge_type = os.getenv("ROBINHOOD_CHALLENGE_TYPE", "sms")
+        self.robinhood.sandbox = os.getenv("ROBINHOOD_SANDBOX", "true").lower() == "true"
+        self.robinhood.dry_run = os.getenv("ROBINHOOD_DRY_RUN", "true").lower() == "true"
+        self.robinhood.enabled = os.getenv("ROBINHOOD_ENABLED", "false").lower() == "true"
         
         # 系统配置
         self.system.dashboard_host = os.getenv("DASHBOARD_HOST", "0.0.0.0")

@@ -366,29 +366,47 @@ class FirstradeConnector:
             bool: 登录是否成功
         """
         def _login():
-            self.ft = FTSession(
-                username=self.username, 
-                password=self.password, 
-                pin=self.pin
-            )
-            
-            # 检查登录状态
-            if hasattr(self.ft, 'is_logged_in') and self.ft.is_logged_in():
-                self.is_logged_in = True
-                self.logger.info("成功登录Firstrade账户")
-                return True
-            else:
-                # 尝试获取账户信息来验证登录
-                try:
-                    account_info = self.ft.get_account()
-                    if account_info:
+            try:
+                # 修复API调用问题：正确传递参数
+                if HAS_FIRSTRADE_API:
+                    # 使用真实的Firstrade API
+                    self.ft = FTSession()
+                    # 执行登录操作
+                    login_result = self.ft.login(self.username, self.password, self.pin)
+                    if login_result:
                         self.is_logged_in = True
-                        self.logger.info(f"成功登录Firstrade账户: {account_info.get('account_number', 'Unknown')}")
+                        self.logger.info("成功登录Firstrade账户")
                         return True
-                except:
-                    pass
+                    else:
+                        self.logger.error("登录失败：凭据无效或网络问题")
+                        return False
+                else:
+                    # 使用模拟模式
+                    self.ft = FTSession(self.username, self.password, self.pin)
+                    self.is_logged_in = True
+                    self.logger.info("模拟模式：成功登录Firstrade账户")
+                    return True
+                    
+            except Exception as e:
+                self.logger.error(f"登录过程中发生异常: {str(e)}")
+                # 尝试备用登录方式
+                try:
+                    if HAS_FIRSTRADE_API:
+                        from firstrade.account import FTSession, FTAccountData
+                        self.ft = FTSession()
+                        # 使用不同的登录方法
+                        if hasattr(self.ft, 'authenticate'):
+                            result = self.ft.authenticate(self.username, self.password, self.pin)
+                        else:
+                            result = self.ft.login(self.username, self.password, self.pin)
+                        
+                        if result:
+                            self.is_logged_in = True
+                            self.logger.info("备用方式登录成功")
+                            return True
+                except Exception as backup_e:
+                    self.logger.error(f"备用登录方式也失败: {str(backup_e)}")
                 
-                self.logger.error("登录失败：无法获取账户信息")
                 return False
         
         try:
