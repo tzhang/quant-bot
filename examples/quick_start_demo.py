@@ -117,19 +117,35 @@ def main():
     # 数据获取演示
     print_step(2, "数据获取和缓存演示")
     
-    # 选择演示股票
-    demo_symbols = ['AAPL', 'GOOGL', 'MSFT']
-    period = '6mo'  # 6个月数据
+    # 选择演示股票（用户持仓股票）
+    demo_symbols = ['HUBS', 'MDB', 'NIO', 'OKTA', 'TSLA']
+    print_info(f"演示股票（用户持仓）: {', '.join(demo_symbols)}")
+    
+    # 显示数据源信息
+    print_info("📊 数据源信息:")
+    try:
+        data_source_info = data_manager.get_data_source_info()
+        print_info(f"   主要数据源: {data_source_info.get('primary_source', 'unknown')}")
+        print_info(f"   Qlib可用: {'是' if data_source_info.get('qlib_available', False) else '否'}")
+        if data_source_info.get('qlib_available', False):
+            print_info(f"   可用股票数: {data_source_info.get('available_stocks', 0)}")
+    except Exception as e:
+        print_warning(f"获取数据源信息失败: {e}")
     
     print_info(f"正在获取股票数据: {', '.join(demo_symbols)}")
-    print_info(f"数据周期: {period}")
     
     try:
         start_time = time.time()
         
         # 第一次获取（从网络）
         print_info("首次获取数据（从网络下载）...")
-        data = data_manager.get_data(demo_symbols, period=period)
+        
+        # 使用新的DataManager接口获取数据
+        start_date = (datetime.now() - timedelta(days=180)).strftime('%Y-%m-%d')
+        end_date = datetime.now().strftime('%Y-%m-%d')
+        
+        # 获取多只股票数据
+        data = data_manager.get_multiple_stocks_data(demo_symbols, start_date, end_date)
         first_fetch_time = time.time() - start_time
         
         print_success(f"数据获取完成，耗时: {first_fetch_time:.2f}秒")
@@ -143,16 +159,18 @@ def main():
         
         # 显示缓存信息
         cache_info = data_manager.get_cache_info()
-        print_info(f"💾 缓存状态: 内存 {cache_info['memory_cache_count']} 项, 磁盘 {cache_info['disk_cache_count']} 项")
+        print_info(f"💾 缓存目录: {cache_info.get('cache_directory', 'unknown')}")
+        print_info(f"   当前文件数: {cache_info.get('cache_files', 0)}, 大小: {cache_info.get('cache_size_mb', 0):.2f} MB")
         
         # 第二次获取（从缓存）
         print_info("\n再次获取相同数据（从缓存读取）...")
         start_time = time.time()
-        data_cached = data_manager.get_data(demo_symbols, period=period)
+        data_cached = data_manager.get_multiple_stocks_data(demo_symbols, start_date, end_date)
         second_fetch_time = time.time() - start_time
         
         print_success(f"缓存数据获取完成，耗时: {second_fetch_time:.2f}秒")
-        print_info(f"缓存加速比: {first_fetch_time/second_fetch_time:.1f}x")
+        if first_fetch_time > 0 and second_fetch_time > 0:
+            print_info(f"缓存加速比: {first_fetch_time/second_fetch_time:.1f}x")
         
     except Exception as e:
         print(f"❌ 数据获取失败: {e}")
@@ -164,18 +182,39 @@ def main():
     print_step(3, "技术因子计算演示")
     
     # 选择一只股票进行详细演示
-    demo_symbol = 'AAPL'
+    demo_symbol = demo_symbols[0]  # 使用第一只股票进行演示
     demo_data = data[demo_symbol]
     
     print_info(f"使用 {demo_symbol} 数据进行因子计算演示")
     print_info(f"数据点数: {len(demo_data)}")
+    print_info(f"数据列: {list(demo_data.columns)}")
     
     try:
         # 计算技术因子
         print_info("正在计算技术因子...")
         
+        # 准备数据格式 - TechnicalFactors期望标准的OHLCV格式
+        # 将小写列名转换为大写（如果需要）
+        demo_data_formatted = demo_data.copy()
+        
+        # 创建列名映射
+        column_mapping = {
+            'open': 'Open',
+            'high': 'High', 
+            'low': 'Low',
+            'close': 'Close',
+            'volume': 'Volume'
+        }
+        
+        # 重命名列
+        for old_name, new_name in column_mapping.items():
+            if old_name in demo_data_formatted.columns and new_name not in demo_data_formatted.columns:
+                demo_data_formatted = demo_data_formatted.rename(columns={old_name: new_name})
+        
+        print_info(f"格式化后的数据列: {list(demo_data_formatted.columns)}")
+        
         # 使用技术因子计算器计算所有因子
-        factors_data = tech_factors.calculate_all_factors(demo_data)
+        factors_data = tech_factors.calculate_all_factors(demo_data_formatted)
         
         print_success("技术因子计算完成")
         print(f"   📊 原始数据列: {list(demo_data.columns)}")
@@ -188,10 +227,18 @@ def main():
         if available_cols:
             print(factors_data[available_cols].tail().round(2))
         
+        # 计算所有因子
+        print_info("正在计算所有因子（技术+风险）...")
+        all_factors = engine.compute_technical(demo_data_formatted)
+        
+        print_success("所有因子计算完成")
+        print(f"   📊 总因子数: {len(all_factors.columns)}")
+        
         # 计算动量因子（价格变化率）
         print_info("\n正在计算动量因子...")
-        momentum_5d = (demo_data['Close'] / demo_data['Close'].shift(5) - 1) * 100
-        momentum_20d = (demo_data['Close'] / demo_data['Close'].shift(20) - 1) * 100
+        close_col = 'Close' if 'Close' in demo_data_formatted.columns else 'close'
+        momentum_5d = (demo_data_formatted[close_col] / demo_data_formatted[close_col].shift(5) - 1) * 100
+        momentum_20d = (demo_data_formatted[close_col] / demo_data_formatted[close_col].shift(20) - 1) * 100
         
         print_success("动量因子计算完成")
         print(f"   📈 5日动量: {momentum_5d.iloc[-1]:.2f}%")
@@ -199,14 +246,14 @@ def main():
         
         # 计算波动率因子
         print_info("\n正在计算波动率因子...")
-        volatility_20d = demo_data['Close'].pct_change().rolling(20).std() * 100
+        volatility_20d = demo_data_formatted[close_col].pct_change().rolling(20).std() * 100
         
         print_success("波动率因子计算完成")
         print(f"   📊 20日波动率: {volatility_20d.iloc[-1]:.2f}%")
         
         # 显示最新因子值
         print_info("\n最新因子值:")
-        latest_date = demo_data.index[-1].date()
+        latest_date = demo_data_formatted.index[-1].date()
         print(f"  日期: {latest_date}")
         print(f"  5日动量: {momentum_5d.iloc[-1]:.2f}%")
         print(f"  20日动量: {momentum_20d.iloc[-1]:.2f}%")
@@ -219,7 +266,10 @@ def main():
             print(f"  布林带位置: {factors_data['BB_position'].iloc[-1]:.4f}")
         
     except Exception as e:
-        print(f"❌ 因子计算失败: {e}")
+        print_warning(f"因子计算失败: {e}")
+        print_info("这可能是由于数据格式或缺失数据导致的")
+        import traceback
+        print_info(f"详细错误信息: {traceback.format_exc()}")
         return
     
     wait_for_user()
@@ -232,7 +282,7 @@ def main():
     try:
         # 使用20日动量因子进行评估
         factor_data = momentum_20d.dropna()
-        price_data = demo_data['Close']
+        price_data = demo_data_formatted[close_col]
         
         print_info(f"评估因子: 20日动量因子")
         print_info(f"评估期间: {factor_data.index[0].date()} 到 {factor_data.index[-1].date()}")
@@ -345,13 +395,13 @@ def main():
         print_info("生成价格与信号图表...")
         # 创建简单的信号（基于因子值）
         signal = (factor_data > factor_data.median()).astype(float)
-        evaluator.plot_signal_price(demo_data, signal, save_path='examples/price_signal_demo.png')
+        evaluator.plot_signal_price(demo_data_formatted, signal, save_path='examples/price_signal_demo.png')
         print_success("价格信号图表已保存: examples/price_signal_demo.png")
         
         # 3. 模拟策略收益曲线
         print_info("生成策略收益曲线...")
         # 创建简单的策略收益（基于信号）
-        returns = demo_data['Close'].pct_change() * signal.shift(1)
+        returns = demo_data_formatted[close_col].pct_change() * signal.shift(1)
         returns = returns.dropna()
         
         if len(returns) > 0:
