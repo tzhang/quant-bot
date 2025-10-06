@@ -35,8 +35,10 @@ class TechnicalFactors:
 
     def calculate_rsi(self, df: pd.DataFrame, window: int = 14) -> pd.Series:
         if ta is not None:
-            return ta.rsi(df["Close"], length=window)
-        # Fallback RSI implementation
+            rsi = ta.rsi(self._as_series(df["Close"]), length=window)
+            if rsi is not None and not rsi.empty:
+                return rsi.fillna(50.0).astype(float)  # Fill NaN with neutral RSI value
+        # Fallback: manual RSI calculation
         close = self._as_series(df["Close"])  # ensure 1D
         delta = close.diff()
         up = delta.clip(lower=0)
@@ -46,7 +48,7 @@ class TechnicalFactors:
         rs = roll_up / (roll_down.replace(0, pd.NA))
         rsi = 100 - (100 / (1 + rs))
         rsi.name = f"RSI_{window}"
-        return rsi.astype(float)
+        return rsi.fillna(50.0).astype(float)  # Fill NaN with neutral RSI value
 
     def calculate_macd(self, df: pd.DataFrame, fast: int = 12, slow: int = 26, signal: int = 9) -> pd.DataFrame:
         if ta is not None:

@@ -178,99 +178,144 @@ $RECYCLE.BIN/
 .Trash-*
 .nfs*
 
-# 项目特定文件
-# 日志文件
-logs/
-*.log
-
-# 数据文件
-data/
+# Ignore data files
 *.csv
-*.xlsx
 *.json
-*.pickle
-*.pkl
+*.xlsx
+*.xls
 *.h5
 *.hdf5
 *.parquet
+*.feather
+*.pickle
+*.pkl
 
-# 缓存文件
-cache/
-*.cache
+# Ignore log files
+*.log
+logs/
 
-# 配置文件（包含敏感信息）
-.env
-.env.local
-.env.production
-config/local_settings.py
-
-# 数据库文件
-*.db
-*.sqlite
-*.sqlite3
-
-# 模型文件
-models/
-*.model
-*.joblib
-
-# 回测结果
-backtest_results/
-performance_reports/
-
-# Jupyter notebook checkpoints
-.ipynb_checkpoints/
-
-# 临时文件
-temp/
-tmp/
+# Ignore temporary files
 *.tmp
-
-# 编译文件
-*.pyc
-*.pyo
-*.pyd
-
-# 文档构建
-docs/build/
-docs/_build/
-
-# 测试覆盖率
-.coverage
-htmlcov/
-
-# 性能分析
-*.prof
-
-# IDE配置
-.vscode/
-.idea/
+*.temp
 *.swp
 *.swo
 *~
 
-# 系统文件
+# Ignore IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Ignore OS files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# 包管理
-node_modules/
-
-# 部署相关
-docker-compose.override.yml
-.dockerignore
-
-# 监控和日志
-prometheus/
-grafana/
-
-# 备份文件
+# Ignore backup files
 *.bak
 *.backup
-*.old
+*.orig
 
-# 压缩文件
-*.zip
-*.tar.gz
-*.rar
-*.7z
+# Ignore compiled files
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore virtual environment
+venv/
+env/
+ENV/
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore pytest cache
+.pytest_cache/
+
+# Ignore mypy cache
+.mypy_cache/
+
+# Ignore coverage reports
+htmlcov/
+.coverage
+
+# Ignore distribution files
+dist/
+build/
+*.egg-info/
+
+# Ignore local configuration files
+config_local.py
+settings_local.py
+
+# Ignore database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Ignore cache directories
+__pycache__/
+.cache/
+
+# Ignore node modules (if any)
+node_modules/
+
+# Ignore yarn files
+yarn-error.log
+.yarn/
+
+# Ignore npm files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignore package-lock files
+package-lock.json
+yarn.lock
+
+# Ignore environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Ignore generated documentation
+docs/_build/
+site/
+
+# Ignore profiling data
+*.prof
+
+# Ignore test output
+test-results/
+test-output/
+
+# Ignore screenshots and videos from tests
+screenshots/
+videos/
+
+# Ignore temporary directories
+tmp/
+temp/
+
+# Ignore qlib directory (external library)
+qlib/
+
+# Ignore macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent

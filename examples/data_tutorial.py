@@ -4,7 +4,7 @@
 数据获取和缓存使用教程
 
 本教程演示如何使用量化交易系统的数据管理功能：
-1. 获取股票数据
+1. 获取股票数据（支持Qlib和yfinance数据源）
 2. 理解缓存机制
 3. 数据处理基础
 4. 常见问题解决
@@ -36,13 +36,23 @@ def tutorial_1_basic_data_fetch():
     print("🔧 初始化数据管理器...")
     data_manager = DataManager()
     
+    # 显示数据源信息
+    cache_info = data_manager.get_cache_info()
+    data_source = cache_info.get('data_source', {})
+    print(f"   主要数据源: {data_source.get('primary_source', 'unknown')}")
+    print(f"   Qlib可用: {data_source.get('qlib_available', False)}")
+    print(f"   yfinance可用: {data_source.get('yfinance_available', False)}")
+    if 'total_instruments' in data_source:
+        print(f"   可用股票数: {data_source['total_instruments']}")
+    
     # 获取苹果公司股票数据
-    print("📈 获取AAPL股票数据...")
+    print("\n📈 获取AAPL股票数据...")
     symbol = 'AAPL'
-    period = '3m'  # 3个月数据
+    start_date = '2020-01-01'
+    end_date = '2020-03-31'
     
     try:
-        data = data_manager.get_data([symbol], period=period)
+        data = data_manager.get_stock_data(symbol, start_date, end_date)
         
         print(f"✅ 成功获取 {symbol} 股票数据")
         print(f"   数据形状: {data.shape}")
@@ -76,32 +86,29 @@ def tutorial_2_multiple_stocks():
     data_manager = DataManager()
     
     # 定义股票池
-    symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN']
+    symbols = ['AAPL', 'GOOGL', 'MSFT']
+    start_date = '2020-01-01'
+    end_date = '2020-02-29'
     print(f"🎯 目标股票池: {symbols}")
+    print(f"   时间范围: {start_date} 到 {end_date}")
     
     try:
         # 获取数据
         print("📥 正在获取数据...")
-        data = data_manager.get_data(symbols, period='2m')
+        data = data_manager.get_multiple_stocks_data(symbols, start_date, end_date)
         
         print(f"✅ 成功获取 {len(symbols)} 只股票数据")
         print(f"   总数据形状: {data.shape}")
         
         # 分析每只股票的数据
         print("\n📈 各股票数据概览:")
-        if len(symbols) == 1:
-            # 单只股票情况
-            latest_price = data['Close'].iloc[-1]
-            price_change = (data['Close'].iloc[-1] / data['Close'].iloc[0] - 1) * 100
-            print(f"   {symbols[0]}: 最新价格 ${latest_price:.2f}, 期间涨跌 {price_change:+.2f}%")
-        else:
-            # 多只股票情况
-            for symbol in symbols:
-                if symbol in data.columns.get_level_values(0):
-                    symbol_data = data[symbol]
-                    latest_price = symbol_data['Close'].iloc[-1]
-                    price_change = (symbol_data['Close'].iloc[-1] / symbol_data['Close'].iloc[0] - 1) * 100
-                    print(f"   {symbol}: 最新价格 ${latest_price:.2f}, 期间涨跌 {price_change:+.2f}%")
+        for symbol in symbols:
+            if symbol in data.columns.get_level_values(0):
+                symbol_data = data[symbol]
+                close_col = 'close' if 'close' in symbol_data.columns else 'Close'
+                latest_price = symbol_data[close_col].iloc[-1]
+                price_change = (symbol_data[close_col].iloc[-1] / symbol_data[close_col].iloc[0] - 1) * 100
+                print(f"   {symbol}: {len(symbol_data)} 条记录, 最新价格 ${latest_price:.2f}, 期间涨跌 {price_change:+.2f}%")
         
         return data
         
@@ -118,47 +125,43 @@ def tutorial_3_cache_mechanism():
     print("💾 教程3: 缓存机制详解")
     print("=" * 60)
     
-    # 检查缓存目录
-    cache_dir = Path('data_cache')
-    print(f"📁 缓存目录: {cache_dir.absolute()}")
+    # 初始化数据管理器
+    data_manager = DataManager()
     
-    if cache_dir.exists():
-        cache_files = list(cache_dir.glob('*.meta'))
-        print(f"   发现 {len(cache_files)} 个缓存文件")
-        
-        # 显示缓存文件信息
-        if cache_files:
-            print("\n📋 缓存文件列表:")
-            for i, cache_file in enumerate(cache_files[:5]):  # 只显示前5个
-                file_size = cache_file.stat().st_size
-                print(f"   {i+1}. {cache_file.name} ({file_size:,} bytes)")
-            
-            if len(cache_files) > 5:
-                print(f"   ... 还有 {len(cache_files) - 5} 个文件")
-    else:
-        print("   ⚠️  缓存目录不存在，将在首次获取数据时创建")
+    # 获取缓存信息
+    cache_info = data_manager.get_cache_info()
+    print(f"📁 缓存目录: {cache_info.get('cache_directory', 'unknown')}")
+    print(f"📄 缓存文件数: {cache_info.get('cache_files', 0)}")
+    print(f"💽 缓存大小: {cache_info.get('cache_size_mb', 0):.2f} MB")
     
     # 演示缓存效果
     print("\n⏱️  缓存性能测试:")
-    data_manager = DataManager()
     symbol = 'AAPL'
+    start_date = '2020-01-01'
+    end_date = '2020-01-31'
     
     # 第一次获取（可能需要下载）
     import time
     start_time = time.time()
-    data1 = data_manager.get_data([symbol], period='1m')
+    data1 = data_manager.get_stock_data(symbol, start_date, end_date)
     first_time = time.time() - start_time
     print(f"   首次获取耗时: {first_time:.2f} 秒")
     
     # 第二次获取（使用缓存）
     start_time = time.time()
-    data2 = data_manager.get_data([symbol], period='1m')
+    data2 = data_manager.get_stock_data(symbol, start_date, end_date)
     second_time = time.time() - start_time
     print(f"   缓存获取耗时: {second_time:.2f} 秒")
     
-    if second_time < first_time:
+    if second_time < first_time and first_time > 0:
         speedup = first_time / second_time
         print(f"   🚀 缓存加速: {speedup:.1f}x 倍")
+    
+    # 显示缓存管理功能
+    print("\n🔧 缓存管理功能:")
+    print("   - 自动缓存所有获取的数据")
+    print("   - 基于股票代码、时间范围生成缓存键")
+    print("   - 支持缓存清理和信息查询")
     
     return data1
 
@@ -173,7 +176,11 @@ def tutorial_4_data_processing():
     
     # 获取数据
     data_manager = DataManager()
-    data = data_manager.get_data(['AAPL'], period='2m')
+    symbol = 'AAPL'
+    start_date = '2020-01-01'
+    end_date = '2020-03-31'
+    
+    data = data_manager.get_stock_data(symbol, start_date, end_date)
     
     if data is None or data.empty:
         print("❌ 无法获取数据，跳过数据处理教程")
@@ -182,14 +189,10 @@ def tutorial_4_data_processing():
     print("📊 原始数据处理:")
     print(f"   数据形状: {data.shape}")
     print(f"   时间范围: {data.index[0]} 到 {data.index[-1]}")
+    print(f"   包含字段: {list(data.columns)}")
     
-    # 处理单只股票数据
-    if len(data.columns.levels) > 1:
-        # 多级列索引，提取AAPL数据
-        close_data = data[('AAPL', 'Close')]
-    else:
-        # 单级列索引
-        close_data = data['Close']
+    # 获取收盘价数据
+    close_data = data['close'] if 'close' in data.columns else data['Close']
     
     # 计算收益率
     print("\n💰 计算收益率:")
@@ -247,8 +250,6 @@ def tutorial_4_data_processing():
     print(f"   RSI: {latest['rsi']:.1f}")
     
     return processed_data
-    
-    return data
 
 def tutorial_5_data_visualization():
     """
@@ -341,24 +342,38 @@ def tutorial_6_troubleshooting():
     # 问题1: 无效股票代码
     print("❌ 问题1: 无效股票代码")
     try:
-        invalid_data = data_manager.get_data(['INVALID_SYMBOL'], period='1m')
-        print("   意外：无效代码竟然返回了数据")
+        invalid_data = data_manager.get_stock_data('INVALID_SYMBOL', '2020-01-01', '2020-01-31')
+        if invalid_data is None or invalid_data.empty:
+            print("   预期结果: 无效代码返回空数据")
+        else:
+            print("   意外：无效代码竟然返回了数据")
     except Exception as e:
         print(f"   预期错误: {str(e)}")
-        print("   💡 解决方案: 使用有效的股票代码，如 AAPL, GOOGL, MSFT")
+    print("   💡 解决方案: 使用有效的股票代码，如 AAPL, GOOGL, MSFT")
     
-    # 问题2: 网络连接问题模拟
-    print("\n⚠️  问题2: 网络连接问题")
+    # 问题2: 数据可用性检查
+    print("\n🔍 问题2: 数据可用性检查")
+    test_symbols = ['AAPL', 'INVALID_SYMBOL', 'GOOGL']
+    for symbol in test_symbols:
+        try:
+            is_available = data_manager.check_data_availability(symbol)
+            print(f"   {symbol}: {'✅ 可用' if is_available else '❌ 不可用'}")
+        except Exception as e:
+            print(f"   {symbol}: ❌ 检查失败 - {str(e)}")
+    
+    # 问题3: 网络连接问题模拟
+    print("\n⚠️  问题3: 网络连接问题")
     print("   如果遇到网络错误，可以尝试:")
     print("   1. 检查网络连接")
     print("   2. 稍后重试")
     print("   3. 使用较短的时间周期")
+    print("   4. 检查数据源状态")
     
-    # 问题3: 数据缺失处理
-    print("\n📊 问题3: 数据缺失处理")
+    # 问题4: 数据缺失处理
+    print("\n📊 问题4: 数据缺失处理")
     try:
-        data = data_manager.get_data(['AAPL'], period='1m')
-        if data is not None:
+        data = data_manager.get_stock_data('AAPL', '2020-01-01', '2020-01-31')
+        if data is not None and not data.empty:
             # 检查缺失值
             missing_count = data.isnull().sum().sum()
             print(f"   数据缺失值总数: {missing_count}")
@@ -371,16 +386,19 @@ def tutorial_6_troubleshooting():
                 print("   4. 插值填充: data.interpolate()")
             else:
                 print("   ✅ 数据完整，无缺失值")
+        else:
+            print("   ❌ 无法获取测试数据")
     except Exception as e:
         print(f"   数据获取失败: {str(e)}")
     
-    # 问题4: 内存使用优化
-    print("\n💾 问题4: 内存使用优化")
+    # 问题5: 内存使用优化
+    print("\n💾 问题5: 内存使用优化")
     print("   对于大量数据，建议:")
     print("   1. 分批处理股票")
     print("   2. 使用较短的时间周期")
     print("   3. 及时删除不需要的变量")
     print("   4. 使用适当的数据类型")
+    print("   5. 利用缓存机制避免重复下载")
 
 def main():
     """

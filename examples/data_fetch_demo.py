@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 数据获取演示脚本
-演示如何正确使用DataManager获取股票数据，避免频繁请求限制
+演示如何正确使用DataManager获取股票数据，支持Qlib和yfinance数据源
 """
 
 import sys
@@ -27,26 +27,33 @@ def demo_single_stock_data():
     # 初始化数据管理器
     data_manager = DataManager()
     
+    # 显示数据源信息
+    cache_info = data_manager.get_cache_info()
+    data_source = cache_info.get('data_source', {})
+    print(f"🔧 数据源信息:")
+    print(f"   主要数据源: {data_source.get('primary_source', 'unknown')}")
+    print(f"   Qlib可用: {data_source.get('qlib_available', False)}")
+    if 'total_instruments' in data_source:
+        print(f"   可用股票数: {data_source['total_instruments']}")
+    
     # 获取苹果公司股票数据
     symbol = 'AAPL'
-    print(f"🎯 获取 {symbol} 股票数据...")
+    start_date = '2020-01-01'
+    end_date = '2020-06-30'
+    print(f"\n🎯 获取 {symbol} 股票数据 ({start_date} 到 {end_date})...")
     
     try:
-        # 使用较长的时间周期，减少API调用频率
-        data = data_manager.get_data([symbol], period='6m')
+        # 使用新的数据获取方法
+        data = data_manager.get_stock_data(symbol, start_date, end_date)
         
         if data is not None and not data.empty:
             print(f"✅ 成功获取 {symbol} 数据")
             print(f"   数据形状: {data.shape}")
             print(f"   时间范围: {data.index[0].strftime('%Y-%m-%d')} 到 {data.index[-1].strftime('%Y-%m-%d')}")
+            print(f"   包含字段: {list(data.columns)}")
             
             # 显示基本统计信息
-            if len(data.columns.levels) > 1:
-                # 多级列索引
-                close_price = data[(symbol, 'Close')]
-            else:
-                # 单级列索引
-                close_price = data['Close']
+            close_price = data['close'] if 'close' in data.columns else data['Close']
             
             print(f"   最新收盘价: ${close_price.iloc[-1]:.2f}")
             print(f"   期间最高价: ${close_price.max():.2f}")
@@ -72,12 +79,14 @@ def demo_cached_data():
     
     data_manager = DataManager()
     symbol = 'AAPL'
+    start_date = '2020-01-01'
+    end_date = '2020-03-31'
     
     print("🔍 检查缓存状态...")
     
     # 第一次获取（可能从缓存或网络）
     start_time = time.time()
-    data = data_manager.get_data([symbol], period='3m')
+    data = data_manager.get_stock_data(symbol, start_date, end_date)
     fetch_time = time.time() - start_time
     
     if data is not None:
@@ -86,7 +95,7 @@ def demo_cached_data():
         
         # 立即再次获取相同数据（应该从缓存）
         start_time = time.time()
-        cached_data = data_manager.get_data([symbol], period='3m')
+        cached_data = data_manager.get_stock_data(symbol, start_date, end_date)
         cache_time = time.time() - start_time
         
         print(f"✅ 缓存数据获取完成，耗时: {cache_time:.2f}秒")
@@ -100,6 +109,47 @@ def demo_cached_data():
         print("❌ 数据获取失败")
         return None
 
+def demo_multiple_stocks():
+    """
+    演示多只股票数据获取
+    """
+    print("\n" + "=" * 60)
+    print("📊 多只股票数据获取演示")
+    print("=" * 60)
+    
+    data_manager = DataManager()
+    symbols = ['AAPL', 'MSFT', 'GOOGL']
+    start_date = '2020-01-01'
+    end_date = '2020-03-31'
+    
+    print(f"🎯 获取多只股票数据: {', '.join(symbols)}")
+    print(f"   时间范围: {start_date} 到 {end_date}")
+    
+    try:
+        start_time = time.time()
+        data = data_manager.get_multiple_stocks_data(symbols, start_date, end_date)
+        fetch_time = time.time() - start_time
+        
+        if data is not None and not data.empty:
+            print(f"✅ 成功获取多只股票数据，耗时: {fetch_time:.2f}秒")
+            print(f"   数据形状: {data.shape}")
+            
+            # 显示每只股票的数据统计
+            for symbol in symbols:
+                if symbol in data.columns.get_level_values(0):
+                    symbol_data = data[symbol]
+                    close_price = symbol_data['close'] if 'close' in symbol_data.columns else symbol_data['Close']
+                    print(f"   {symbol}: {len(close_price)} 条记录, 最新价格: ${close_price.iloc[-1]:.2f}")
+            
+            return data
+        else:
+            print("❌ 未获取到有效数据")
+            return None
+            
+    except Exception as e:
+        print(f"❌ 多只股票数据获取失败: {str(e)}")
+        return None
+
 def demo_data_analysis():
     """
     演示基础数据分析
@@ -110,21 +160,19 @@ def demo_data_analysis():
     
     data_manager = DataManager()
     symbol = 'AAPL'
+    start_date = '2020-01-01'
+    end_date = '2020-06-30'
     
     # 获取数据
-    data = data_manager.get_data([symbol], period='3m')
+    data = data_manager.get_stock_data(symbol, start_date, end_date)
     
     if data is None or data.empty:
         print("❌ 无法获取数据进行分析")
         return None
     
     # 提取收盘价数据
-    if len(data.columns.levels) > 1:
-        close_price = data[(symbol, 'Close')]
-        volume = data[(symbol, 'Volume')]
-    else:
-        close_price = data['Close']
-        volume = data['Volume']
+    close_price = data['close'] if 'close' in data.columns else data['Close']
+    volume = data['volume'] if 'volume' in data.columns else data['Volume']
     
     print(f"📊 {symbol} 数据分析结果:")
     print(f"   数据点数量: {len(close_price)}")
@@ -167,28 +215,39 @@ def main():
     # 演示2：缓存数据使用
     data2 = demo_cached_data()
     
-    # 演示3：基础数据分析
-    data3 = demo_data_analysis()
+    # 等待一段时间
+    print("\n⏳ 等待2秒...")
+    time.sleep(2)
     
+    # 演示3：多只股票数据获取
+    data3 = demo_multiple_stocks()
+    
+    # 等待一段时间
+    print("\n⏳ 等待2秒...")
+    time.sleep(2)
+    
+    # 演示4：基础数据分析
+    data4 = demo_data_analysis()
+    
+    # 显示缓存信息
     print("\n" + "=" * 60)
-    print("🎉 演示完成！")
+    print("💾 缓存信息总结")
     print("=" * 60)
     
-    # 总结
-    success_count = sum([1 for data in [data1, data2, data3] if data is not None])
-    print(f"✅ 成功完成 {success_count}/3 个演示")
+    data_manager = DataManager()
+    cache_info = data_manager.get_cache_info()
     
-    if success_count == 3:
-        print("🎊 所有演示都成功运行！数据获取系统工作正常。")
-    elif success_count > 0:
-        print("⚠️  部分演示成功，可能存在网络限制或其他问题。")
-    else:
-        print("❌ 所有演示都失败，请检查网络连接和API限制。")
+    print(f"📁 缓存目录: {cache_info.get('cache_directory', 'unknown')}")
+    print(f"📄 缓存文件数: {cache_info.get('cache_files', 0)}")
+    print(f"💽 缓存大小: {cache_info.get('cache_size_mb', 0):.2f} MB")
     
-    print("\n📚 下一步建议:")
-    print("   1. 运行因子计算演示: python examples/factor_tutorial.py")
-    print("   2. 查看高级策略演示: python demo_advanced_factor_strategies.py")
-    print("   3. 阅读使用指南: docs/USAGE_GUIDE.md")
+    data_source = cache_info.get('data_source', {})
+    print(f"🔧 主要数据源: {data_source.get('primary_source', 'unknown')}")
+    print(f"✅ Qlib可用: {data_source.get('qlib_available', False)}")
+    print(f"✅ yfinance可用: {data_source.get('yfinance_available', False)}")
+    
+    print("\n🎉 演示完成！")
+    print("💡 提示：重复运行脚本可以体验缓存加速效果")
 
 if __name__ == "__main__":
     main()
