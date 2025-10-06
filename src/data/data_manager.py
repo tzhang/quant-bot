@@ -320,6 +320,16 @@ class DataManager:
         # 处理缺失值
         data = data.dropna()
         
+        # 标准化列名为大写（保持向后兼容）
+        column_mapping = {
+            'open': 'Open',
+            'high': 'High', 
+            'low': 'Low',
+            'close': 'Close',
+            'volume': 'Volume'
+        }
+        data = data.rename(columns=column_mapping)
+        
         # 确保数值列为数值类型
         numeric_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
         for col in numeric_columns:

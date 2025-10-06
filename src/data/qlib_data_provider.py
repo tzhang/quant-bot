@@ -79,6 +79,12 @@ class QlibDataProvider:
         if not self.initialized:
             raise RuntimeError("Qlib not initialized")
         
+        # 输入验证
+        if not symbol or not isinstance(symbol, str):
+            raise ValueError("Symbol must be a non-empty string")
+        
+        symbol = symbol.strip()  # 清理空白字符
+        
         # 默认字段
         if fields is None:
             fields = ['$open', '$high', '$low', '$close', '$volume']
@@ -86,55 +92,202 @@ class QlibDataProvider:
             # 确保字段名以$开头（Qlib格式）
             fields = [f'${field}' if not field.startswith('$') else field for field in fields]
         
+        # 验证和处理日期
+        start_date, end_date = self._validate_and_process_dates(start_date, end_date)
+        
         try:
-            # 构建时间范围 - 使用Qlib数据的实际日期范围
-            if start_date is None:
-                start_date = "2020-01-01"
-            if end_date is None:
-                end_date = "2020-11-10"  # 使用Qlib数据的实际结束日期
+            # 尝试不同的符号格式来获取数据
+            symbol_variants = self._generate_symbol_variants(symbol)
+            data = None
+            used_symbol = None
             
-            # 使用Qlib的D.features接口获取数据
-            data = D.features(
-                instruments=[symbol.lower()],  # 使用小写
-                fields=fields,
-                start_time=start_date,
-                end_time=end_date
-            )
+            for variant in symbol_variants:
+                try:
+                    # 使用Qlib的D.features接口获取数据
+                    data = D.features(
+                        instruments=[variant],
+                        fields=fields,
+                        start_time=start_date,
+                        end_time=end_date
+                    )
+                    
+                    if data is not None and not data.empty:
+                        used_symbol = variant
+                        logger.debug(f"Successfully retrieved data using symbol variant: {variant}")
+                        break
+                        
+                except Exception as e:
+                    logger.debug(f"Failed to get data with symbol variant {variant}: {e}")
+                    continue
             
             if data is None or data.empty:
-                logger.warning(f"No data found for symbol: {symbol}")
+                logger.warning(f"No data found for symbol: {symbol} (tried variants: {symbol_variants})")
                 return pd.DataFrame()
             
-            # 处理MultiIndex DataFrame
-            if isinstance(data.index, pd.MultiIndex):
-                # 如果是MultiIndex，选择特定股票的数据
-                try:
-                    df = data.xs(symbol.lower(), level='instrument')
-                except KeyError:
-                    logger.warning(f"Symbol {symbol} not found in data")
-                    return pd.DataFrame()
-            else:
-                df = data.copy()
+            # 处理和验证数据
+            df = self._process_multiindex_data(data, symbol, symbol_variants)
             
-            # 重命名列，移除$前缀
-            column_mapping = {}
-            for col in df.columns:
-                if col.startswith('$'):
-                    new_col = col[1:].lower()  # 移除$并转为小写
-                    column_mapping[col] = new_col
+            if df is None or df.empty:
+                logger.warning(f"No data extracted for symbol: {symbol}")
+                return pd.DataFrame()
             
-            df = df.rename(columns=column_mapping)
+            # 数据后处理和验证
+            df = self._post_process_data(df)
             
-            # 确保索引是日期格式
-            if not isinstance(df.index, pd.DatetimeIndex):
-                df.index = pd.to_datetime(df.index)
+            # 数据质量检查
+            df = self._validate_data_quality(df, symbol)
             
             logger.info(f"Retrieved {len(df)} records for {symbol} from {start_date} to {end_date}")
             return df
             
         except Exception as e:
             logger.error(f"Error retrieving data for {symbol}: {e}")
+            import traceback
+            logger.debug(f"Full traceback: {traceback.format_exc()}")
             return pd.DataFrame()
+    
+    def _validate_and_process_dates(self, start_date: Optional[str], end_date: Optional[str]) -> Tuple[str, str]:
+        """验证和处理日期参数"""
+        # 构建时间范围 - 使用Qlib数据的实际日期范围
+        if start_date is None:
+            start_date = "2020-01-01"
+        if end_date is None:
+            end_date = "2020-11-10"  # 使用Qlib数据的实际结束日期
+        
+        # 验证日期格式
+        try:
+            pd.to_datetime(start_date)
+            pd.to_datetime(end_date)
+        except Exception as e:
+            logger.error(f"Invalid date format: {e}")
+            raise ValueError(f"Invalid date format: {e}")
+        
+        return start_date, end_date
+    
+    def _generate_symbol_variants(self, symbol: str) -> List[str]:
+        """生成符号变体列表"""
+        variants = []
+        
+        # 基本变体
+        variants.extend([symbol.upper(), symbol.lower(), symbol])
+        
+        # 去除重复
+        return list(dict.fromkeys(variants))  # 保持顺序的去重
+    
+    def _process_multiindex_data(self, data: pd.DataFrame, symbol: str, symbol_variants: List[str]) -> Optional[pd.DataFrame]:
+        """处理MultiIndex DataFrame"""
+        df = None
+        
+        if isinstance(data.index, pd.MultiIndex):
+            # 检查MultiIndex的层级名称
+            level_names = data.index.names
+            logger.debug(f"MultiIndex levels: {level_names}")
+            
+            # 尝试不同的层级名称和符号变体
+            instrument_level = None
+            for level_name in ['instrument', 'code', 'symbol']:
+                if level_name in level_names:
+                    instrument_level = level_name
+                    break
+            
+            if instrument_level is not None:
+                # 尝试使用不同的符号变体来提取数据
+                for variant in symbol_variants:
+                    try:
+                        df = data.xs(variant, level=instrument_level)
+                        logger.debug(f"Successfully extracted data using {variant} at level {instrument_level}")
+                        break
+                    except KeyError:
+                        continue
+                
+                if df is None:
+                    # 如果直接提取失败，尝试查看可用的instruments
+                    df = self._find_matching_instrument(data, symbol, instrument_level)
+            else:
+                logger.error(f"Could not find instrument level in MultiIndex: {level_names}")
+                return None
+        else:
+            df = data.copy()
+        
+        return df
+    
+    def _find_matching_instrument(self, data: pd.DataFrame, symbol: str, instrument_level: str) -> Optional[pd.DataFrame]:
+        """在可用instruments中查找匹配的符号"""
+        try:
+            available_instruments = data.index.get_level_values(instrument_level).unique()
+            logger.debug(f"Available instruments: {list(available_instruments)[:10]}...")  # 只显示前10个
+            
+            # 尝试找到匹配的instrument
+            matching_instrument = None
+            for instrument in available_instruments:
+                if str(instrument).upper() == symbol.upper():
+                    matching_instrument = instrument
+                    break
+            
+            if matching_instrument is not None:
+                df = data.xs(matching_instrument, level=instrument_level)
+                logger.debug(f"Found matching instrument: {matching_instrument}")
+                return df
+            else:
+                logger.warning(f"Symbol {symbol} not found in available instruments")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error processing MultiIndex data: {e}")
+            return None
+    
+    def _post_process_data(self, df: pd.DataFrame) -> pd.DataFrame:
+        """数据后处理"""
+        # 重命名列，移除$前缀
+        column_mapping = {}
+        for col in df.columns:
+            if col.startswith('$'):
+                new_col = col[1:].lower()  # 移除$并转为小写
+                column_mapping[col] = new_col
+        
+        df = df.rename(columns=column_mapping)
+        
+        # 确保索引是日期格式
+        if not isinstance(df.index, pd.DatetimeIndex):
+            df.index = pd.to_datetime(df.index)
+        
+        # 排序索引
+        df = df.sort_index()
+        
+        return df
+    
+    def _validate_data_quality(self, df: pd.DataFrame, symbol: str) -> pd.DataFrame:
+        """数据质量验证和清理"""
+        if df.empty:
+            return df
+        
+        original_length = len(df)
+        
+        # 移除全为NaN的行
+        df = df.dropna(how='all')
+        
+        # 移除价格为负数或零的行（如果有价格列）
+        price_columns = ['open', 'high', 'low', 'close']
+        for col in price_columns:
+            if col in df.columns:
+                df = df[df[col] > 0]
+        
+        # 移除成交量为负数的行
+        if 'volume' in df.columns:
+            df = df[df['volume'] >= 0]
+        
+        # 检查数据完整性
+        if len(df) < original_length * 0.5:  # 如果丢失超过50%的数据
+            logger.warning(f"Data quality issue for {symbol}: {original_length - len(df)} rows removed")
+        
+        # 检查是否有异常的价格跳跃（简单检查）
+        if 'close' in df.columns and len(df) > 1:
+            price_changes = df['close'].pct_change().abs()
+            extreme_changes = price_changes > 0.5  # 50%以上的价格变化
+            if extreme_changes.any():
+                logger.warning(f"Detected extreme price changes for {symbol}: {extreme_changes.sum()} occurrences")
+        
+        return df
     
     def get_multiple_stocks_data(self, 
                                symbols: List[str], 
