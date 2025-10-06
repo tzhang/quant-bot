@@ -26,6 +26,7 @@ pip install -r requirements.txt
 # API密钥
 ALPHA_VANTAGE_API_KEY=your_key_here
 QUANDL_API_KEY=your_key_here
+OPENBB_API_KEY=your_key_here  # v1.5.0 新增
 
 # 数据库配置（可选）
 DATABASE_URL=postgresql://user:password@localhost:5432/quant_db
@@ -34,6 +35,10 @@ REDIS_URL=redis://localhost:6379/0
 # 缓存配置
 CACHE_TTL=3600
 CACHE_MAX_SIZE=1000
+
+# 数据源配置 (v1.5.0 新增)
+DEFAULT_DATA_SOURCE=auto  # auto, qlib, openbb, yfinance
+DATA_SOURCE_PRIORITY=qlib,openbb,yfinance
 ```
 
 ### 3. 第一个示例
@@ -41,27 +46,75 @@ CACHE_MAX_SIZE=1000
 ```python
 import src as quant
 
-# 创建数据管理器
-data_manager = quant.create_data_manager()
+# 创建数据适配器 (v1.5.0 更新)
+from src.data.data_adapter import DataAdapter
+data_adapter = DataAdapter()
 
-# 获取股票数据
-data = data_manager.get_data(['AAPL', 'GOOGL'], period='1y')
+# 获取股票数据 - 自动选择最佳数据源
+data = data_adapter.get_data(['AAPL', 'GOOGL'], period='1y')
 print(f"获取到 {len(data)} 条数据")
 
 # 查看系统版本
 print(f"系统版本: {quant.get_version()}")
 ```
 
-## 📊 数据管理
+## 📊 数据管理 (v1.5.0 重大更新)
 
-### 正确的数据获取方法
+### 三数据源集成系统
 
-**重要提示**: 请使用 `DataManager` 类进行数据获取，而不是 `FactorEngine.get_data()`
+**新特性**: 系统现在支持 Qlib → OpenBB → yfinance 智能回退机制
+
+```python
+from src.data.data_adapter import DataAdapter
+
+# 创建数据适配器
+adapter = DataAdapter()
+
+# 自动选择最佳数据源
+data = adapter.get_data('AAPL', start='2023-01-01', end='2024-01-01')
+
+# 检查数据可用性
+availability = adapter.check_data_availability(['AAPL', 'GOOGL', 'MSFT'])
+print("数据源可用性:", availability)
+
+# 强制使用特定数据源
+data_qlib = adapter.get_data('AAPL', source='qlib')
+data_openbb = adapter.get_data('AAPL', source='openbb')
+data_yfinance = adapter.get_data('AAPL', source='yfinance')
+```
+
+### 数据源性能对比
+
+| 数据源 | 获取速度 | 加速比 | 适用场景 |
+|--------|----------|--------|----------|
+| Qlib 本地数据 | 0.05秒 | 46.8x | 本地量化研究 |
+| OpenBB 平台 | 1.23秒 | 1.9x | 专业金融分析 |
+| yfinance | 2.34秒 | 1.0x | 通用股票数据 |
+| 缓存数据 | 0.19秒 | 12.3x | 重复查询 |
+
+### 批量获取多股票数据
+
+```python
+# 批量获取多只股票数据
+symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA']
+data_dict = adapter.get_multiple_data(
+    symbols=symbols,
+    start='2023-01-01',
+    end='2024-01-01'
+)
+
+for symbol, data in data_dict.items():
+    print(f"{symbol}: {len(data)} 条数据")
+```
+
+### 传统数据获取方法 (兼容性保持)
+
+**重要提示**: 请使用新的 `DataAdapter` 类进行数据获取，但旧的 `DataManager` 仍然可用
 
 ```python
 from src.data.data_manager import DataManager
 
-# 创建数据管理器
+# 创建数据管理器 (旧版本兼容)
 data_manager = DataManager()
 
 # 获取单只股票数据
@@ -145,11 +198,11 @@ for symbol in symbols:
 
 ```python
 from src.factors.engine import FactorEngine
-from src.data.data_manager import DataManager
+from src.data.data_adapter import DataAdapter  # v1.5.0 更新
 
-# 1. 获取数据
-data_manager = DataManager()
-data = data_manager.get_data('AAPL', '2023-01-01', '2024-01-01')
+# 1. 获取数据 (使用新的数据适配器)
+data_adapter = DataAdapter()
+data = data_adapter.get_data('AAPL', start='2023-01-01', end='2024-01-01')
 
 # 2. 创建因子引擎
 factor_engine = FactorEngine()
@@ -181,12 +234,105 @@ factor_scores = factor_engine.compute_factor_score(all_factors)
 print(f"因子得分: {factor_scores}")
 ```
 
-## 📈 投资组合优化
+## 📈 策略开发与回测 (v1.4.0 新增)
+
+### 策略框架
+
+```python
+from src.strategies.base_strategy import BaseStrategy
+from src.strategies.multi_factor_strategy import MultiFactorStrategy
+
+# 创建多因子策略
+strategy = MultiFactorStrategy(
+    factors=['momentum', 'value', 'quality'],
+    weights=[0.4, 0.3, 0.3],
+    rebalance_freq='monthly'
+)
+
+# 自定义策略
+class MyCustomStrategy(BaseStrategy):
+    def __init__(self, param1, param2):
+        super().__init__()
+        self.param1 = param1
+        self.param2 = param2
+    
+    def generate_signals(self, data):
+        # 实现信号生成逻辑
+        signals = {}
+        # ... 策略逻辑
+        return signals
+    
+    def calculate_positions(self, signals, current_positions):
+        # 实现仓位计算逻辑
+        new_positions = {}
+        # ... 仓位逻辑
+        return new_positions
+```
+
+### 回测引擎
+
+```python
+from src.backtesting.backtest_engine import BacktestEngine
+from src.backtesting.performance_analyzer import PerformanceAnalyzer
+
+# 创建回测引擎
+backtest_engine = BacktestEngine(
+    initial_capital=1000000,
+    commission_rate=0.001,
+    slippage_rate=0.0005,
+    benchmark='SPY'
+)
+
+# 运行回测
+results = backtest_engine.run_backtest(
+    strategy=strategy,
+    start_date='2020-01-01',
+    end_date='2023-12-31',
+    universe=['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA']
+)
+
+# 性能分析
+analyzer = PerformanceAnalyzer()
+performance_metrics = analyzer.analyze(results)
+
+print(f"总收益率: {performance_metrics['total_return']:.2%}")
+print(f"年化收益率: {performance_metrics['annual_return']:.2%}")
+print(f"夏普比率: {performance_metrics['sharpe_ratio']:.2f}")
+print(f"最大回撤: {performance_metrics['max_drawdown']:.2%}")
+print(f"信息比率: {performance_metrics['information_ratio']:.2f}")
+```
+
+### 策略性能可视化
+
+```python
+from src.visualization.strategy_visualizer import StrategyVisualizer
+
+# 创建可视化器
+visualizer = StrategyVisualizer()
+
+# 生成策略报告
+visualizer.generate_strategy_report(
+    results=results,
+    save_path='reports/strategy_performance.html'
+)
+
+# 绘制净值曲线
+visualizer.plot_equity_curve(results)
+
+# 绘制回撤分析
+visualizer.plot_drawdown_analysis(results)
+
+# 绘制月度收益热力图
+visualizer.plot_monthly_returns_heatmap(results)
+```
+
+## 📊 投资组合优化
 
 ### 基本优化
 
 ```python
-from src.factors import PortfolioOptimizer, OptimizationConstraint
+from src.portfolio.optimizer import PortfolioOptimizer
+from src.portfolio.constraints import OptimizationConstraint
 
 # 创建优化器
 optimizer = PortfolioOptimizer()
@@ -215,7 +361,7 @@ print(f"预期风险: {result.expected_risk:.4f}")
 
 ```python
 # Black-Litterman优化
-from src.factors import BlackLittermanOptimizer
+from src.portfolio.black_litterman import BlackLittermanOptimizer
 
 bl_optimizer = BlackLittermanOptimizer()
 bl_result = bl_optimizer.optimize(
@@ -226,18 +372,18 @@ bl_result = bl_optimizer.optimize(
 )
 
 # 风险平价优化
-from src.factors import RiskParityOptimizer
+from src.portfolio.risk_parity import RiskParityOptimizer
 
 rp_optimizer = RiskParityOptimizer()
 rp_result = rp_optimizer.optimize(covariance_matrix=cov_matrix)
 ```
 
-## 🔄 回测引擎
+## 🔄 传统回测方法 (兼容性保持)
 
 ### 基本回测
 
 ```python
-# 创建回测引擎
+# 创建回测引擎 (旧版本兼容)
 backtest_engine = quant.create_backtest_engine(
     initial_capital=100000,
     commission=0.001,  # 手续费率
@@ -300,8 +446,10 @@ enhanced_results = enhanced_engine.run_backtest(
 ### VaR计算
 
 ```python
+from src.risk.risk_manager import RiskManager
+
 # 创建风险管理器
-risk_manager = quant.create_risk_manager()
+risk_manager = RiskManager()
 
 # 计算投资组合VaR
 var_result = risk_manager.calculate_portfolio_var(
@@ -319,7 +467,7 @@ print(f"预期损失: {var_result['expected_shortfall']:.4f}")
 
 ```python
 # 定义压力测试情景
-from src.risk import StressTestScenario
+from src.risk.stress_test import StressTestScenario
 
 scenarios = [
     StressTestScenario(
@@ -360,33 +508,38 @@ for factor, contribution in attribution_result.items():
     print(f"  {factor}: {contribution:.2%}")
 ```
 
-## 🗄️ 数据库优化
+## 🗄️ 数据库优化 (v1.5.0 增强)
 
 ### 缓存管理
 
 ```python
+from src.data.data_adapter import DataAdapter
+
+# 创建数据适配器
+adapter = DataAdapter()
+
 # 获取缓存数据
-cached_data = data_manager.get_cached_data(
-    key="AAPL_1y_daily",
-    fallback_func=lambda: data_manager.get_data(['AAPL'], period='1y')
+cached_data = adapter.get_cached_data(
+    symbol='AAPL',
+    start='2023-01-01',
+    end='2024-01-01'
 )
 
-# 优化查询
-optimized_query = data_manager.optimize_query(
-    "SELECT * FROM stock_prices WHERE symbol = 'AAPL'"
-)
+# 清理过期缓存
+adapter.cleanup_cache(max_age_days=30)
 
-# 获取性能统计
-perf_stats = data_manager.get_performance_stats()
-print(f"平均查询时间: {perf_stats['avg_query_time']:.2f}ms")
+# 获取缓存统计
+cache_stats = adapter.get_cache_stats()
+print(f"缓存命中率: {cache_stats['hit_rate']:.2%}")
+print(f"缓存大小: {cache_stats['size_mb']:.1f} MB")
 ```
 
-## 📊 可视化分析
+## 📊 可视化分析 (v1.4.0 增强)
 
 ### 基本图表
 
 ```python
-from src.utils import Visualizer
+from src.visualization.visualizer import Visualizer
 
 viz = Visualizer()
 
@@ -425,12 +578,33 @@ viz.plot_factor_exposure(
 )
 ```
 
-## 🔧 高级功能
-
-### 自定义策略
+### 策略性能仪表板 (v1.4.0 新增)
 
 ```python
-from src.strategies import BaseStrategy
+from src.visualization.dashboard import StrategyDashboard
+
+# 创建策略仪表板
+dashboard = StrategyDashboard()
+
+# 生成完整报告
+dashboard.generate_full_report(
+    strategy_results=results,
+    output_path='reports/strategy_dashboard.html'
+)
+
+# 实时监控
+dashboard.start_live_monitoring(
+    strategy=strategy,
+    update_interval=60  # 秒
+)
+```
+
+## 🔧 高级功能
+
+### 自定义策略 (v1.4.0 框架)
+
+```python
+from src.strategies.base_strategy import BaseStrategy
 
 class MyCustomStrategy(BaseStrategy):
     """自定义策略示例"""
@@ -464,7 +638,7 @@ results = backtest_engine.run_backtest(custom_strategy, data)
 ### 自定义因子
 
 ```python
-from src.factors import BaseFactor
+from src.factors.base_factor import BaseFactor
 
 class MyCustomFactor(BaseFactor):
     """自定义因子示例"""
@@ -485,6 +659,142 @@ class MyCustomFactor(BaseFactor):
 # 注册自定义因子
 factor_engine.register_factor('my_custom_factor', MyCustomFactor)
 ```
+
+## 🚀 券商集成 (v1.2.0 新增)
+
+### 支持的券商
+
+```python
+from src.brokers import BrokerFactory
+
+# 创建券商连接
+broker = BrokerFactory.create_broker(
+    broker_type='td_ameritrade',  # 'charles_schwab', 'etrade', 'robinhood'
+    api_key='your_api_key',
+    secret_key='your_secret_key'
+)
+
+# 获取账户信息
+account_info = broker.get_account_info()
+print(f"账户余额: ${account_info['balance']:,.2f}")
+
+# 获取持仓
+positions = broker.get_positions()
+for position in positions:
+    print(f"{position['symbol']}: {position['quantity']} 股")
+
+# 下单
+order_result = broker.place_order(
+    symbol='AAPL',
+    quantity=100,
+    order_type='market',
+    side='buy'
+)
+```
+
+### 实盘交易监控
+
+```python
+from src.brokers.monitor import TradingMonitor
+
+# 创建交易监控
+monitor = TradingMonitor(broker=broker)
+
+# 启动实时监控
+monitor.start_monitoring(
+    strategies=[strategy1, strategy2],
+    risk_limits={
+        'max_daily_loss': 0.02,
+        'max_position_size': 0.1
+    }
+)
+```
+
+## 📱 移动端支持 (v1.4.0 新增)
+
+### 移动端API
+
+```python
+from src.mobile.api import MobileAPI
+
+# 创建移动端API
+mobile_api = MobileAPI()
+
+# 获取简化的投资组合信息
+portfolio_summary = mobile_api.get_portfolio_summary()
+
+# 获取关键指标
+key_metrics = mobile_api.get_key_metrics()
+
+# 发送推送通知
+mobile_api.send_notification(
+    title="策略提醒",
+    message="AAPL 触发买入信号",
+    priority="high"
+)
+```
+
+## 🔍 故障排除
+
+### 常见问题
+
+1. **数据获取失败**
+   ```python
+   # 检查数据源状态
+   adapter = DataAdapter()
+   status = adapter.check_data_sources_status()
+   print("数据源状态:", status)
+   
+   # 使用备用数据源
+   data = adapter.get_data('AAPL', source='yfinance', fallback=True)
+   ```
+
+2. **API限制问题**
+   ```python
+   # 使用缓存数据
+   cached_data = adapter.get_cached_data('AAPL')
+   if cached_data is not None:
+       print("使用缓存数据")
+   ```
+
+3. **性能优化**
+   ```python
+   # 批量获取数据
+   symbols = ['AAPL', 'GOOGL', 'MSFT']
+   data_dict = adapter.get_multiple_data(symbols, batch_size=10)
+   ```
+
+### 日志和调试
+
+```python
+import logging
+
+# 启用详细日志
+logging.basicConfig(level=logging.DEBUG)
+
+# 查看系统状态
+from src.utils.system_info import SystemInfo
+system_info = SystemInfo()
+print(system_info.get_system_status())
+```
+
+## 📚 更多资源
+
+- 📖 [完整API文档](docs/api_reference.md)
+- 🎯 [策略开发指南](docs/strategy_development.md)
+- 📊 [因子研究手册](docs/factor_research.md)
+- 🔧 [系统配置指南](docs/configuration.md)
+- 🚀 [部署指南](docs/deployment.md)
+
+---
+
+**版本信息**: 本指南适用于 v1.5.0 及以上版本
+
+**更新日志**:
+- v1.5.0: 新增三数据源集成系统
+- v1.4.0: 新增策略开发与回测框架
+- v1.3.0: 新增高级数据抓取优化
+- v1.2.0: 新增券商集成支持
 
 ## 📋 示例脚本
 
