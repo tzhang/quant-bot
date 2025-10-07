@@ -4,6 +4,45 @@
 
 ## ✨ 核心特性
 
+### 🎯 核心量化交易模块 (新增)
+基于Citadel高频交易竞赛经验提炼的通用量化交易能力：
+
+#### 🎪 信号生成与处理系统
+- 多种技术信号生成（动量、均值回归、波动率、微观结构）
+- 智能信号融合（加权平均、排名、PCA）
+- 信号参数优化
+
+#### 🛡️ 自适应风险管理系统
+- 动态仓位大小计算
+- 市场状态检测（牛市/熊市/横盘）
+- 波动率预测和风险预算管理
+
+#### 🎯 多目标参数优化框架
+- 贝叶斯优化算法
+- 遗传算法优化
+- 多目标优化（帕累托前沿）
+
+#### 🤖 ML增强交易系统
+- 特征重要性分析和选择
+- 模型集成（随机森林、梯度提升等）
+- 时间序列交叉验证
+
+#### 📊 实时监控与预警系统
+- 性能指标实时监控
+- 风险限制检查和预警
+- 系统健康状态监控
+
+#### 🔍 系统化调试与诊断框架
+- 策略性能诊断和问题识别
+- 函数性能分析和瓶颈识别
+- 错误模式分析和处理建议
+
+#### 🛠️ 通用工具函数库
+- 数据验证和质量检查
+- 时间序列分析工具
+- 性能和风险计算工具
+- 配置管理系统
+
 ### 🧠 ML增强策略引擎 (v2.0.0 新增)
 - **智能特征工程**: 自动特征选择、重要性分析、特征交互检测
 - **ML增强Citadel策略**: 集成机器学习的高频交易策略，夏普比率1.61，胜率54.84%
@@ -131,6 +170,84 @@
    python examples/kaggle_competition_example.py
    python examples/premium_competitions_example.py
    ```
+
+### 核心模块使用示例
+
+#### 1. 信号生成与处理
+```python
+from src.core import SignalGenerator, SignalFusion
+
+# 初始化信号生成器
+signal_gen = SignalGenerator()
+
+# 生成动量信号
+momentum_signal = signal_gen.generate_momentum_signal(price_series, window=20)
+
+# 信号融合
+signal_fusion = SignalFusion()
+fused_signal = signal_fusion.weighted_fusion(signals_df, weights=[0.6, 0.4])
+```
+
+#### 2. 自适应风险管理
+```python
+from src.core import AdaptiveRiskManager, MarketRegimeDetector
+
+# 风险管理
+risk_manager = AdaptiveRiskManager()
+position_size = risk_manager.calculate_position_size(
+    expected_return=0.001, volatility=0.02, max_risk=0.02
+)
+
+# 市场状态检测
+regime_detector = MarketRegimeDetector()
+market_state = regime_detector.detect_regime(returns)
+```
+
+#### 3. 参数优化
+```python
+from src.core import BayesianOptimizer
+
+# 贝叶斯优化
+optimizer = BayesianOptimizer()
+best_params, best_score = optimizer.optimize(
+    objective_function, param_bounds=[(5, 50), (-0.1, 0.1)]
+)
+```
+
+#### 4. ML增强系统
+```python
+from src.core import MLFeatureAnalyzer, ModelEnsemble
+
+# 特征分析
+ml_analyzer = MLFeatureAnalyzer()
+importance_scores = ml_analyzer.analyze_feature_importance(features, target)
+
+# 模型集成
+model_ensemble = ModelEnsemble()
+model_ensemble.fit(features, target)
+predictions = model_ensemble.predict(new_features)
+```
+
+#### 5. 实时监控
+```python
+from src.core import PerformanceMonitor, RiskMonitor
+
+# 性能监控
+perf_monitor = PerformanceMonitor()
+perf_monitor.update_performance(return_value, timestamp)
+report = perf_monitor.get_performance_report()
+
+# 风险监控
+risk_monitor = RiskMonitor()
+risk_monitor.set_position_limit('AAPL', 0.1)
+alerts = risk_monitor.check_risk_limits(positions, leverage)
+```
+
+### 完整演示
+运行完整的核心模块演示：
+```bash
+python examples/core_modules_demo.py
+```
 
 ### 5分钟快速体验
 
@@ -364,6 +481,37 @@ AI驱动量化交易系统 (v2.0.0)
     ├── 竞赛报告 (自动生成)
     ├── 策略仪表板 (性能分析)
     └── 移动端适配 (响应式设计)
+```
+
+## 项目结构
+
+```
+quant-bot/
+├── src/                    # 源代码目录
+│   ├── __init__.py        # 包初始化
+│   ├── core/              # 核心量化交易模块 (新增)
+│   │   ├── signal_generator.py    # 信号生成与处理系统
+│   │   ├── risk_manager.py        # 自适应风险管理系统
+│   │   ├── optimizer.py           # 多目标参数优化框架
+│   │   ├── ml_engine.py           # ML增强交易系统
+│   │   ├── monitor.py             # 实时监控与预警系统
+│   │   ├── diagnostics.py         # 系统化调试与诊断框架
+│   │   └── utils.py               # 通用工具函数库
+│   ├── data/              # 数据管理模块
+│   ├── factors/           # 因子计算模块
+│   ├── backtest/          # 回测引擎
+│   ├── performance/       # 性能分析
+│   ├── database/          # 数据库操作
+│   ├── risk/              # 风险管理
+│   └── strategies/        # 交易策略
+├── data/                  # 数据存储目录
+├── config/                # 配置文件
+├── tests/                 # 测试文件
+├── docs/                  # 文档
+│   └── CORE_MODULES_GUIDE.md      # 核心模块使用指南 (新增)
+├── examples/              # 示例代码
+│   └── core_modules_demo.py       # 核心模块演示 (新增)
+└── requirements.txt       # 依赖包列表
 ```
 
 ## 🎨 功能展示

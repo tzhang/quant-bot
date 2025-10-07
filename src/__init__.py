@@ -46,6 +46,28 @@ from .backtest import (
     BacktestEngine
 )
 
+# 核心量化交易模块
+from .core import (
+    SignalGenerator,
+    SignalFusion,
+    SignalOptimizer,
+    AdaptiveRiskManager,
+    MarketRegimeDetector,
+    VolatilityPredictor,
+    BayesianOptimizer,
+    GeneticOptimizer,
+    MultiObjectiveOptimizer,
+    MLFeatureAnalyzer,
+    ModelEnsemble,
+    TimeSeriesValidator,
+    PerformanceMonitor,
+    RiskMonitor,
+    SystemHealthMonitor,
+    StrategyDiagnostics,
+    PerformanceProfiler,
+    ErrorAnalyzer
+)
+
 from .backtesting import (
     Event,
     EventType,
@@ -184,6 +206,33 @@ __all__ = [
     "EnhancedBacktestEngine",
     "MultiStrategyBacktestManager",
     
+    # 核心量化交易模块
+    "SignalGenerator",
+    "SignalFusion", 
+    "SignalOptimizer",
+    "AdaptiveRiskManager",
+    "MarketRegimeDetector",
+    "VolatilityPredictor",
+    "BayesianOptimizer",
+    "GeneticOptimizer",
+    "MultiObjectiveOptimizer",
+    "MLFeatureAnalyzer",
+    "ModelEnsemble",
+    "TimeSeriesValidator",
+    "PerformanceMonitor",
+    "RiskMonitor",
+    "SystemHealthMonitor",
+    "StrategyDiagnostics",
+    "PerformanceProfiler",
+    "ErrorAnalyzer",
+    "DataValidator",
+    "TimeSeriesUtils",
+    "PerformanceUtils",
+    "RiskUtils",
+    "OptimizationUtils",
+    "SignalUtils",
+    "ConfigManager",
+    
     # 数据库优化
     "PartitionedStockData",
     "CompressedFinancialData",
@@ -295,6 +344,7 @@ SYSTEM_INFO = {
         "database",
         "risk",
         "strategies",
+        "core",
         "utils"
     ]
 }
