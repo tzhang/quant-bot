@@ -7,14 +7,14 @@ from src.performance import PerformanceAnalyzer
 
 
 def main() -> None:
-    dm = DataManager(use_cache=True)
+    dm = DataManager(enable_cache=True)
     start = dt.date.today().replace(year=dt.date.today().year - 1)
     end = dt.date.today()
     data = dm.get_stock_data("SPY", start, end)
-    df = data["SPY"]
-    # 获取基准（标普500）以用于Beta计算
-    benchmark = dm.get_stock_data("^GSPC", start, end)["^GSPC"]
-    benchmark_returns = benchmark["Close"].pct_change().fillna(0.0)
+    df = data  # 直接使用返回的DataFrame，而不是字典索引
+    # 获取基准（标准普尔500）以用于Beta计算
+    benchmark = dm.get_stock_data("^GSPC", start, end)
+    benchmark_returns = benchmark["Close"].pct_change().fillna(0.0)  # 使用大写的 'Close'
 
     # 计算所有因子并合成FACTOR_SCORE（包含可选的Beta）
     fe = FactorEngine()
@@ -26,7 +26,7 @@ def main() -> None:
     roll_max = score.rolling(60).max()
     signal = ((score - roll_min) / (roll_max - roll_min + 1e-12)).clip(0.0, 1.0).fillna(0.0)
 
-    bt = BacktestEngine(trading_cost_bps=10)
+    bt = BacktestEngine(commission=0.001)  # 使用正确的参数名
     res = bt.run(df, signal)
     perf = PerformanceAnalyzer()
     metrics = perf.metrics(res["returns"])

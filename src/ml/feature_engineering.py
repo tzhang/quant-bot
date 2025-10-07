@@ -1,9 +1,29 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-高级特征工程模块 - 为量化预测比赛优化
+高级特征工程模块
 
-提供先进的特征工程技术，包括时间序列特征、技术指标特征和统计特征
+提供量化交易中的高级特征工程功能：
+- 滞后特征
+- 滚动窗口特征
+- 差分特征
+- 交互特征
+- 多项式特征
+- 时间序列特征
+- 技术指标特征
+- 统计特征
+
+扩展功能（新增）：
+- 高阶统计特征 (advanced_feature_engineering.py)
+- 频域分析特征 (advanced_feature_engineering.py)
+- 图论网络特征 (advanced_feature_engineering.py)
+- 宏观经济特征 (advanced_feature_engineering.py)
+- 非线性特征 (advanced_feature_engineering.py)
+- 特征选择 (feature_selection.py)
+- 特征验证 (feature_validation.py)
+
+作者: Quant Team
+日期: 2024-01-20
 """
 
 import numpy as np
