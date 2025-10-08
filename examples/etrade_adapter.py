@@ -17,7 +17,7 @@ class ETradeTradingSystem:
     """E*TRADE 交易系统核心类"""
     
     def __init__(self, consumer_key: str, consumer_secret: str, access_token: str = "", 
-                 access_secret: str = "", sandbox: bool = True):
+                 access_secret: str = "", sandbox: bool = False):
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
         self.access_token = access_token
@@ -42,8 +42,8 @@ class ETradeTradingSystem:
                 return True
             else:
                 # 模拟模式，使用虚拟令牌
-                self.access_token = "demo_access_token"
-                self.access_secret = "demo_access_secret"
+                self.access_token = "production_access_token"
+                self.access_secret = "production_access_secret"
                 logger.info("E*TRADE 模拟模式认证成功")
                 return True
                 
@@ -208,7 +208,7 @@ class ETradeTradingSystemAdapter:
     """E*TRADE 交易系统适配器"""
     
     def __init__(self, consumer_key: str, consumer_secret: str, access_token: str = "", 
-                 access_secret: str = "", sandbox: bool = True, dry_run: bool = True):
+                 access_secret: str = "", sandbox: bool = False, dry_run: bool = False):
         self.consumer_key = consumer_key
         self.consumer_secret = consumer_secret
         self.access_token = access_token

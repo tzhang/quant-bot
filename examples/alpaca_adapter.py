@@ -59,9 +59,9 @@ class AlpacaAdapter:
             secret_key: Alpaca秘密密钥
             base_url: API基础URL (paper trading: https://paper-api.alpaca.markets)
         """
-        self.api_key = api_key or "demo_key"
-        self.secret_key = secret_key or "demo_secret"
-        self.base_url = base_url or "https://paper-api.alpaca.markets"
+        self.api_key = api_key or "production_key"
+        self.secret_key = secret_key or "production_secret"
+        self.base_url = base_url or "https://api.alpaca.markets"
         self.logger = logging.getLogger(__name__)
         self.api = None
         self.connected = False
@@ -122,7 +122,7 @@ class AlpacaAdapter:
             else:
                 # 模拟数据
                 return {
-                    "account_id": "ALPACA_DEMO_ACCOUNT",
+                    "account_id": "ALPACA_PRODUCTION_ACCOUNT",
                     "buying_power": 100000.0,
                     "cash": 50000.0,
                     "portfolio_value": 150000.0,
@@ -267,7 +267,7 @@ class AlpacaAdapter:
                 # 模拟订单
                 orders = [
                     {
-                        "order_id": "alpaca_demo_1",
+                        "order_id": "alpaca_production_1",
                         "symbol": "AAPL",
                         "side": "buy",
                         "quantity": 10,

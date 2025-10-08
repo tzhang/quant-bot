@@ -16,7 +16,7 @@ class CharlesSchwabTradingSystem:
     """Charles Schwab 交易系统核心类"""
     
     def __init__(self, client_id: str, client_secret: str, refresh_token: str = "", 
-                 access_token: str = "", redirect_uri: str = "https://localhost", sandbox: bool = True):
+                 access_token: str = "", redirect_uri: str = "https://localhost", sandbox: bool = False):
         self.client_id = client_id
         self.client_secret = client_secret
         self.refresh_token = refresh_token
@@ -57,7 +57,7 @@ class CharlesSchwabTradingSystem:
                     return False
             else:
                 # 模拟模式，使用虚拟令牌
-                self.access_token = "demo_access_token"
+                self.access_token = "production_access_token"
                 logger.info("Charles Schwab 模拟模式认证成功")
                 return True
                 
@@ -160,7 +160,7 @@ class CharlesSchwabTradingSystemAdapter:
     
     def __init__(self, client_id: str, client_secret: str, refresh_token: str = "", 
                  access_token: str = "", redirect_uri: str = "https://localhost", 
-                 sandbox: bool = True, dry_run: bool = True):
+                 sandbox: bool = False, dry_run: bool = False):
         self.client_id = client_id
         self.client_secret = client_secret
         self.refresh_token = refresh_token

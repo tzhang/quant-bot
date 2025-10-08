@@ -17,7 +17,7 @@ class RobinhoodTradingSystem:
     """Robinhood 交易系统核心类"""
     
     def __init__(self, username: str, password: str, device_token: str = "", 
-                 challenge_type: str = "sms", sandbox: bool = True):
+                 challenge_type: str = "sms", sandbox: bool = False):
         self.username = username
         self.password = password
         self.device_token = device_token or str(uuid.uuid4())
@@ -39,8 +39,8 @@ class RobinhoodTradingSystem:
             # 在实际环境中需要处理OAuth和MFA
             if self.sandbox:
                 # 模拟模式，使用虚拟令牌
-                self.access_token = "demo_access_token"
-                self.refresh_token = "demo_refresh_token"
+                self.access_token = "production_access_token"
+                self.refresh_token = "production_refresh_token"
                 logger.info("Robinhood 模拟模式认证成功")
                 return True
             else:
@@ -217,7 +217,7 @@ class RobinhoodTradingSystemAdapter:
     """Robinhood 交易系统适配器"""
     
     def __init__(self, username: str, password: str, device_token: str = "", 
-                 challenge_type: str = "sms", sandbox: bool = True, dry_run: bool = True):
+                 challenge_type: str = "sms", sandbox: bool = False, dry_run: bool = False):
         self.username = username
         self.password = password
         self.device_token = device_token

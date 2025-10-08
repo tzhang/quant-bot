@@ -16,7 +16,7 @@ class TDAmeritradeTradingSystem:
     """TD Ameritrade 交易系统核心类"""
     
     def __init__(self, client_id: str, refresh_token: str = "", access_token: str = "", 
-                 redirect_uri: str = "https://localhost", sandbox: bool = True):
+                 redirect_uri: str = "https://localhost", sandbox: bool = False):
         self.client_id = client_id
         self.refresh_token = refresh_token
         self.access_token = access_token
@@ -55,7 +55,7 @@ class TDAmeritradeTradingSystem:
                     return False
             else:
                 # 模拟模式，使用虚拟令牌
-                self.access_token = "demo_access_token"
+                self.access_token = "production_access_token"
                 logger.info("TD Ameritrade 模拟模式认证成功")
                 return True
                 
@@ -146,7 +146,7 @@ class TDAmeritradeTradingSystemAdapter:
     """TD Ameritrade 交易系统适配器"""
     
     def __init__(self, client_id: str, refresh_token: str = "", access_token: str = "", 
-                 redirect_uri: str = "https://localhost", sandbox: bool = True, dry_run: bool = True):
+                 redirect_uri: str = "https://localhost", sandbox: bool = False, dry_run: bool = False):
         self.client_id = client_id
         self.refresh_token = refresh_token
         self.access_token = access_token

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class AlpacaTradingSystem:
     """Alpaca交易系统"""
     
-    def __init__(self, api_key: str, secret_key: str, base_url: str = "https://paper-api.alpaca.markets", dry_run: bool = True):
+    def __init__(self, api_key: str, secret_key: str, base_url: str = "https://api.alpaca.markets", dry_run: bool = False):
         """
         初始化Alpaca交易系统
         
@@ -377,7 +377,7 @@ def test_alpaca_connection():
         print("请在config.py中配置真实的Alpaca API凭据")
         return
     
-    system = AlpacaTradingSystem(api_key, secret_key, dry_run=True)
+    system = AlpacaTradingSystem(api_key, secret_key, dry_run=False)
     
     if system.connect():
         print("Alpaca连接成功!")

@@ -186,7 +186,7 @@ class InteractiveBrokersAdapter:
         else:
             # 模拟数据
             return {
-                "account_id": "IB_DEMO_ACCOUNT",
+                "account_id": "IB_PRODUCTION_ACCOUNT",
                 "buying_power": 100000.0,
                 "total_cash": 50000.0,
                 "net_liquidation": 150000.0

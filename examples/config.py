@@ -14,7 +14,7 @@ class FirstradeConfig:
     username: str = ""
     password: str = ""
     pin: str = ""
-    dry_run: bool = True
+    dry_run: bool = False
     enabled: bool = False
 
 @dataclass
@@ -23,7 +23,7 @@ class AlpacaConfig:
     api_key: str = ""
     secret_key: str = ""
     base_url: str = "https://paper-api.alpaca.markets"  # 纸上交易URL
-    dry_run: bool = True
+    dry_run: bool = False
     enabled: bool = False
 
 @dataclass
@@ -32,7 +32,7 @@ class InteractiveBrokersConfig:
     host: str = "127.0.0.1"
     port: int = 7497
     client_id: int = 1
-    dry_run: bool = True
+    dry_run: bool = False
     enabled: bool = False
 
 @dataclass
@@ -42,8 +42,8 @@ class TDAmeritradConfig:
     consumer_secret: str = ""
     access_token: str = ""
     access_secret: str = ""
-    sandbox: bool = True
-    dry_run: bool = True
+    sandbox: bool = False
+    dry_run: bool = False
     enabled: bool = False
 
 @dataclass
@@ -53,8 +53,8 @@ class CharlesSchwabConfig:
     app_secret: str = ""
     access_token: str = ""
     refresh_token: str = ""
-    sandbox: bool = True
-    dry_run: bool = True
+    sandbox: bool = False
+    dry_run: bool = False
     enabled: bool = False
 
 @dataclass
@@ -64,8 +64,8 @@ class ETradeConfig:
     consumer_secret: str = ""
     access_token: str = ""
     access_secret: str = ""
-    sandbox: bool = True
-    dry_run: bool = True
+    sandbox: bool = False
+    dry_run: bool = False
     enabled: bool = False
 
 @dataclass
@@ -75,8 +75,8 @@ class RobinhoodConfig:
     password: str = ""
     device_token: str = ""
     challenge_type: str = "sms"
-    sandbox: bool = True
-    dry_run: bool = True
+    sandbox: bool = False
+    dry_run: bool = False
     enabled: bool = False
 
 @dataclass
@@ -126,30 +126,30 @@ class Config:
         self.firstrade.username = os.getenv("FIRSTRADE_USERNAME", "")
         self.firstrade.password = os.getenv("FIRSTRADE_PASSWORD", "")
         self.firstrade.pin = os.getenv("FIRSTRADE_PIN", "")
-        self.firstrade.dry_run = os.getenv("FIRSTRADE_DRY_RUN", "true").lower() == "true"
+        self.firstrade.dry_run = os.getenv("FIRSTRADE_DRY_RUN", "false").lower() == "true"
         self.firstrade.enabled = os.getenv("FIRSTRADE_ENABLED", "false").lower() == "true"
         
         # Alpaca配置
         self.alpaca.api_key = os.getenv("ALPACA_API_KEY", "")
         self.alpaca.secret_key = os.getenv("ALPACA_SECRET_KEY", "")
         self.alpaca.base_url = os.getenv("ALPACA_BASE_URL", "https://paper-api.alpaca.markets")
-        self.alpaca.dry_run = os.getenv("ALPACA_DRY_RUN", "true").lower() == "true"
+        self.alpaca.dry_run = os.getenv("ALPACA_DRY_RUN", "false").lower() == "true"
         self.alpaca.enabled = os.getenv("ALPACA_ENABLED", "false").lower() == "true"
         
         # Interactive Brokers配置
         self.interactive_brokers.host = os.getenv("IB_HOST", "127.0.0.1")
         self.interactive_brokers.port = int(os.getenv("IB_PORT", "7497"))
         self.interactive_brokers.client_id = int(os.getenv("IB_CLIENT_ID", "1"))
-        self.interactive_brokers.dry_run = os.getenv("IB_DRY_RUN", "true").lower() == "true"
-        self.interactive_brokers.enabled = os.getenv("IB_ENABLED", "false").lower() == "true"
+        self.interactive_brokers.dry_run = os.getenv("IB_DRY_RUN", "true").lower() == "true"  # 默认启用模拟模式
+        self.interactive_brokers.enabled = os.getenv("IB_ENABLED", "true").lower() == "true"  # 默认启用IB
         
         # TD Ameritrade配置
         self.td_ameritrade.consumer_key = os.getenv("TD_CONSUMER_KEY", "")
         self.td_ameritrade.consumer_secret = os.getenv("TD_CONSUMER_SECRET", "")
         self.td_ameritrade.access_token = os.getenv("TD_ACCESS_TOKEN", "")
         self.td_ameritrade.access_secret = os.getenv("TD_ACCESS_SECRET", "")
-        self.td_ameritrade.sandbox = os.getenv("TD_SANDBOX", "true").lower() == "true"
-        self.td_ameritrade.dry_run = os.getenv("TD_DRY_RUN", "true").lower() == "true"
+        self.td_ameritrade.sandbox = os.getenv("TD_SANDBOX", "false").lower() == "true"
+        self.td_ameritrade.dry_run = os.getenv("TD_DRY_RUN", "false").lower() == "true"
         self.td_ameritrade.enabled = os.getenv("TD_ENABLED", "false").lower() == "true"
         
         # Charles Schwab配置
@@ -157,8 +157,8 @@ class Config:
         self.charles_schwab.app_secret = os.getenv("SCHWAB_APP_SECRET", "")
         self.charles_schwab.access_token = os.getenv("SCHWAB_ACCESS_TOKEN", "")
         self.charles_schwab.refresh_token = os.getenv("SCHWAB_REFRESH_TOKEN", "")
-        self.charles_schwab.sandbox = os.getenv("SCHWAB_SANDBOX", "true").lower() == "true"
-        self.charles_schwab.dry_run = os.getenv("SCHWAB_DRY_RUN", "true").lower() == "true"
+        self.charles_schwab.sandbox = os.getenv("SCHWAB_SANDBOX", "false").lower() == "true"
+        self.charles_schwab.dry_run = os.getenv("SCHWAB_DRY_RUN", "false").lower() == "true"
         self.charles_schwab.enabled = os.getenv("SCHWAB_ENABLED", "false").lower() == "true"
         
         # E*TRADE配置
@@ -166,8 +166,8 @@ class Config:
         self.etrade.consumer_secret = os.getenv("ETRADE_CONSUMER_SECRET", "")
         self.etrade.access_token = os.getenv("ETRADE_ACCESS_TOKEN", "")
         self.etrade.access_secret = os.getenv("ETRADE_ACCESS_SECRET", "")
-        self.etrade.sandbox = os.getenv("ETRADE_SANDBOX", "true").lower() == "true"
-        self.etrade.dry_run = os.getenv("ETRADE_DRY_RUN", "true").lower() == "true"
+        self.etrade.sandbox = os.getenv("ETRADE_SANDBOX", "false").lower() == "true"
+        self.etrade.dry_run = os.getenv("ETRADE_DRY_RUN", "false").lower() == "true"
         self.etrade.enabled = os.getenv("ETRADE_ENABLED", "false").lower() == "true"
         
         # Robinhood配置
@@ -175,8 +175,8 @@ class Config:
         self.robinhood.password = os.getenv("ROBINHOOD_PASSWORD", "")
         self.robinhood.device_token = os.getenv("ROBINHOOD_DEVICE_TOKEN", "")
         self.robinhood.challenge_type = os.getenv("ROBINHOOD_CHALLENGE_TYPE", "sms")
-        self.robinhood.sandbox = os.getenv("ROBINHOOD_SANDBOX", "true").lower() == "true"
-        self.robinhood.dry_run = os.getenv("ROBINHOOD_DRY_RUN", "true").lower() == "true"
+        self.robinhood.sandbox = os.getenv("ROBINHOOD_SANDBOX", "false").lower() == "true"
+        self.robinhood.dry_run = os.getenv("ROBINHOOD_DRY_RUN", "false").lower() == "true"
         self.robinhood.enabled = os.getenv("ROBINHOOD_ENABLED", "false").lower() == "true"
         
         # 系统配置
@@ -241,21 +241,21 @@ def create_sample_config_file(config_file: str = "trading_config.env.sample"):
 FIRSTRADE_USERNAME=your_username
 FIRSTRADE_PASSWORD=your_password
 FIRSTRADE_PIN=your_pin
-FIRSTRADE_DRY_RUN=true
+FIRSTRADE_DRY_RUN=false
 FIRSTRADE_ENABLED=false
 
 # Alpaca配置
 ALPACA_API_KEY=your_api_key
 ALPACA_SECRET_KEY=your_secret_key
 ALPACA_BASE_URL=https://paper-api.alpaca.markets
-ALPACA_DRY_RUN=true
+ALPACA_DRY_RUN=false
 ALPACA_ENABLED=false
 
 # Interactive Brokers配置
 IB_HOST=127.0.0.1
 IB_PORT=7497
 IB_CLIENT_ID=1
-IB_DRY_RUN=true
+IB_DRY_RUN=false
 IB_ENABLED=false
 
 # 系统配置
