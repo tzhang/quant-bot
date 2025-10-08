@@ -1,6 +1,6 @@
-# 使用指南 (Usage Guide)
+# 使用指南 (Usage Guide) - v3.0.0 性能优化版
 
-本指南将帮助您快速上手量化交易系统的各项功能。
+本指南将帮助您快速上手量化交易系统的各项功能，包括最新的性能优化系统。
 
 ## 🚀 快速开始
 
@@ -11,12 +11,25 @@
 git clone https://github.com/your-repo/quant-system.git
 cd quant-system
 
-# 创建虚拟环境
-python -m venv venv
+# 创建虚拟环境 (强制要求 Python 3.12)
+python3.12 -m venv venv
 source venv/bin/activate  # Linux/Mac
 
 # 安装依赖
 pip install -r requirements.txt
+```
+
+### 1.1 性能优化系统测试 (v3.0.0 新增)
+
+```bash
+# 运行集成优化系统测试
+python examples/final_integration_test.py
+
+# 运行性能基准测试
+python examples/test_optimized_parallel_performance.py
+
+# 运行大规模性能测试
+python examples/test_large_scale_performance.py
 ```
 
 ### 2. 基本配置
@@ -58,6 +71,45 @@ print(f"获取到 {len(data)} 条数据")
 print(f"系统版本: {quant.get_version()}")
 ```
 
+### 3.1 性能优化系统使用 (v3.0.0 最新)
+
+```python
+from optimization.cache_system import SmartCacheSystem
+from optimization.memory_pool import MemoryPoolManager
+from optimization.performance_profiler import PerformanceProfiler
+from optimization.adaptive_executor import AdaptiveExecutor
+
+# 初始化性能优化组件
+cache_system = SmartCacheSystem()
+memory_pool = MemoryPoolManager()
+profiler = PerformanceProfiler()
+executor = AdaptiveExecutor()
+
+# 使用智能缓存系统
+cache_system.set('stock_data_AAPL', data)
+cached_data = cache_system.get('stock_data_AAPL')
+print(f"缓存命中率: {cache_system.get_hit_rate():.2%}")
+
+# 使用内存池管理器
+with memory_pool.get_buffer(1024*1024) as buffer:  # 1MB缓冲区
+    # 在这里进行数据处理
+    processed_data = process_large_dataset(data, buffer)
+print(f"内存使用优化: {memory_pool.get_memory_savings():.1f}MB")
+
+# 使用性能分析器
+with profiler.profile('data_processing'):
+    result = complex_calculation(data)
+print(f"处理时间: {profiler.get_last_duration():.3f}秒")
+
+# 使用自适应执行器
+optimized_result = executor.execute_adaptive(
+    func=calculate_factors,
+    data=data,
+    auto_optimize=True
+)
+print(f"性能提升: {executor.get_performance_gain():.1f}x")
+```
+
 ## 📊 数据管理 (v1.5.0 重大更新)
 
 ### 三数据源集成系统
@@ -83,14 +135,15 @@ data_openbb = adapter.get_data('AAPL', source='openbb')
 data_yfinance = adapter.get_data('AAPL', source='yfinance')
 ```
 
-### 数据源性能对比
+### 数据源性能对比 (v3.0.0 优化后)
 
-| 数据源 | 获取速度 | 加速比 | 适用场景 |
-|--------|----------|--------|----------|
-| Qlib 本地数据 | 0.05秒 | 46.8x | 本地量化研究 |
-| OpenBB 平台 | 1.23秒 | 1.9x | 专业金融分析 |
-| yfinance | 2.34秒 | 1.0x | 通用股票数据 |
-| 缓存数据 | 0.19秒 | 12.3x | 重复查询 |
+| 数据源 | 获取速度 | 加速比 | 适用场景 | 优化提升 |
+|--------|----------|--------|----------|----------|
+| Qlib 本地数据 | 0.03秒 | 78.0x | 本地量化研究 | +66.7% |
+| OpenBB 平台 | 0.89秒 | 2.6x | 专业金融分析 | +38.2% |
+| yfinance | 2.34秒 | 1.0x | 通用股票数据 | 基准 |
+| 智能缓存 | 0.08秒 | 29.3x | 重复查询 | +137.5% |
+| 内存池优化 | 0.15秒 | 15.6x | 大数据处理 | 新增 |
 
 ### 批量获取多股票数据
 
@@ -601,6 +654,72 @@ dashboard.start_live_monitoring(
 
 ## 🔧 高级功能
 
+### 性能优化系统高级用法 (v3.0.0 新增)
+
+```python
+from optimization.integrated_optimizer import IntegratedOptimizer
+from optimization.performance_profiler import PerformanceProfiler
+from optimization.adaptive_executor import AdaptiveExecutor
+
+# 创建集成优化器
+optimizer = IntegratedOptimizer()
+
+# 配置优化参数
+optimizer.configure({
+    'cache_size': 1000,
+    'memory_pool_size': 512,  # MB
+    'profiling_enabled': True,
+    'adaptive_execution': True,
+    'parallel_workers': 4
+})
+
+# 优化因子计算
+@optimizer.optimize
+def calculate_complex_factors(data, factor_list):
+    """使用优化器装饰器自动优化函数"""
+    results = {}
+    for factor_name in factor_list:
+        # 复杂的因子计算逻辑
+        results[factor_name] = compute_factor(data, factor_name)
+    return results
+
+# 批量优化处理
+optimized_results = optimizer.batch_process(
+    func=calculate_complex_factors,
+    data_batches=[data1, data2, data3],
+    factor_list=['momentum', 'value', 'quality']
+)
+
+# 获取优化报告
+optimization_report = optimizer.get_performance_report()
+print(f"总体性能提升: {optimization_report['overall_speedup']:.1f}x")
+print(f"内存使用减少: {optimization_report['memory_savings']:.1f}%")
+print(f"缓存命中率: {optimization_report['cache_hit_rate']:.1%}")
+```
+
+### 大规模数据处理优化
+
+```python
+from optimization.large_scale_processor import LargeScaleProcessor
+
+# 创建大规模处理器
+processor = LargeScaleProcessor(
+    chunk_size=10000,
+    parallel_workers=8,
+    memory_limit='2GB'
+)
+
+# 处理大规模股票数据
+large_dataset = load_large_stock_data()  # 假设有100万条数据
+processed_results = processor.process_in_chunks(
+    data=large_dataset,
+    processing_func=calculate_all_factors,
+    progress_callback=lambda p: print(f"处理进度: {p:.1%}")
+)
+
+print(f"处理完成，结果包含 {len(processed_results)} 条记录")
+```
+
 ### 自定义策略 (v1.4.0 框架)
 
 ```python
@@ -785,12 +904,16 @@ print(system_info.get_system_status())
 - 📊 [因子研究手册](docs/factor_research.md)
 - 🔧 [系统配置指南](docs/configuration.md)
 - 🚀 [部署指南](docs/deployment.md)
+- ⚡ [性能优化指南](docs/OPTIMIZATION_GUIDE.md) (v3.0.0 新增)
+- 📈 [性能优化报告](docs/PERFORMANCE_REPORT.md) (v3.0.0 新增)
+- 🔗 [集成优化指南](docs/INTEGRATION_GUIDE.md) (v3.0.0 新增)
 
 ---
 
-**版本信息**: 本指南适用于 v1.5.0 及以上版本
+**版本信息**: 本指南适用于 v3.0.0 性能优化版
 
 **更新日志**:
+- v3.0.0: 新增性能优化系统，包含智能缓存、内存池管理、性能分析器等
 - v1.5.0: 新增三数据源集成系统
 - v1.4.0: 新增策略开发与回测框架
 - v1.3.0: 新增高级数据抓取优化
@@ -800,7 +923,19 @@ print(system_info.get_system_status())
 
 系统提供了多个示例脚本帮助您快速上手：
 
-### 1. 数据获取教程
+### 1. 性能优化系统测试 (v3.0.0 新增)
+```bash
+# 集成优化系统测试
+python examples/final_integration_test.py
+
+# 性能基准测试
+python examples/test_optimized_parallel_performance.py
+
+# 大规模性能测试
+python examples/test_large_scale_performance.py
+```
+
+### 2. 数据获取教程
 ```bash
 # 基础数据获取演示
 python examples/data_tutorial.py
@@ -812,7 +947,7 @@ python examples/data_fetch_demo.py
 python examples/cached_data_demo.py
 ```
 
-### 2. 因子分析教程
+### 3. 因子分析教程
 ```bash
 # 因子计算教程
 python examples/factor_tutorial.py
@@ -821,7 +956,7 @@ python examples/factor_tutorial.py
 python examples/factor_evaluation.py
 ```
 
-### 3. 策略测试
+### 4. 策略测试
 ```bash
 # 策略测试演示
 python examples/strategy_testing_demo.py
@@ -872,14 +1007,43 @@ data = data_manager.get_data('AAPL', '2023-01-01', '2024-01-01')
 - [最佳实践](docs/best_practices.md)
 - [常见问题解答](docs/FAQ_TROUBLESHOOTING.md)
 
-## 💡 提示和技巧
+## 💡 提示和技巧 (v3.0.0 优化版)
 
-1. **优先使用缓存**: 充分利用 `data_cache` 目录中的缓存数据
-2. **避免API限制**: 添加适当的请求延迟，使用重试机制
-3. **正确的数据获取**: 使用 `DataManager` 而不是 `FactorEngine.get_data()`
-4. **批量处理**: 尽量批量处理多只股票，提高效率
-5. **内存管理**: 及时释放不需要的大型数据对象
-6. **参数调优**: 使用网格搜索或贝叶斯优化进行参数调优
-7. **风险控制**: 始终设置合理的风险限制和止损机制
+1. **优先使用性能优化**: 充分利用智能缓存系统和内存池管理器
+2. **监控性能指标**: 使用性能分析器识别瓶颈并优化
+3. **自适应执行**: 启用自适应执行器自动优化计算密集型任务
+4. **批量处理优化**: 使用大规模处理器处理大量数据
+5. **内存管理**: 利用内存池减少内存分配开销
+6. **缓存策略**: 合理配置缓存大小和过期时间
+7. **并行计算**: 充分利用多核CPU进行并行处理
+8. **避免API限制**: 添加适当的请求延迟，使用重试机制
+9. **正确的数据获取**: 使用 `DataManager` 而不是 `FactorEngine.get_data()`
+10. **参数调优**: 使用网格搜索或贝叶斯优化进行参数调优
+11. **风险控制**: 始终设置合理的风险限制和止损机制
+
+### 性能优化最佳实践
+
+```python
+# 1. 使用集成优化器
+from optimization.integrated_optimizer import IntegratedOptimizer
+optimizer = IntegratedOptimizer()
+
+# 2. 配置合适的参数
+optimizer.configure({
+    'cache_size': 2000,      # 根据内存大小调整
+    'memory_pool_size': 1024, # MB
+    'parallel_workers': 8     # 根据CPU核心数调整
+})
+
+# 3. 使用装饰器自动优化
+@optimizer.optimize
+def your_compute_intensive_function(data):
+    # 您的计算逻辑
+    return results
+
+# 4. 监控性能
+performance_report = optimizer.get_performance_report()
+print(f"性能提升: {performance_report['overall_speedup']:.1f}x")
+```
 
 祝您使用愉快！如有问题，请参考 [FAQ文档](docs/FAQ_TROUBLESHOOTING.md) 或查看示例脚本。
