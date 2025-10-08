@@ -1,8 +1,9 @@
 import pandas as pd
 import numpy as np
+from .base_strategy import BaseStrategy
 
 
-class MeanReversionStrategy:
+class MeanReversionStrategy(BaseStrategy):
     """均值回归策略：基于价格相对于移动平均线的Z-score进行交易"""
 
     def __init__(self, lookback: int = 20, entry_z: float = -1.0, exit_z: float = 0.0):
@@ -37,7 +38,7 @@ class MeanReversionStrategy:
         return sig.clip(0.0, 1.0)
 
 
-class MomentumStrategy:
+class MomentumStrategy(BaseStrategy):
     """动量策略：基于EMA交叉进行交易"""
 
     def __init__(self, fast: int = 12, slow: int = 26):
@@ -50,6 +51,18 @@ class MomentumStrategy:
         """
         self.fast = fast
         self.slow = slow
+
+    def generate_signal(self, df: pd.DataFrame) -> pd.Series:
+        """
+        生成交易信号（抽象方法实现）
+        
+        Args:
+            df: 包含OHLCV数据的DataFrame
+            
+        Returns:
+            交易信号序列，0表示空仓，1表示满仓
+        """
+        return self.signal(df)
 
     def signal(self, df: pd.DataFrame) -> pd.Series:
         """
@@ -67,7 +80,7 @@ class MomentumStrategy:
         return sig.clip(0.0, 1.0)
 
 
-class RSIStrategy:
+class RSIStrategy(BaseStrategy):
     """RSI策略：基于相对强弱指数的超买超卖策略"""
     
     def __init__(self, period: int = 14, oversold: float = 30, overbought: float = 70):
@@ -92,6 +105,18 @@ class RSIStrategy:
         rsi = 100 - (100 / (1 + rs))
         return rsi
     
+    def generate_signal(self, df: pd.DataFrame) -> pd.Series:
+        """
+        生成交易信号（抽象方法实现）
+        
+        Args:
+            df: 包含OHLCV数据的DataFrame
+            
+        Returns:
+            交易信号序列，0表示空仓，1表示满仓
+        """
+        return self.signal(df)
+    
     def signal(self, df: pd.DataFrame) -> pd.Series:
         """
         生成交易信号
@@ -111,7 +136,7 @@ class RSIStrategy:
         return sig.clip(0.0, 1.0)
 
 
-class BollingerBandsStrategy:
+class BollingerBandsStrategy(BaseStrategy):
     """布林带策略：基于价格突破布林带进行交易"""
     
     def __init__(self, period: int = 20, std_dev: float = 2.0, strategy_type: str = "mean_reversion"):
@@ -126,6 +151,18 @@ class BollingerBandsStrategy:
         self.period = period
         self.std_dev = std_dev
         self.strategy_type = strategy_type
+    
+    def generate_signal(self, df: pd.DataFrame) -> pd.Series:
+        """
+        生成交易信号（抽象方法实现）
+        
+        Args:
+            df: 包含OHLCV数据的DataFrame
+            
+        Returns:
+            交易信号序列，0表示空仓，1表示满仓
+        """
+        return self.signal(df)
     
     def signal(self, df: pd.DataFrame) -> pd.Series:
         """
@@ -156,7 +193,7 @@ class BollingerBandsStrategy:
         return sig.clip(0.0, 1.0)
 
 
-class MACDStrategy:
+class MACDStrategy(BaseStrategy):
     """MACD策略：基于MACD指标的金叉死叉进行交易"""
     
     def __init__(self, fast: int = 12, slow: int = 26, signal_period: int = 9):
@@ -192,7 +229,7 @@ class MACDStrategy:
         return sig.clip(0.0, 1.0)
 
 
-class PairsTradingStrategy:
+class PairsTradingStrategy(BaseStrategy):
     """配对交易策略：基于两个相关资产的价差进行交易"""
     
     def __init__(self, lookback: int = 60, entry_z: float = 2.0, exit_z: float = 0.5):
@@ -207,6 +244,19 @@ class PairsTradingStrategy:
         self.lookback = lookback
         self.entry_z = entry_z
         self.exit_z = exit_z
+    
+    def generate_signal(self, df: pd.DataFrame) -> pd.Series:
+        """
+        生成交易信号（抽象方法实现）
+        
+        Args:
+            df: 包含OHLCV数据的DataFrame
+            
+        Returns:
+            交易信号序列，0表示空仓，1表示满仓
+        """
+        # 配对交易需要两个DataFrame，这里返回空信号
+        return pd.Series(0.0, index=df.index)
     
     def signal(self, df1: pd.DataFrame, df2: pd.DataFrame) -> pd.Series:
         """
@@ -237,7 +287,7 @@ class PairsTradingStrategy:
         return sig.clip(-1.0, 1.0)
 
 
-class VolatilityBreakoutStrategy:
+class VolatilityBreakoutStrategy(BaseStrategy):
     """波动率突破策略：基于价格突破前期波动率范围进行交易"""
     
     def __init__(self, lookback: int = 20, multiplier: float = 1.5):
@@ -250,6 +300,18 @@ class VolatilityBreakoutStrategy:
         """
         self.lookback = lookback
         self.multiplier = multiplier
+    
+    def generate_signal(self, df: pd.DataFrame) -> pd.Series:
+        """
+        生成交易信号（抽象方法实现）
+        
+        Args:
+            df: 包含OHLCV数据的DataFrame
+            
+        Returns:
+            交易信号序列，0表示空仓，1表示满仓
+        """
+        return self.signal(df)
     
     def signal(self, df: pd.DataFrame) -> pd.Series:
         """

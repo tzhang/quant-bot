@@ -150,14 +150,21 @@
    pip install -r requirements.txt
    ```
 
-4. **环境检测**
+4. **快速体验 - 使用主入口程序**
    ```bash
-   python test_environment.py
+   # 查看系统信息
+   python main.py --info
+   
+   # 运行快速演示
+   python main.py --demo
+   
+   # 自定义参数运行
+   python main.py --demo --cache-dir ./my_cache --initial-capital 50000
    ```
 
-5. **快速体验**
+5. **环境检测**
    ```bash
-   python examples/quick_start_demo.py
+   python test_environment.py
    ```
 
 6. **ML增强策略演示** (v2.0.0 新增)
@@ -171,9 +178,64 @@
    python examples/premium_competitions_example.py
    ```
 
+### 主入口程序使用指南
+
+本系统提供了统一的主入口程序 `main.py`，整合了所有核心功能：
+
+#### 基本用法
+```bash
+# 显示系统信息
+python main.py --info
+
+# 运行快速演示（包含数据获取、因子计算、策略回测、性能分析、风险评估）
+python main.py --demo
+
+# 自定义缓存目录
+python main.py --demo --cache-dir ./custom_cache
+
+# 自定义初始资金
+python main.py --demo --initial-capital 100000
+```
+
+#### 主要功能模块
+1. **数据管理**: 自动获取股票数据，支持智能缓存
+2. **因子计算**: 计算技术因子（RSI、MACD、布林带等）
+3. **策略回测**: 运行动量策略回测
+4. **性能分析**: 计算夏普比率、最大回撤等指标
+5. **风险评估**: 评估投资风险和风险调整收益
+
+#### 系统架构
+- **数据层**: DataManager - 多数据源支持，智能缓存
+- **因子层**: FactorEngine - 技术因子计算
+- **策略层**: 动量策略、均值回归策略等
+- **回测层**: BacktestEngine - 完整回测框架
+- **分析层**: PerformanceAnalyzer - 性能指标计算
+- **风险层**: RiskManager - 风险管理和评估
+
 ### 核心模块使用示例
 
-#### 1. 信号生成与处理
+#### 1. 使用主入口程序
+```python
+from main import QuantTradingSystem
+
+# 初始化系统
+system = QuantTradingSystem(
+    cache_dir="./data_cache",
+    initial_capital=100000
+)
+
+# 初始化所有模块
+system.initialize()
+
+# 运行快速演示
+system.quick_start_demo()
+
+# 获取系统信息
+info = system.get_system_info()
+print(info)
+```
+
+#### 2. 信号生成与处理
 ```python
 from src.core import SignalGenerator, SignalFusion
 
@@ -188,7 +250,7 @@ signal_fusion = SignalFusion()
 fused_signal = signal_fusion.weighted_fusion(signals_df, weights=[0.6, 0.4])
 ```
 
-#### 2. 自适应风险管理
+#### 3. 自适应风险管理
 ```python
 from src.core import AdaptiveRiskManager, MarketRegimeDetector
 

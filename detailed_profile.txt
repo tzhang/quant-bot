@@ -1,0 +1,37 @@
+         37 function calls in 0.210 seconds
+
+   Ordered by: cumulative time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.210    0.210    0.210    0.210 /Volumes/MY4TB/codebase_portable/quant-bot/venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:1133(eigvals)
+        1    0.000    0.000    0.000    0.000 /Volumes/MY4TB/codebase_portable/quant-bot/venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:204(_assert_finite)
+        2    0.000    0.000    0.000    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+        1    0.000    0.000    0.000    0.000 {method 'all' of 'numpy.ndarray' objects}
+        1    0.000    0.000    0.000    0.000 /Volumes/MY4TB/codebase_portable/quant-bot/venv/lib/python3.12/site-packages/numpy/_core/_methods.py:67(_all)
+        1    0.000    0.000    0.000    0.000 /Volumes/MY4TB/codebase_portable/quant-bot/src/backtesting/performance_analyzer.py:407(__exit__)
+        1    0.000    0.000    0.000    0.000 /Volumes/MY4TB/codebase_portable/quant-bot/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:2589(all)
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        1    0.000    0.000    0.000    0.000 /Volumes/MY4TB/codebase_portable/quant-bot/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:89(_wrapreduction_any_all)
+        1    0.000    0.000    0.000    0.000 /Volumes/MY4TB/codebase_portable/quant-bot/venv/lib/python3.12/site-packages/numpy/_core/_ufunc_config.py:456(__exit__)
+        1    0.000    0.000    0.000    0.000 /Volumes/MY4TB/codebase_portable/quant-bot/venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:148(_commonType)
+        1    0.000    0.000    0.000    0.000 /Volumes/MY4TB/codebase_portable/quant-bot/venv/lib/python3.12/site-packages/numpy/_core/_ufunc_config.py:440(__enter__)
+        1    0.000    0.000    0.000    0.000 {method 'reset' of '_contextvars.ContextVar' objects}
+        1    0.000    0.000    0.000    0.000 /Volumes/MY4TB/codebase_portable/quant-bot/venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:123(_makearray)
+        3    0.000    0.000    0.000    0.000 /Volumes/MY4TB/codebase_portable/quant-bot/venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:128(isComplexType)
+        1    0.000    0.000    0.000    0.000 {built-in method numpy._core._multiarray_umath._make_extobj}
+        1    0.000    0.000    0.000    0.000 /Volumes/MY4TB/codebase_portable/quant-bot/venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:142(_realType)
+        1    0.000    0.000    0.000    0.000 {method 'astype' of 'numpy.ndarray' objects}
+        4    0.000    0.000    0.000    0.000 {built-in method builtins.issubclass}
+        1    0.000    0.000    0.000    0.000 {method 'set' of '_contextvars.ContextVar' objects}
+        1    0.000    0.000    0.000    0.000 /Volumes/MY4TB/codebase_portable/quant-bot/venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:145(_complexType)
+        1    0.000    0.000    0.000    0.000 /Volumes/MY4TB/codebase_portable/quant-bot/venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:198(_assert_stacked_square)
+        1    0.000    0.000    0.000    0.000 /Volumes/MY4TB/codebase_portable/quant-bot/venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:192(_assert_stacked_2d)
+        2    0.000    0.000    0.000    0.000 {method 'get' of 'dict' objects}
+        1    0.000    0.000    0.000    0.000 {method 'items' of 'dict' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method numpy.asarray}
+        1    0.000    0.000    0.000    0.000 /Volumes/MY4TB/codebase_portable/quant-bot/venv/lib/python3.12/site-packages/numpy/_core/_ufunc_config.py:430(__init__)
+        1    0.000    0.000    0.000    0.000 /Volumes/MY4TB/codebase_portable/quant-bot/venv/lib/python3.12/site-packages/numpy/linalg/_linalg.py:492(_unary_dispatcher)
+        1    0.000    0.000    0.000    0.000 /Volumes/MY4TB/codebase_portable/quant-bot/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:2584(_all_dispatcher)
+        1    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
+
+
