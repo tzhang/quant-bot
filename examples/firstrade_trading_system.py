@@ -84,8 +84,24 @@ try:
     from src.data_fetcher import DataFetcher
     from src.sentiment_analyzer import SentimentAnalyzer
     from src.portfolio_optimizer import PortfolioOptimizer
+    from src.utils.market_calendar import market_calendar
+    from src.utils.timezone_manager import timezone_manager
+    HAS_MARKET_CALENDAR = True
 except ImportError:
-    pass  # 如果src模块不存在，继续执行
+    HAS_MARKET_CALENDAR = False
+    print("警告: 市场日历模块未找到，将使用简化版本")
+    # 创建简化版本的市场日历类
+    class SimpleMarketCalendar:
+        def is_trading_day(self, date):
+            return date.weekday() < 5
+        
+        def is_market_open_now(self):
+            from datetime import datetime
+            now = datetime.now()
+            return (now.weekday() < 5 and 
+                   9 <= now.hour < 16)
+    
+    market_calendar = SimpleMarketCalendar()
 
 class RetryConfig:
     """重试配置类"""
@@ -1708,6 +1724,7 @@ class RiskManager:
     def check_trading_hours(self) -> bool:
         """
         检查是否在交易时间内
+        使用增强版市场日历功能，支持节假日和时区处理
         
         Returns:
             bool: 是否在交易时间内
@@ -1715,17 +1732,22 @@ class RiskManager:
         if not self.config.trading_hours_only:
             return True
         
-        now = datetime.now()
-        # 美股交易时间：周一到周五 9:30-16:00 EST
-        # 这里简化处理，实际应该考虑时区和节假日
-        if now.weekday() >= 5:  # 周末
-            return False
-        
-        # 简化的交易时间检查（需要根据实际时区调整）
-        trading_start = now.replace(hour=9, minute=30, second=0, microsecond=0)
-        trading_end = now.replace(hour=16, minute=0, second=0, microsecond=0)
-        
-        return trading_start <= now <= trading_end
+        if HAS_MARKET_CALENDAR:
+            # 使用增强版市场日历
+            return market_calendar.is_market_open_now()
+        else:
+            # 回退到简化版本
+            now = datetime.now()
+            # 美股交易时间：周一到周五 9:30-16:00 EST
+            # 这里简化处理，实际应该考虑时区和节假日
+            if now.weekday() >= 5:  # 周末
+                return False
+            
+            # 简化的交易时间检查（需要根据实际时区调整）
+            trading_start = now.replace(hour=9, minute=30, second=0, microsecond=0)
+            trading_end = now.replace(hour=16, minute=0, second=0, microsecond=0)
+            
+            return trading_start <= now <= trading_end
     
     def validate_symbol(self, symbol: str) -> Tuple[bool, str]:
         """

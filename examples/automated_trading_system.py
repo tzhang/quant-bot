@@ -30,6 +30,23 @@ import seaborn as sns
 # 导入投资策略推荐系统
 from examples.investment_strategy_recommendation import InvestmentStrategyRecommendation
 
+# 导入市场日历模块
+try:
+    from src.utils.market_calendar import market_calendar
+    from src.utils.timezone_manager import timezone_manager
+    HAS_MARKET_CALENDAR = True
+except ImportError:
+    HAS_MARKET_CALENDAR = False
+    print("警告: 市场日历模块未找到，将使用简化版本")
+    
+    class SimpleMarketCalendar:
+        def is_market_open_now(self):
+            # 简化版本：只检查工作日和基本时间
+            now = datetime.now()
+            return now.weekday() < 5 and 9 <= now.hour < 16
+    
+    market_calendar = SimpleMarketCalendar()
+
 class TradingSignalGenerator:
     """交易信号生成器"""
     
@@ -396,6 +413,15 @@ class AutomatedTradingSystem:
         print("🚀 启动程序化交易系统...")
         print(f"📊 策略类型: {self.strategy_type}")
         print(f"💰 初始资金: ${self.order_executor.initial_capital:,.2f}")
+        
+        # 检查市场是否开放
+        if not market_calendar.is_market_open_now():
+            print("⏰ 市场未开放，暂停交易")
+            return {
+                'status': 'market_closed',
+                'message': '市场未开放，无法执行交易',
+                'timestamp': datetime.now()
+            }
         
         try:
             # 1. 生成交易信号

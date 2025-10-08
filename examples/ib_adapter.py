@@ -60,6 +60,7 @@ class IBAdapter(EWrapper, EClient):
         self.account_info = AccountInfo()
         self.positions: Dict[str, Position] = {}
         self.market_data: Dict[str, Dict] = {}
+        self._symbol_req_map: Dict[int, str] = {}
         
         # 回调函数
         self.on_connection_callback: Optional[Callable] = None
@@ -255,25 +256,6 @@ class IBAdapter(EWrapper, EClient):
         """根据请求ID获取股票代码"""
         return getattr(self, '_symbol_req_map', {}).get(req_id)
     
-    def __init__(self, config: IBConfig = None):
-        super().__init__()
-        self.config = config or IBConfig()
-        self.connected = False
-        self.next_order_id = None
-        self.account_info = AccountInfo()
-        self.positions: Dict[str, Position] = {}
-        self.market_data: Dict[str, Dict] = {}
-        self._symbol_req_map: Dict[int, str] = {}
-        
-        # 回调函数
-        self.on_connection_callback: Optional[Callable] = None
-        self.on_account_update_callback: Optional[Callable] = None
-        self.on_position_update_callback: Optional[Callable] = None
-        self.on_market_data_callback: Optional[Callable] = None
-        
-        # 请求ID管理
-        self._req_id_counter = 1000
-
 # ========== 使用示例 ==========
 
 def example_usage():
