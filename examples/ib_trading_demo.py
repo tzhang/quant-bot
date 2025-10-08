@@ -36,10 +36,9 @@ class IBTradingDemo:
         # 交易配置
         self.config = TradingConfig(
             host="127.0.0.1",
-            port=7497,  # TWS Paper Trading端口
+            paper_port=7497,  # TWS Paper Trading端口
             client_id=2,
-            mode=TradingMode.PAPER,  # 模拟交易模式
-            enable_risk_management=True,
+            trading_mode=TradingMode.PAPER,  # 模拟交易模式
             max_position_value=50000.0,
             max_daily_loss=2000.0
         )
