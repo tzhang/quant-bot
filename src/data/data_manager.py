@@ -48,7 +48,7 @@ class DataManager:
         # 初始化数据适配器
         if QLIB_AVAILABLE:
             try:
-                self.data_adapter = create_data_adapter()
+                self.data_adapter = create_data_adapter(enable_ib=True)
                 logger.info("DataManager初始化完成，使用Qlib数据适配器")
             except Exception as e:
                 logger.warning(f"Qlib数据适配器初始化失败: {e}，将使用yfinance")

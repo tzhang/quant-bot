@@ -36,6 +36,13 @@ except ImportError as e:
     OpenBBDataProvider = None
 
 try:
+    from .ib_data_provider import IBDataProvider, IB_AVAILABLE
+except ImportError as e:
+    IB_AVAILABLE = False
+    logger.warning(f"IB provider not available: {e}")
+    IBDataProvider = None
+
+try:
     import yfinance as yf
     YFINANCE_AVAILABLE = True
 except ImportError:
@@ -57,6 +64,7 @@ class DataAdapter:
                  prefer_qlib: bool = True,
                  qlib_data_dir: Optional[str] = None,
                  enable_openbb: bool = True,
+                 enable_ib: bool = True,
                  fallback_to_yfinance: bool = True):
         """
         初始化数据适配器
@@ -65,10 +73,12 @@ class DataAdapter:
             prefer_qlib: 是否优先使用Qlib数据
             qlib_data_dir: Qlib数据目录
             enable_openbb: 是否启用OpenBB数据源
-            fallback_to_yfinance: 当Qlib不可用时是否回退到yfinance
+            enable_ib: 是否启用Interactive Brokers数据源
+            fallback_to_yfinance: 当其他数据源不可用时是否回退到yfinance
         """
         self.prefer_qlib = prefer_qlib and QLIB_AVAILABLE
         self.enable_openbb = enable_openbb and OPENBB_AVAILABLE
+        self.enable_ib = enable_ib and IB_AVAILABLE
         self.fallback_to_yfinance = fallback_to_yfinance and YFINANCE_AVAILABLE
         
         # 初始化Qlib提供器
@@ -91,6 +101,16 @@ class DataAdapter:
                 logger.warning(f"Failed to initialize OpenBB provider: {e}")
                 self.enable_openbb = False
         
+        # 初始化IB提供器
+        self.ib_provider = None
+        if self.enable_ib:
+            try:
+                self.ib_provider = IBDataProvider()
+                logger.info("Interactive Brokers data provider initialized successfully")
+            except Exception as e:
+                logger.warning(f"Failed to initialize IB provider: {e}")
+                self.enable_ib = False
+        
         # 检查可用的数据源
         self._log_available_sources()
     
@@ -101,6 +121,8 @@ class DataAdapter:
             sources.append("Qlib (primary)")
         if self.enable_openbb and self.openbb_provider:
             sources.append("OpenBB (secondary)")
+        if self.enable_ib and self.ib_provider:
+            sources.append("Interactive Brokers (real-time)")
         if self.fallback_to_yfinance:
             sources.append("yfinance (fallback)")
         
@@ -121,7 +143,7 @@ class DataAdapter:
             symbol: 股票代码
             start_date: 开始日期 (YYYY-MM-DD)
             end_date: 结束日期 (YYYY-MM-DD)
-            force_source: 强制使用指定数据源 ('qlib', 'openbb', 'yfinance')
+            force_source: 强制使用指定数据源 ('qlib', 'openbb', 'ib', 'yfinance')
         
         Returns:
             股票数据DataFrame
@@ -164,7 +186,21 @@ class DataAdapter:
             except Exception as e:
                 logger.warning(f"OpenBB data retrieval failed for {symbol}: {e}")
         
-        # 3. 最后回退到yfinance
+        # 3. 尝试Interactive Brokers
+        if self.enable_ib and self.ib_provider:
+            try:
+                logger.info(f"Trying Interactive Brokers for {symbol}")
+                data = self.ib_provider.get_stock_data(symbol, start_date, end_date)
+                
+                if not data.empty:
+                    logger.info(f"Retrieved {len(data)} records for {symbol} from IB")
+                    return data
+                else:
+                    logger.warning(f"No IB data found for {symbol}")
+            except Exception as e:
+                logger.warning(f"IB data retrieval failed for {symbol}: {e}")
+        
+        # 4. 最后回退到yfinance
         if self.fallback_to_yfinance:
             logger.info(f"Falling back to yfinance for {symbol}")
             return self._get_yfinance_data(symbol, start_date, end_date)
@@ -193,6 +229,8 @@ class DataAdapter:
             return self.qlib_provider.get_stock_data(symbol.lower(), start_date, end_date)
         elif source.lower() == "openbb" and self.openbb_provider:
             return self.openbb_provider.get_stock_data(symbol, start_date, end_date)
+        elif source.lower() == "ib" and self.ib_provider:
+            return self.ib_provider.get_stock_data(symbol, start_date, end_date)
         elif source.lower() == "yfinance":
             return self._get_yfinance_data(symbol, start_date, end_date)
         else:
@@ -447,6 +485,7 @@ class DataAdapter:
 def create_data_adapter(prefer_qlib: bool = True, 
                        qlib_data_dir: Optional[str] = None,
                        enable_openbb: bool = True,
+                       enable_ib: bool = True,
                        fallback_to_yfinance: bool = True) -> DataAdapter:
     """
     创建数据适配器实例
@@ -455,6 +494,7 @@ def create_data_adapter(prefer_qlib: bool = True,
         prefer_qlib: 是否优先使用Qlib
         qlib_data_dir: Qlib数据目录
         enable_openbb: 是否启用OpenBB
+        enable_ib: 是否启用Interactive Brokers
         fallback_to_yfinance: 是否启用yfinance回退
     
     Returns:
@@ -464,6 +504,7 @@ def create_data_adapter(prefer_qlib: bool = True,
         prefer_qlib=prefer_qlib,
         qlib_data_dir=qlib_data_dir,
         enable_openbb=enable_openbb,
+        enable_ib=enable_ib,
         fallback_to_yfinance=fallback_to_yfinance
     )
 
