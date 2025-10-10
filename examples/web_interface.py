@@ -25,6 +25,9 @@ try:
     from src.backtesting.enhanced_backtest_engine import EnhancedBacktestEngine
     from src.monitoring.performance_analyzer import PerformanceAnalyzer
     from src.risk.risk_manager import RiskManager
+    from src.risk.enhanced_risk_manager import EnhancedRiskManager, RiskLimits
+    from src.risk.real_time_monitor import RealTimeRiskMonitor, MonitoringConfig
+    from src.risk.risk_metrics import RiskMetricsEngine
 except ImportError as e:
     st.error(f"导入模块失败: {e}")
     st.info("请确保所有依赖模块已正确安装")
@@ -84,6 +87,12 @@ if 'factor_engine' not in st.session_state:
     st.session_state.factor_engine = None
 if 'backtest_results' not in st.session_state:
     st.session_state.backtest_results = None
+if 'enhanced_risk_manager' not in st.session_state:
+    st.session_state.enhanced_risk_manager = None
+if 'risk_monitor' not in st.session_state:
+    st.session_state.risk_monitor = None
+if 'risk_metrics_engine' not in st.session_state:
+    st.session_state.risk_metrics_engine = None
 
 def initialize_system():
     """初始化系统组件"""
@@ -92,6 +101,18 @@ def initialize_system():
             st.session_state.data_manager = DataManager()
         if st.session_state.factor_engine is None:
             st.session_state.factor_engine = FactorEngine()
+        if st.session_state.risk_metrics_engine is None:
+            st.session_state.risk_metrics_engine = RiskMetricsEngine()
+        if st.session_state.enhanced_risk_manager is None:
+            # 创建风险限制配置
+            risk_limits = RiskLimits(
+                max_position_size=0.1,
+                max_leverage=2.0,
+                var_limit_1d=0.02,
+                max_drawdown=0.15,
+                max_concentration=0.05
+            )
+            st.session_state.enhanced_risk_manager = EnhancedRiskManager(risk_limits=risk_limits)
         return True
     except Exception as e:
         st.error(f"系统初始化失败: {e}")
@@ -637,103 +658,448 @@ def show_risk_management():
     """显示风险管理页面"""
     st.header("🛡️ 风险管理")
     
-    st.info("💡 风险管理功能正在开发中，敬请期待！")
+    # 获取风险管理器
+    risk_manager = st.session_state.enhanced_risk_manager
+    risk_metrics_engine = st.session_state.risk_metrics_engine
     
-    # 风险限额设置
-    st.subheader("⚙️ 风险限额设置")
+    if not risk_manager or not risk_metrics_engine:
+        st.error("风险管理系统未初始化")
+        return
+    
+    # 创建标签页
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 风险仪表板", "⚙️ 风险配置", "📈 风险指标", "🚨 风险警报", "📋 风险报告"])
+    
+    with tab1:
+        show_risk_dashboard(risk_manager, risk_metrics_engine)
+    
+    with tab2:
+        show_risk_configuration(risk_manager)
+    
+    with tab3:
+        show_risk_metrics(risk_metrics_engine)
+    
+    with tab4:
+        show_risk_alerts(risk_manager)
+    
+    with tab5:
+        show_risk_reports(risk_manager)
+
+def show_risk_dashboard(risk_manager, risk_metrics_engine):
+    """显示风险仪表板"""
+    st.subheader("📊 实时风险监控仪表板")
+    
+    # 获取当前风险指标
+    current_metrics = risk_manager.get_current_risk_metrics()
+    
+    if current_metrics:
+        # 关键指标卡片
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric(
+                "当前杠杆",
+                f"{current_metrics.leverage:.2f}x",
+                delta=f"限制: {risk_manager.risk_limits.max_leverage:.1f}x"
+            )
+        
+        with col2:
+            st.metric(
+                "1日VaR",
+                f"{current_metrics.var_1d:.2%}",
+                delta=f"限制: {risk_manager.risk_limits.var_limit_1d:.2%}"
+            )
+        
+        with col3:
+            st.metric(
+                "当前回撤",
+                f"{current_metrics.max_drawdown:.2%}",
+                delta=f"限制: {risk_manager.risk_limits.max_drawdown:.2%}"
+            )
+        
+        with col4:
+            st.metric(
+                "波动率",
+                f"{current_metrics.volatility:.2%}",
+                delta="年化"
+            )
+        
+        # 风险仪表盘
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            # 杠杆使用率仪表盘
+            leverage_usage = (current_metrics.leverage / risk_manager.risk_limits.max_leverage) * 100
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number+delta",
+                value=leverage_usage,
+                domain={'x': [0, 1], 'y': [0, 1]},
+                title={'text': "杠杆使用率 (%)"},
+                delta={'reference': 80},
+                gauge={
+                    'axis': {'range': [None, 150]},
+                    'bar': {'color': "darkblue"},
+                    'steps': [
+                        {'range': [0, 60], 'color': "lightgray"},
+                        {'range': [60, 80], 'color': "yellow"},
+                        {'range': [80, 100], 'color': "orange"},
+                        {'range': [100, 150], 'color': "red"}
+                    ],
+                    'threshold': {
+                        'line': {'color': "red", 'width': 4},
+                        'thickness': 0.75,
+                        'value': 100
+                    }
+                }
+            ))
+            fig.update_layout(height=300)
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with col2:
+            # VaR风险仪表盘
+            var_usage = (current_metrics.var_1d / risk_manager.risk_limits.var_limit_1d) * 100
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number+delta",
+                value=var_usage,
+                domain={'x': [0, 1], 'y': [0, 1]},
+                title={'text': "VaR风险使用率 (%)"},
+                delta={'reference': 80},
+                gauge={
+                    'axis': {'range': [None, 150]},
+                    'bar': {'color': "darkorange"},
+                    'steps': [
+                        {'range': [0, 60], 'color': "lightgray"},
+                        {'range': [60, 80], 'color': "yellow"},
+                        {'range': [80, 100], 'color': "orange"},
+                        {'range': [100, 150], 'color': "red"}
+                    ],
+                    'threshold': {
+                        'line': {'color': "red", 'width': 4},
+                        'thickness': 0.75,
+                        'value': 100
+                    }
+                }
+            ))
+            fig.update_layout(height=300)
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with col3:
+            # 回撤风险仪表盘
+            dd_usage = (current_metrics.max_drawdown / risk_manager.risk_limits.max_drawdown) * 100
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number+delta",
+                value=dd_usage,
+                domain={'x': [0, 1], 'y': [0, 1]},
+                title={'text': "回撤风险使用率 (%)"},
+                delta={'reference': 80},
+                gauge={
+                    'axis': {'range': [None, 150]},
+                    'bar': {'color': "darkred"},
+                    'steps': [
+                        {'range': [0, 60], 'color': "lightgray"},
+                        {'range': [60, 80], 'color': "yellow"},
+                        {'range': [80, 100], 'color': "orange"},
+                        {'range': [100, 150], 'color': "red"}
+                    ],
+                    'threshold': {
+                        'line': {'color': "red", 'width': 4},
+                        'thickness': 0.75,
+                        'value': 100
+                    }
+                }
+            ))
+            fig.update_layout(height=300)
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # 风险趋势图
+        st.subheader("📈 风险趋势分析")
+        
+        # 生成模拟历史数据
+        dates = pd.date_range(start=datetime.now() - timedelta(days=30), end=datetime.now(), freq='D')
+        np.random.seed(42)
+        
+        risk_data = pd.DataFrame({
+            'date': dates,
+            'var_1d': np.random.normal(0.015, 0.005, len(dates)),
+            'leverage': np.random.normal(1.5, 0.3, len(dates)),
+            'volatility': np.random.normal(0.2, 0.05, len(dates)),
+            'drawdown': np.cumsum(np.random.normal(0, 0.01, len(dates)))
+        })
+        
+        # 创建子图
+        fig = make_subplots(
+            rows=2, cols=2,
+            subplot_titles=('VaR趋势', '杠杆趋势', '波动率趋势', '回撤趋势'),
+            specs=[[{"secondary_y": False}, {"secondary_y": False}],
+                   [{"secondary_y": False}, {"secondary_y": False}]]
+        )
+        
+        # VaR趋势
+        fig.add_trace(
+            go.Scatter(x=risk_data['date'], y=risk_data['var_1d'], name='VaR 1日', line=dict(color='red')),
+            row=1, col=1
+        )
+        fig.add_hline(y=risk_manager.risk_limits.var_limit_1d, line_dash="dash", line_color="red", row=1, col=1)
+        
+        # 杠杆趋势
+        fig.add_trace(
+            go.Scatter(x=risk_data['date'], y=risk_data['leverage'], name='杠杆', line=dict(color='blue')),
+            row=1, col=2
+        )
+        fig.add_hline(y=risk_manager.risk_limits.max_leverage, line_dash="dash", line_color="red", row=1, col=2)
+        
+        # 波动率趋势
+        fig.add_trace(
+            go.Scatter(x=risk_data['date'], y=risk_data['volatility'], name='波动率', line=dict(color='green')),
+            row=2, col=1
+        )
+        
+        # 回撤趋势
+        fig.add_trace(
+            go.Scatter(x=risk_data['date'], y=risk_data['drawdown'], name='回撤', line=dict(color='orange')),
+            row=2, col=2
+        )
+        fig.add_hline(y=-risk_manager.risk_limits.max_drawdown, line_dash="dash", line_color="red", row=2, col=2)
+        
+        fig.update_layout(height=600, showlegend=False, title_text="风险指标历史趋势")
+        st.plotly_chart(fig, use_container_width=True)
+    
+    else:
+        st.warning("暂无风险指标数据")
+
+def show_risk_configuration(risk_manager):
+    """显示风险配置页面"""
+    st.subheader("⚙️ 风险限制配置")
+    
+    # 当前配置显示
+    st.write("**当前风险限制配置:**")
+    current_limits = risk_manager.risk_limits
     
     col1, col2 = st.columns(2)
     
     with col1:
-        max_position = st.slider("最大仓位 (%)", 0, 100, 80)
-        max_drawdown = st.slider("最大回撤限制 (%)", 0, 50, 20)
-        stop_loss = st.slider("止损线 (%)", 0, 20, 5)
+        st.info(f"**最大仓位大小:** {current_limits.max_position_size:.1%}")
+        st.info(f"**最大杠杆:** {current_limits.max_leverage:.1f}x")
+        st.info(f"**VaR限制 (1日):** {current_limits.var_limit_1d:.2%}")
     
     with col2:
-        var_confidence = st.slider("VaR置信度 (%)", 90, 99, 95)
-        concentration_limit = st.slider("单股票集中度限制 (%)", 0, 50, 10)
-        leverage_limit = st.slider("杠杆限制", 1.0, 5.0, 2.0, 0.1)
+        st.info(f"**最大回撤:** {current_limits.max_drawdown:.1%}")
+        st.info(f"**集中度限制:** {current_limits.max_concentration:.1%}")
+        st.info(f"**止损线:** {current_limits.stop_loss_pct:.1%}")
     
-    # 风险监控仪表板
-    st.subheader("📊 风险监控仪表板")
+    # 配置修改
+    st.write("**修改风险限制:**")
     
-    # 创建仪表盘
-    col1, col2, col3 = st.columns(3)
+    with st.form("risk_limits_form"):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            new_max_position = st.slider("最大仓位大小 (%)", 1, 50, int(current_limits.max_position_size * 100)) / 100
+            new_max_leverage = st.slider("最大杠杆", 1.0, 5.0, current_limits.max_leverage, 0.1)
+            new_var_limit = st.slider("VaR限制 (1日) (%)", 0.5, 10.0, current_limits.var_limit_1d * 100) / 100
+        
+        with col2:
+            new_max_drawdown = st.slider("最大回撤 (%)", 5, 50, int(current_limits.max_drawdown * 100)) / 100
+            new_concentration = st.slider("集中度限制 (%)", 1, 20, int(current_limits.max_concentration * 100)) / 100
+            new_stop_loss = st.slider("止损线 (%)", 1, 20, int(current_limits.stop_loss_pct * 100)) / 100
+        
+        submitted = st.form_submit_button("更新风险限制")
+        
+        if submitted:
+            # 更新风险限制
+            new_limits = RiskLimits(
+                max_position_size=new_max_position,
+                max_leverage=new_max_leverage,
+                var_limit_1d=new_var_limit,
+                max_drawdown=new_max_drawdown,
+                max_concentration=new_concentration,
+                stop_loss_pct=new_stop_loss
+            )
+            
+            risk_manager.update_risk_limits(new_limits)
+            st.success("风险限制已更新！")
+            st.rerun()
+
+def show_risk_metrics(risk_metrics_engine):
+    """显示风险指标页面"""
+    st.subheader("📈 详细风险指标")
+    
+    # 生成示例数据
+    np.random.seed(42)
+    returns = np.random.normal(0.001, 0.02, 252)  # 一年的日收益率
+    prices = pd.Series(100 * np.cumprod(1 + returns))
+    
+    # 计算各种风险指标
+    col1, col2 = st.columns(2)
     
     with col1:
-        # 仓位使用率
-        position_usage = np.random.uniform(0.3, 0.8)
-        fig = go.Figure(go.Indicator(
-            mode = "gauge+number+delta",
-            value = position_usage * 100,
-            domain = {'x': [0, 1], 'y': [0, 1]},
-            title = {'text': "仓位使用率 (%)"},
-            delta = {'reference': max_position},
-            gauge = {
-                'axis': {'range': [None, 100]},
-                'bar': {'color': "darkblue"},
-                'steps': [
-                    {'range': [0, 50], 'color': "lightgray"},
-                    {'range': [50, 80], 'color': "yellow"},
-                    {'range': [80, 100], 'color': "red"}
-                ],
-                'threshold': {
-                    'line': {'color': "red", 'width': 4},
-                    'thickness': 0.75,
-                    'value': max_position
-                }
-            }
-        ))
-        fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True)
+        st.write("**VaR指标**")
+        
+        # 历史模拟VaR
+        hist_var = risk_metrics_engine.var_calculator.historical_var(returns, confidence_level=0.05)
+        st.metric("历史模拟VaR (95%)", f"{hist_var:.2%}")
+        
+        # 参数法VaR
+        param_var = risk_metrics_engine.var_calculator.parametric_var(returns, confidence_level=0.05)
+        st.metric("参数法VaR (95%)", f"{param_var:.2%}")
+        
+        # CVaR
+        cvar = risk_metrics_engine.cvar_calculator.historical_cvar(returns, confidence_level=0.05)
+        st.metric("条件VaR (95%)", f"{cvar:.2%}")
     
     with col2:
-        # 当前回撤
-        current_dd = np.random.uniform(0.02, 0.15)
-        fig = go.Figure(go.Indicator(
-            mode = "gauge+number+delta",
-            value = current_dd * 100,
-            domain = {'x': [0, 1], 'y': [0, 1]},
-            title = {'text': "当前回撤 (%)"},
-            delta = {'reference': max_drawdown},
-            gauge = {
-                'axis': {'range': [0, 50]},
-                'bar': {'color': "darkred"},
-                'steps': [
-                    {'range': [0, 10], 'color': "lightgray"},
-                    {'range': [10, 20], 'color': "yellow"},
-                    {'range': [20, 50], 'color': "red"}
-                ],
-                'threshold': {
-                    'line': {'color': "red", 'width': 4},
-                    'thickness': 0.75,
-                    'value': max_drawdown
-                }
-            }
-        ))
-        fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True)
+        st.write("**波动率指标**")
+        
+        # 简单波动率
+        simple_vol = risk_metrics_engine.volatility_calculator.simple_volatility(returns)
+        st.metric("简单波动率", f"{simple_vol:.2%}")
+        
+        # EWMA波动率
+        ewma_vol = risk_metrics_engine.volatility_calculator.ewma_volatility(returns)
+        st.metric("EWMA波动率", f"{ewma_vol:.2%}")
+        
+        # 最大回撤
+        max_dd, _, _ = risk_metrics_engine.drawdown_calculator.maximum_drawdown(prices)
+        st.metric("最大回撤", f"{max_dd:.2%}")
     
-    with col3:
-        # VaR风险值
-        var_value = np.random.uniform(0.01, 0.05)
-        fig = go.Figure(go.Indicator(
-            mode = "gauge+number",
-            value = var_value * 100,
-            domain = {'x': [0, 1], 'y': [0, 1]},
-            title = {'text': f"VaR ({var_confidence}%) (%)"},
-            gauge = {
-                'axis': {'range': [0, 10]},
-                'bar': {'color': "darkorange"},
-                'steps': [
-                    {'range': [0, 2], 'color': "lightgray"},
-                    {'range': [2, 5], 'color': "yellow"},
-                    {'range': [5, 10], 'color': "red"}
-                ]
-            }
-        ))
-        fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True)
+    # 风险指标图表
+    st.subheader("📊 风险指标可视化")
+    
+    # VaR回测图
+    fig = make_subplots(
+        rows=2, cols=1,
+        subplot_titles=('价格走势与VaR', '收益率分布'),
+        specs=[[{"secondary_y": True}], [{"secondary_y": False}]]
+    )
+    
+    # 价格走势
+    dates = pd.date_range(start='2023-01-01', periods=len(prices), freq='D')
+    fig.add_trace(
+        go.Scatter(x=dates, y=prices, name='价格', line=dict(color='blue')),
+        row=1, col=1
+    )
+    
+    # VaR阈值
+    var_threshold = prices * (1 + hist_var)
+    fig.add_trace(
+        go.Scatter(x=dates, y=var_threshold, name='VaR阈值', line=dict(color='red', dash='dash')),
+        row=1, col=1
+    )
+    
+    # 收益率分布
+    fig.add_trace(
+        go.Histogram(x=returns, name='收益率分布', nbinsx=50),
+        row=2, col=1
+    )
+    
+    # 添加VaR线
+    fig.add_vline(x=hist_var, line_dash="dash", line_color="red", row=2, col=1)
+    
+    fig.update_layout(height=600, title_text="风险指标分析")
+    st.plotly_chart(fig, use_container_width=True)
+
+def show_risk_alerts(risk_manager):
+    """显示风险警报页面"""
+    st.subheader("🚨 风险警报管理")
+    
+    # 获取最近的警报
+    recent_alerts = risk_manager.get_recent_alerts(hours=24)
+    
+    if recent_alerts:
+        st.write(f"**最近24小时警报 ({len(recent_alerts)}条):**")
+        
+        for alert in recent_alerts[-10:]:  # 显示最近10条
+            alert_color = {
+                'LOW': 'info',
+                'MEDIUM': 'warning', 
+                'HIGH': 'error',
+                'CRITICAL': 'error'
+            }.get(alert.level.name, 'info')
+            
+            with st.container():
+                st.markdown(f"""
+                <div class="{alert_color}-box">
+                    <strong>{alert.level.name}</strong> - {alert.alert_type.name}<br>
+                    {alert.message}<br>
+                    <small>时间: {alert.timestamp.strftime('%Y-%m-%d %H:%M:%S')}</small>
+                </div>
+                """, unsafe_allow_html=True)
+                st.write("")
+    else:
+        st.success("✅ 暂无风险警报")
+    
+    # 警报统计
+    st.subheader("📊 警报统计")
+    
+    if recent_alerts:
+        # 按级别统计
+        alert_levels = [alert.level.name for alert in recent_alerts]
+        level_counts = pd.Series(alert_levels).value_counts()
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            fig = px.pie(values=level_counts.values, names=level_counts.index, title="警报级别分布")
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with col2:
+            # 按类型统计
+            alert_types = [alert.alert_type.name for alert in recent_alerts]
+            type_counts = pd.Series(alert_types).value_counts()
+            
+            fig = px.bar(x=type_counts.index, y=type_counts.values, title="警报类型分布")
+            st.plotly_chart(fig, use_container_width=True)
+
+def show_risk_reports(risk_manager):
+    """显示风险报告页面"""
+    st.subheader("📋 风险管理报告")
+    
+    # 报告生成选项
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        report_type = st.selectbox("报告类型", ["日报", "周报", "月报", "自定义"])
+        
+    with col2:
+        if report_type == "自定义":
+            date_range = st.date_input("选择日期范围", value=[datetime.now().date() - timedelta(days=7), datetime.now().date()])
+    
+    if st.button("生成风险报告"):
+        with st.spinner("正在生成报告..."):
+            # 生成风险报告
+            report_data = risk_manager.generate_risk_report()
+            
+            if report_data:
+                st.success("报告生成成功！")
+                
+                # 显示报告内容
+                st.subheader("📊 风险概览")
+                
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    st.metric("总体风险评级", report_data.get('overall_risk_level', 'MEDIUM'))
+                
+                with col2:
+                    st.metric("风险事件数量", report_data.get('risk_events_count', 0))
+                
+                with col3:
+                    st.metric("平均VaR", f"{report_data.get('avg_var', 0):.2%}")
+                
+                with col4:
+                    st.metric("最大回撤", f"{report_data.get('max_drawdown', 0):.2%}")
+                
+                # 详细报告内容
+                st.subheader("📝 详细分析")
+                st.text_area("风险分析报告", report_data.get('detailed_analysis', '暂无详细分析'), height=200)
+                
+                # 建议措施
+                st.subheader("💡 风险管理建议")
+                recommendations = report_data.get('recommendations', [])
+                for i, rec in enumerate(recommendations, 1):
+                    st.write(f"{i}. {rec}")
+            
+            else:
+                st.warning("暂无足够数据生成报告")
 
 def show_real_time_monitoring():
     """显示实时监控页面"""

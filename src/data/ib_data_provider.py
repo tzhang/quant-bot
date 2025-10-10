@@ -12,6 +12,7 @@ import logging
 import pandas as pd
 import time
 import threading
+import random
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Union, Any
 from dataclasses import dataclass
@@ -39,7 +40,7 @@ class IBConfig:
     """IB配置类"""
     host: str = "127.0.0.1"
     port: int = 7497  # 模拟交易端口
-    client_id: int = 1
+    client_id: int = None  # 将使用随机生成的客户端ID
     timeout: int = 30
 
 
@@ -51,6 +52,11 @@ class IBDataClient(EWrapper, EClient):
             EClient.__init__(self, self)
         
         self.config = config
+        # 如果没有指定客户端ID，生成一个随机的
+        if self.config.client_id is None:
+            self.config.client_id = random.randint(1000, 9999)
+            logger.info(f"生成随机客户端ID: {self.config.client_id}")
+        
         self.connected = False
         self.historical_data: Dict[int, List[BarData]] = {}
         self.data_ready: Dict[int, bool] = {}
@@ -162,10 +168,13 @@ class IBDataClient(EWrapper, EClient):
             
             logger.info(f"请求历史数据: {symbol}, 持续时间: {duration_str}, 结束日期: {end_date}")
             
+            # 格式化结束日期为IB API要求的格式 (YYYYMMDD HH:MM:SS)
+            end_dt_formatted = end_dt.strftime("%Y%m%d 23:59:59")
+            
             self.reqHistoricalData(
                 reqId=req_id,
                 contract=contract,
-                endDateTime=end_date + " 23:59:59",
+                endDateTime=end_dt_formatted,
                 durationStr=duration_str,
                 barSizeSetting=bar_size,
                 whatToShow="TRADES",
