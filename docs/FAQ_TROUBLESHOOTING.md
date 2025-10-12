@@ -1,3 +1,8 @@
+
+> **📢 迁移说明 (2025-10-10)**  
+> 本项目已从yfinance迁移到IB TWS API。请参考最新的API使用方法。
+> 原始文档备份在: `backup_before_ib_migration/docs/FAQ_TROUBLESHOOTING.md`
+
 # ❓ 常见问题与故障排除
 
 本文档收集了使用量化交易系统时的常见问题及解决方案，帮助您快速解决遇到的困难。
@@ -34,11 +39,11 @@ pip install --upgrade pip
 pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple/
 
 # 方案3: 逐个安装核心包
-pip install pandas numpy matplotlib yfinance requests
+pip install pandas numpy matplotlib IB TWS API requests
 
 # 方案4: 使用conda安装
 conda install pandas numpy matplotlib
-pip install yfinance requests
+pip install IB TWS API requests
 ```
 
 **预防措施**:
@@ -94,7 +99,7 @@ pip cache purge
 
 ## 📊 数据获取问题
 
-### Q4: yfinance获取数据失败
+### Q4: IB TWS API获取数据失败
 
 **问题描述**: 
 ```python
@@ -110,12 +115,12 @@ symbols = ['000001.SZ', '000002.SZ']  # A股需要后缀
 
 # 方案2: 添加重试机制
 import time
-import yfinance as yf
+import IB TWS API as yf
 
 def get_data_with_retry(symbol, max_retries=3):
     for i in range(max_retries):
         try:
-            data = yf.download(symbol, period='1y')
+            data = ib_provider.get_multiple_stocks_data(symbol, period='1y')
             if not data.empty:
                 return data
         except Exception as e:
@@ -124,7 +129,7 @@ def get_data_with_retry(symbol, max_retries=3):
     return None
 
 # 方案3: 使用更短的时间周期
-data = yf.download('AAPL', period='1m')  # 改为1个月
+data = ib_provider.get_multiple_stocks_data('AAPL', period='1m')  # 改为1个月
 ```
 
 ### Q5: 网络连接超时
@@ -137,9 +142,9 @@ requests.exceptions.ConnectTimeout: HTTPSConnectionPool
 **解决方案**:
 ```python
 # 方案1: 增加超时时间
-import yfinance as yf
+import IB TWS API as yf
 yf.pdr_override()
-data = yf.download('AAPL', period='1y', timeout=30)
+data = ib_provider.get_multiple_stocks_data('AAPL', period='1y', timeout=30)
 
 # 方案2: 使用代理
 import os
@@ -151,7 +156,7 @@ symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN']
 batch_size = 2
 for i in range(0, len(symbols), batch_size):
     batch = symbols[i:i+batch_size]
-    data = yf.download(batch, period='1y')
+    data = ib_provider.get_multiple_stocks_data(batch, period='1y')
     time.sleep(1)  # 避免请求过于频繁
 ```
 

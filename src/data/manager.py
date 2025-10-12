@@ -1,12 +1,37 @@
+
+# ==========================================
+# 迁移说明 - 2025-10-10 23:06:36
+# ==========================================
+# 本文件已从yfinance迁移到IB TWS API
+# 原始文件备份在: backup_before_ib_migration/src/data/manager.py
+# 
+# 主要变更:
+# # - 替换yfinance导入为IB导入
+# - 检测到yf.download()调用，需要手动调整
+# 
+# 注意事项:
+# 1. 需要启动IB TWS或Gateway
+# 2. 确保API设置已正确配置
+# 3. 某些yfinance特有功能可能需要手动调整
+# ==========================================
+
 import datetime as dt
 import os
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
 import pandas as pd
-import yfinance as yf
+from src.data.ib_data_provider import IBDataProvider, IBConfig
 from diskcache import Cache
 import requests
+
+# 尝试导入yfinance作为备用数据源
+try:
+    import yfinance as yf
+    YF_AVAILABLE = True
+except ImportError:
+    YF_AVAILABLE = False
+    print("Warning: yfinance not available, using alternative data sources")
 
 
 class DataManager:
@@ -180,14 +205,40 @@ class DataManager:
                 self.cache_data(key, disk_cached, expiry=self.default_ttl)
                 result[sym] = disk_cached
                 continue
-            df = yf.download(sym, start=start_date, end=end_date, interval=interval, progress=False)
-            if df is None or len(df) == 0:
+            # 第一优先级：尝试使用IB TWS API获取数据
+            try:
+                ib_provider = IBDataProvider(IBConfig())
+                df = ib_provider.get_stock_data(sym, start_date, end_date)
+                if df is not None and len(df) > 0:
+                    std = self._standardize_ohlcv(df)
+                    self.cache_data(key, std, expiry=self.default_ttl)
+                    self._save_to_disk_cache(key, std)
+                    result[sym] = std
+                    continue
+            except Exception as e:
+                print(f"IB TWS API获取数据失败 {sym}: {e}")
+            
+            # 第二优先级：尝试使用yfinance获取数据
+            if YF_AVAILABLE:
+                try:
+                    df = yf.download(sym, start=start_date, end=end_date, interval=interval, progress=False)
+                    if df is None or len(df) == 0:
+                        print(f"Warning: No data found for {sym} using yfinance")
+                        result[sym] = pd.DataFrame()
+                        continue
+                    std = self._standardize_ohlcv(df)
+                    self.cache_data(key, std, expiry=self.default_ttl)
+                    self._save_to_disk_cache(key, std)
+                    result[sym] = std
+                    continue
+                except Exception as e:
+                    print(f"Error fetching data for {sym} using yfinance: {e}")
+                    result[sym] = pd.DataFrame()
+                    continue
+            else:
+                print(f"Warning: yfinance not available, skipping {sym}")
                 result[sym] = pd.DataFrame()
                 continue
-            std = self._standardize_ohlcv(df)
-            self.cache_data(key, std, expiry=self.default_ttl)
-            self._save_to_disk_cache(key, std)
-            result[sym] = std
         return result
 
     def get_market_data(

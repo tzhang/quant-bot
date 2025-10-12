@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-程序化交易系统
+程序化交易系统 - 基于Interactive Brokers (IB) API
 基于投资策略推荐系统的输出，实现自动化交易执行
 
 功能模块：
 1. 信号生成器 - 基于策略推荐生成交易信号
 2. 风险管理器 - 控制仓位和风险
-3. 订单执行器 - 模拟交易执行
+3. IB订单执行器 - 通过IB API执行实际交易
 4. 监控系统 - 实时监控和报告
 """
 
@@ -29,6 +29,14 @@ import seaborn as sns
 
 # 导入投资策略推荐系统
 from examples.investment_strategy_recommendation import InvestmentStrategyRecommendation
+
+# 导入IB交易系统
+try:
+    from ib_automated_trading_system import IBAutomatedTradingSystem
+    HAS_IB_SYSTEM = True
+except ImportError:
+    HAS_IB_SYSTEM = False
+    print("警告: IB自动化交易系统未找到，将使用模拟交易")
 
 # 导入市场日历模块
 try:
@@ -180,21 +188,36 @@ class RiskManager:
         print(f"✅ 风险验证完成，保留 {len(validated_signals)} 个信号")
         return validated_signals
 
-class OrderExecutor:
-    """订单执行器（模拟）"""
+class IBOrderExecutor:
+    """IB订单执行器 - 通过Interactive Brokers API执行实际交易"""
     
-    def __init__(self, initial_capital=100000):
+    def __init__(self, initial_capital=100000, use_ib=True):
         """
-        初始化订单执行器
+        初始化IB订单执行器
         
         Args:
             initial_capital: 初始资金
+            use_ib: 是否使用IB API（False时使用模拟交易）
         """
         self.initial_capital = initial_capital
         self.current_capital = initial_capital
         self.portfolio = {}
         self.transaction_history = []
         self.execution_log = []
+        self.use_ib = use_ib and HAS_IB_SYSTEM
+        
+        # 初始化IB交易系统
+        if self.use_ib:
+            try:
+                self.ib_system = IBAutomatedTradingSystem()
+                print("✅ IB交易系统初始化成功")
+            except Exception as e:
+                print(f"⚠️ IB交易系统初始化失败，切换到模拟模式: {e}")
+                self.use_ib = False
+                self.ib_system = None
+        else:
+            self.ib_system = None
+            print("📊 使用模拟交易模式")
         
     def execute_signals(self, signals, market_data=None):
         """
@@ -209,16 +232,106 @@ class OrderExecutor:
         """
         print("💼 执行交易信号...")
         
+        if self.use_ib and self.ib_system:
+            return self._execute_with_ib(signals)
+        else:
+            return self._execute_mock(signals)
+    
+    def _execute_with_ib(self, signals):
+        """使用IB API执行交易"""
+        print("🔗 通过IB API执行实际交易...")
+        
         execution_results = {
             'successful_orders': 0,
             'failed_orders': 0,
             'total_invested': 0,
-            'orders': []
+            'orders': [],
+            'mode': 'IB_LIVE'
+        }
+        
+        try:
+            # 启动IB系统
+            if not self.ib_system.is_running:
+                self.ib_system.start()
+            
+            for signal in signals:
+                try:
+                    # 计算订单数量
+                    target_amount = self.current_capital * signal['adjusted_weight']
+                    current_price = self.ib_system.get_current_price(signal['symbol'])
+                    shares = int(target_amount / current_price) if current_price > 0 else 0
+                    
+                    if shares > 0:
+                        # 通过IB系统下单
+                        order_result = self.ib_system.place_order(
+                            symbol=signal['symbol'],
+                            action='BUY',
+                            quantity=shares,
+                            order_type='MKT'
+                        )
+                        
+                        if order_result and order_result.get('status') == 'FILLED':
+                            actual_amount = shares * order_result['fill_price']
+                            
+                            # 更新投资组合
+                            self._update_portfolio(signal['symbol'], shares, 
+                                                 order_result['fill_price'], actual_amount, signal)
+                            
+                            # 更新资金
+                            self.current_capital -= actual_amount
+                            
+                            # 记录交易
+                            order = {
+                                'timestamp': datetime.now(),
+                                'symbol': signal['symbol'],
+                                'action': signal['action'],
+                                'shares': shares,
+                                'price': order_result['fill_price'],
+                                'amount': actual_amount,
+                                'status': 'FILLED',
+                                'order_id': order_result.get('order_id')
+                            }
+                            
+                            self.transaction_history.append(order)
+                            execution_results['orders'].append(order)
+                            execution_results['successful_orders'] += 1
+                            execution_results['total_invested'] += actual_amount
+                            
+                            print(f"✅ {signal['symbol']}: IB买入 {shares} 股，价格 ${order_result['fill_price']:.2f}")
+                        else:
+                            print(f"❌ {signal['symbol']}: IB订单失败")
+                            execution_results['failed_orders'] += 1
+                    else:
+                        print(f"❌ {signal['symbol']}: 股数为0或价格无效")
+                        execution_results['failed_orders'] += 1
+                        
+                except Exception as e:
+                    print(f"❌ {signal['symbol']}: IB执行失败 - {str(e)}")
+                    execution_results['failed_orders'] += 1
+                    
+        except Exception as e:
+            print(f"❌ IB系统执行失败: {e}")
+            print("🔄 切换到模拟交易模式")
+            return self._execute_mock(signals)
+        
+        print(f"📊 IB执行完成: {execution_results['successful_orders']} 成功, {execution_results['failed_orders']} 失败")
+        return execution_results
+    
+    def _execute_mock(self, signals):
+        """模拟交易执行"""
+        print("🎭 执行模拟交易...")
+        
+        execution_results = {
+            'successful_orders': 0,
+            'failed_orders': 0,
+            'total_invested': 0,
+            'orders': [],
+            'mode': 'SIMULATION'
         }
         
         for signal in signals:
             try:
-                # 模拟获取当前价格（实际应用中需要连接实时数据源）
+                # 模拟获取当前价格
                 current_price = self._get_mock_price(signal['symbol'])
                 
                 # 计算投资金额
@@ -227,7 +340,13 @@ class OrderExecutor:
                 actual_amount = shares * current_price
                 
                 if shares > 0 and actual_amount <= self.current_capital:
-                    # 执行买入
+                    # 更新投资组合
+                    self._update_portfolio(signal['symbol'], shares, current_price, actual_amount, signal)
+                    
+                    # 更新资金
+                    self.current_capital -= actual_amount
+                    
+                    # 记录交易
                     order = {
                         'timestamp': datetime.now(),
                         'symbol': signal['symbol'],
@@ -238,39 +357,36 @@ class OrderExecutor:
                         'status': 'FILLED'
                     }
                     
-                    # 更新投资组合
-                    if signal['symbol'] in self.portfolio:
-                        self.portfolio[signal['symbol']]['shares'] += shares
-                        self.portfolio[signal['symbol']]['total_cost'] += actual_amount
-                    else:
-                        self.portfolio[signal['symbol']] = {
-                            'shares': shares,
-                            'avg_price': current_price,
-                            'total_cost': actual_amount,
-                            'sector': signal['sector']
-                        }
-                    
-                    # 更新资金
-                    self.current_capital -= actual_amount
-                    
-                    # 记录交易
                     self.transaction_history.append(order)
                     execution_results['orders'].append(order)
                     execution_results['successful_orders'] += 1
                     execution_results['total_invested'] += actual_amount
                     
-                    print(f"✅ {signal['symbol']}: 买入 {shares} 股，价格 ${current_price:.2f}")
+                    print(f"✅ {signal['symbol']}: 模拟买入 {shares} 股，价格 ${current_price:.2f}")
                     
                 else:
                     print(f"❌ {signal['symbol']}: 资金不足或股数为0")
                     execution_results['failed_orders'] += 1
                     
             except Exception as e:
-                print(f"❌ {signal['symbol']}: 执行失败 - {str(e)}")
+                print(f"❌ {signal['symbol']}: 模拟执行失败 - {str(e)}")
                 execution_results['failed_orders'] += 1
         
-        print(f"📊 执行完成: {execution_results['successful_orders']} 成功, {execution_results['failed_orders']} 失败")
+        print(f"📊 模拟执行完成: {execution_results['successful_orders']} 成功, {execution_results['failed_orders']} 失败")
         return execution_results
+    
+    def _update_portfolio(self, symbol, shares, price, amount, signal):
+        """更新投资组合"""
+        if symbol in self.portfolio:
+            self.portfolio[symbol]['shares'] += shares
+            self.portfolio[symbol]['total_cost'] += amount
+        else:
+            self.portfolio[symbol] = {
+                'shares': shares,
+                'avg_price': price,
+                'total_cost': amount,
+                'sector': signal['sector']
+            }
     
     def _get_mock_price(self, symbol):
         """
@@ -302,7 +418,14 @@ class OrderExecutor:
         portfolio_details = []
         
         for symbol, position in self.portfolio.items():
-            current_price = self._get_mock_price(symbol)
+            if self.use_ib and self.ib_system:
+                try:
+                    current_price = self.ib_system.get_current_price(symbol)
+                except:
+                    current_price = self._get_mock_price(symbol)
+            else:
+                current_price = self._get_mock_price(symbol)
+                
             market_value = position['shares'] * current_price
             total_value += market_value
             
@@ -328,8 +451,12 @@ class OrderExecutor:
             'invested_value': total_value - self.current_capital,
             'total_return': total_value - self.initial_capital,
             'total_return_pct': ((total_value - self.initial_capital) / self.initial_capital) * 100,
-            'positions': portfolio_details
+            'positions': portfolio_details,
+            'trading_mode': 'IB_LIVE' if self.use_ib else 'SIMULATION'
         }
+
+# 保持向后兼容性的别名
+OrderExecutor = IBOrderExecutor
 
 class TradingMonitor:
     """交易监控系统"""
@@ -387,21 +514,23 @@ class TradingMonitor:
         print("\n" + "="*60)
 
 class AutomatedTradingSystem:
-    """程序化交易系统主类"""
+    """程序化交易系统主类 - 基于IB API的自动化交易"""
     
-    def __init__(self, initial_capital=100000, strategy_type='balanced'):
+    def __init__(self, initial_capital=100000, strategy_type='balanced', use_ib=True):
         """
         初始化程序化交易系统
         
         Args:
             initial_capital: 初始资金
             strategy_type: 策略类型
+            use_ib: 是否使用IB API进行实际交易
         """
         self.signal_generator = TradingSignalGenerator()
         self.risk_manager = RiskManager()
-        self.order_executor = OrderExecutor(initial_capital)
+        self.order_executor = IBOrderExecutor(initial_capital, use_ib)
         self.monitor = TradingMonitor()
         self.strategy_type = strategy_type
+        self.use_ib = use_ib
         
     def run_trading_cycle(self):
         """
@@ -413,6 +542,7 @@ class AutomatedTradingSystem:
         print("🚀 启动程序化交易系统...")
         print(f"📊 策略类型: {self.strategy_type}")
         print(f"💰 初始资金: ${self.order_executor.initial_capital:,.2f}")
+        print(f"🔗 交易模式: {'IB实盘交易' if self.use_ib and HAS_IB_SYSTEM else '模拟交易'}")
         
         # 检查市场是否开放
         if not market_calendar.is_market_open_now():
@@ -453,7 +583,8 @@ class AutomatedTradingSystem:
             return {
                 'signals': validated_signals,
                 'execution_results': execution_results,
-                'portfolio_summary': portfolio_summary
+                'portfolio_summary': portfolio_summary,
+                'trading_mode': portfolio_summary.get('trading_mode', 'UNKNOWN')
             }
             
         except Exception as e:
@@ -489,24 +620,58 @@ class AutomatedTradingSystem:
         print(f"💾 交易结果已保存到: {filepath}")
 
 def main():
-    """主函数"""
-    print("🤖 程序化交易系统启动")
+    """主函数 - 演示IB自动化交易系统"""
+    print("🚀 启动IB程序化交易系统演示")
+    print("="*60)
     
-    # 创建交易系统实例
-    trading_system = AutomatedTradingSystem(
+    # 创建自动化交易系统 (默认使用IB API)
+    system = AutomatedTradingSystem(
         initial_capital=100000,
-        strategy_type='balanced'  # 可选: 'conservative', 'balanced', 'aggressive'
+        strategy_type='balanced',
+        use_ib=True  # 设置为True使用IB API，False使用模拟交易
     )
     
     # 运行交易周期
-    results = trading_system.run_trading_cycle()
+    result = system.run_trading_cycle()
     
-    if results:
+    # 显示结果
+    print("\n" + "="*60)
+    print("📊 交易周期结果")
+    print("="*60)
+    
+    if result:
+        print(f"状态: SUCCESS")
+        print(f"📈 投资组合价值: ${result['portfolio_summary']['total_value']:,.2f}")
+        print(f"💰 总收益: ${result['portfolio_summary']['total_return']:,.2f}")
+        print(f"📊 收益率: {result['portfolio_summary']['total_return_pct']:.2f}%")
+        print(f"🔗 交易模式: {result.get('trading_mode', 'UNKNOWN')}")
+        print(f"📝 成功订单: {result['execution_results']['successful_orders']}")
+        print(f"❌ 失败订单: {result['execution_results']['failed_orders']}")
+        
         # 保存结果
-        trading_system.save_results(results)
+        system.save_results(result)
         print("\n✅ 程序化交易系统运行完成")
     else:
-        print("\n❌ 程序化交易系统运行失败")
+        print("状态: FAILED")
+        print("消息: 程序化交易系统运行失败")
+    
+    print(f"⏰ 时间: {datetime.now()}")
+    
+    return result
+
 
 if __name__ == "__main__":
-    main()
+    # 运行演示
+    result = main()
+    
+    # 如果是模拟模式，显示提示信息
+    if not HAS_IB_SYSTEM:
+        print("\n" + "="*60)
+        print("💡 提示信息")
+        print("="*60)
+        print("当前运行在模拟模式下。要使用IB实盘交易，请:")
+        print("1. 安装 ib_insync: pip install ib_insync")
+        print("2. 启动 IB TWS 或 Gateway")
+        print("3. 配置 API 连接设置")
+        print("4. 重新运行程序")
+        print("="*60)

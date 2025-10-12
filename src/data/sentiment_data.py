@@ -1,3 +1,19 @@
+
+# ==========================================
+# 迁移说明 - 2025-10-10 23:06:36
+# ==========================================
+# 本文件已从yfinance迁移到IB TWS API
+# 原始文件备份在: backup_before_ib_migration/src/data/sentiment_data.py
+# 
+# 主要变更:
+# # - 替换yfinance导入为IB导入
+# 
+# 注意事项:
+# 1. 需要启动IB TWS或Gateway
+# 2. 确保API设置已正确配置
+# 3. 某些yfinance特有功能可能需要手动调整
+# ==========================================
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -30,7 +46,7 @@ import numpy as np
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-import yfinance as yf
+from src.data.ib_data_provider import IBDataProvider, IBConfig
 from textblob import TextBlob
 
 logger = logging.getLogger(__name__)
@@ -389,8 +405,25 @@ class SentimentDataManager:
             return []
     
     def _get_yahoo_news(self, symbol: str) -> List[Dict]:
-        """从Yahoo Finance获取新闻"""
+        """
+        从Yahoo Finance获取新闻
+        
+        数据源优先级：IB TWS API > yfinance
+        """
         try:
+            # 优先尝试使用 IB TWS API 获取新闻数据
+            try:
+                ib_provider = IBDataProvider(IBConfig())
+                # IB TWS API 可能不直接提供新闻数据，这里作为占位符
+                # 实际实现可能需要使用其他新闻API
+                logger.info(f"IB TWS API 暂不支持新闻数据获取，回退到 yfinance")
+                raise NotImplementedError("IB TWS API 新闻功能待实现")
+                
+            except Exception as e:
+                logger.warning(f"IB TWS API 获取新闻失败: {e}")
+            
+            # 回退到 yfinance
+            import yfinance as yf
             ticker = yf.Ticker(symbol)
             news = ticker.news
             
@@ -407,6 +440,7 @@ class SentimentDataManager:
                     'url': item.get('link', '')
                 })
             
+            logger.info(f"从 yfinance 获取 {symbol} 新闻数据成功")
             return articles
             
         except Exception as e:
@@ -416,6 +450,8 @@ class SentimentDataManager:
     def get_market_sentiment_indicators(self, use_cache: bool = True) -> Dict[str, Any]:
         """
         获取市场情绪指标
+        
+        数据源优先级：IB TWS API > yfinance
         
         Args:
             use_cache: 是否使用缓存
@@ -441,6 +477,41 @@ class SentimentDataManager:
             # 获取各种情绪指标
             for symbol, description in self.sentiment_indicators.items():
                 try:
+                    # 优先尝试使用 IB TWS API
+                    try:
+                        ib_provider = IBDataProvider(IBConfig())
+                        
+                        # 转换符号格式（去掉^前缀）
+                        ib_symbol = symbol
+                        hist = ib_provider.get_historical_data(ib_symbol, days=5, bar_size='1 day')
+                        
+                        if not hist.empty:
+                            current_value = hist['close'].iloc[-1]
+                            prev_value = hist['close'].iloc[-2] if len(hist) > 1 else current_value
+                            change = current_value - prev_value
+                            change_pct = (change / prev_value) * 100 if prev_value != 0 else 0
+                            
+                            # 计算5日平均值
+                            avg_5d = hist['close'].mean()
+                            
+                            sentiment_indicators['indicators'][symbol] = {
+                                'name': description,
+                                'current_value': float(current_value),
+                                'previous_value': float(prev_value),
+                                'change': float(change),
+                                'change_percent': float(change_pct),
+                                'avg_5d': float(avg_5d),
+                                'vs_avg_5d': float((current_value / avg_5d - 1) * 100) if avg_5d != 0 else 0
+                            }
+                            
+                            logger.info(f"✅ 从 IB TWS API 获取{description}({symbol})数据成功")
+                            continue
+                            
+                    except Exception as e:
+                        logger.warning(f"IB TWS API 获取情绪指标 {symbol} 失败: {e}")
+                    
+                    # 回退到 yfinance
+                    import yfinance as yf
                     ticker = yf.Ticker(f"^{symbol}")
                     hist = ticker.history(period='5d')
                     
@@ -463,7 +534,7 @@ class SentimentDataManager:
                             'vs_avg_5d': float((current_value / avg_5d - 1) * 100) if avg_5d != 0 else 0
                         }
                         
-                        logger.info(f"✅ 获取{description}({symbol})数据成功")
+                        logger.info(f"✅ 从 yfinance 获取{description}({symbol})数据成功")
                     
                 except Exception as e:
                     logger.error(f"❌ 获取{symbol}数据失败: {e}")
@@ -554,16 +625,18 @@ class SentimentDataManager:
         """
         获取分析师评级数据
         
+        数据源优先级：IB TWS API > yfinance
+        
         Args:
             symbol: 股票代码
             use_cache: 是否使用缓存
             
         Returns:
-            分析师评级数据
+            Dict[str, Any]: 分析师评级数据
         """
         cache_key = f"analyst_ratings_{symbol}"
         
-        # 尝试从缓存加载
+        # 检查缓存
         if use_cache:
             cached_data = self._load_from_cache(cache_key, max_age_hours=24)
             if cached_data:
@@ -579,6 +652,18 @@ class SentimentDataManager:
         }
         
         try:
+            # 优先尝试使用 IB TWS API
+            try:
+                ib_provider = IBDataProvider(IBConfig())
+                # IB TWS API 可能不直接提供分析师评级数据
+                logger.info(f"IB TWS API 暂不支持分析师评级数据，回退到 yfinance")
+                raise NotImplementedError("IB TWS API 分析师评级功能待实现")
+                
+            except Exception as e:
+                logger.warning(f"IB TWS API 获取分析师评级失败: {e}")
+            
+            # 回退到 yfinance
+            import yfinance as yf
             ticker = yf.Ticker(symbol)
             
             # 获取分析师推荐

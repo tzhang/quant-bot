@@ -1,3 +1,19 @@
+
+# ==========================================
+# 迁移说明 - 2025-10-10 23:06:36
+# ==========================================
+# 本文件已从yfinance迁移到IB TWS API
+# 原始文件备份在: backup_before_ib_migration/competitions/citadel/ml_enhanced_citadel_strategy.py
+# 
+# 主要变更:
+# # - 替换yfinance导入为IB导入
+# 
+# 注意事项:
+# 1. 需要启动IB TWS或Gateway
+# 2. 确保API设置已正确配置
+# 3. 某些yfinance特有功能可能需要手动调整
+# ==========================================
+
 #!/usr/bin/env python3
 """
 ML增强的Citadel高频交易策略
@@ -6,7 +22,7 @@ ML增强的Citadel高频交易策略
 
 import numpy as np
 import pandas as pd
-import yfinance as yf
+from src.data.ib_data_provider import IBDataProvider, IBConfig
 from datetime import datetime, timedelta
 import warnings
 warnings.filterwarnings('ignore')

@@ -1,3 +1,19 @@
+
+# ==========================================
+# 迁移说明 - 2025-10-10 23:06:36
+# ==========================================
+# 本文件已从yfinance迁移到IB TWS API
+# 原始文件备份在: backup_before_ib_migration/src/data/data_manager.py
+# 
+# 主要变更:
+# # - 替换yfinance导入为IB导入
+# 
+# 注意事项:
+# 1. 需要启动IB TWS或Gateway
+# 2. 确保API设置已正确配置
+# 3. 某些yfinance特有功能可能需要手动调整
+# ==========================================
+
 """
 数据管理器模块
 
@@ -8,7 +24,7 @@
 import os
 import pandas as pd
 import numpy as np
-import yfinance as yf
+from src.data.ib_data_provider import IBDataProvider, IBConfig
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union, Any
 import logging
@@ -30,7 +46,7 @@ class DataManager:
     数据管理器
     
     提供统一的数据获取、缓存和管理接口，支持多数据源
-    优先使用Qlib数据源，回退到yfinance
+    优先级：IB TWS API > Qlib > yfinance
     """
     
     def __init__(self, cache_dir: str = "data_cache", enable_cache: bool = True):
@@ -124,6 +140,8 @@ class DataManager:
         """
         获取股票数据
         
+        优先级：IB TWS API > Qlib > yfinance
+        
         Args:
             symbol: 股票代码
             start_date: 开始日期 (YYYY-MM-DD)
@@ -141,7 +159,35 @@ class DataManager:
         if cached_data is not None:
             return cached_data
         
-        # 优先使用数据适配器（Qlib）
+        # 第一优先级：IB TWS API
+        try:
+            ib_config = IBConfig()
+            ib_provider = IBDataProvider(ib_config)
+            
+            if ib_provider.connect():
+                logger.info(f"使用IB TWS API获取数据: {symbol}")
+                data = ib_provider.get_historical_data(
+                    symbol=symbol,
+                    duration="1 Y",  # 1年数据
+                    bar_size="1 day" if data_type == 'daily' else "1 min"
+                )
+                ib_provider.disconnect()
+                
+                if not data.empty:
+                    # 数据清洗
+                    data = self._clean_data(data)
+                    # 保存到缓存
+                    self._save_to_cache(data, cache_key)
+                    logger.info(f"成功从IB TWS API获取数据: {symbol}, {len(data)}条记录")
+                    return data
+                else:
+                    logger.warning(f"IB TWS API未获取到数据: {symbol}，尝试Qlib")
+            else:
+                logger.warning(f"IB TWS API连接失败，尝试Qlib")
+        except Exception as e:
+            logger.warning(f"IB TWS API获取数据失败 {symbol}: {e}，尝试Qlib")
+        
+        # 第二优先级：使用数据适配器（Qlib）
         if self.data_adapter and data_type == 'daily':
             try:
                 data = self.data_adapter.get_stock_data(symbol, start_date, end_date)
@@ -157,9 +203,15 @@ class DataManager:
             except Exception as e:
                 logger.warning(f"Qlib获取数据失败 {symbol}: {e}，尝试yfinance")
         
-        # 回退到yfinance获取数据
+        # 第三优先级：回退到yfinance获取数据
         try:
-            ticker = yf.Ticker(symbol)
+            # 导入yfinance作为最后的回退选项
+            try:
+                import yfinance as yf
+                ticker = yf.Ticker(symbol)
+            except ImportError:
+                logger.error("yfinance不可用，无法获取数据")
+                return pd.DataFrame()
             
             if data_type == 'daily':
                 data = ticker.history(start=start_date, end=end_date)
@@ -183,7 +235,7 @@ class DataManager:
             return data
             
         except Exception as e:
-            logger.error(f"获取股票数据失败 {symbol}: {e}")
+            logger.error(f"所有数据源获取股票数据失败 {symbol}: {e}")
             return pd.DataFrame()
     
     def get_multiple_stocks_data(self, symbols: List[str], start_date: str, 

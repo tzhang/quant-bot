@@ -64,9 +64,25 @@ class FactorEngine:
         Returns:
             pd.DataFrame: 包含所有因子的数据框
         """
-        out = self.compute_technical(df)
-        risk = self.compute_risk(df)
-        result = out.join(risk, how="left")
+        tech_factors = self.compute_technical(df)
+        risk_factors = self.compute_risk(df)
+        
+        # 处理技术因子结果
+        if isinstance(tech_factors, dict):
+            # 将字典转换为DataFrame
+            tech_df = pd.DataFrame(tech_factors, index=df.index)
+        else:
+            tech_df = tech_factors
+            
+        # 处理风险因子结果
+        if isinstance(risk_factors, dict):
+            # 将字典转换为DataFrame
+            risk_df = pd.DataFrame(risk_factors, index=df.index)
+        else:
+            risk_df = risk_factors
+        
+        # 合并因子
+        result = tech_df.join(risk_df, how="left")
         
         # 如果提供了基本面数据，计算基本面因子
         if symbol and financial_data is not None:
@@ -104,7 +120,20 @@ class FactorEngine:
         # Get all factors
         tech_factors = self.compute_technical(df)
         risk_factors = self.compute_risk(df, benchmark_returns)
-        all_factors = tech_factors.join(risk_factors, how="left")
+        
+        # 处理技术因子结果
+        if isinstance(tech_factors, dict):
+            tech_df = pd.DataFrame(tech_factors, index=df.index)
+        else:
+            tech_df = tech_factors
+            
+        # 处理风险因子结果
+        if isinstance(risk_factors, dict):
+            risk_df = pd.DataFrame(risk_factors, index=df.index)
+        else:
+            risk_df = risk_factors
+        
+        all_factors = tech_df.join(risk_df, how="left")
 
         # Define default weights if not provided
         if weights is None:

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firstrade交易系统监控面板</title>
+    <title>IB TWS 量化交易系统监控面板</title>
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -116,29 +116,532 @@
             border-left: 4px solid;
         }
         
+        .alert-success {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
         .alert-info {
             background-color: #d1ecf1;
             border-color: #17a2b8;
             color: #0c5460;
         }
-        
+
         .alert-warning {
             background-color: #fff3cd;
             border-color: #ffc107;
             color: #856404;
         }
-        
+
         .alert-error {
             background-color: #f8d7da;
             border-color: #dc3545;
             color: #721c24;
         }
-        
+
         .alert-critical {
             background-color: #f5c6cb;
             border-color: #dc3545;
             color: #721c24;
             animation: blink 1s infinite;
+        }
+
+        .important-info-item {
+            padding: 0.15rem;
+            margin: 0.05rem 0;
+            border-radius: 3px;
+            border: 1px solid #e9ecef;
+            border-left: 2px solid transparent;
+            background: #fff;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+            transition: box-shadow 0.15s ease, transform 0.15s ease, opacity 0.3s ease;
+            overflow: hidden;
+        }
+
+        .important-info-item.new-item {
+            animation: slideInFromTop 0.5s ease-out;
+        }
+
+        @keyframes slideInFromTop {
+                0% {
+                    opacity: 0;
+                    transform: translateY(-20px);
+                }
+                100% {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .more-info-container {
+                text-align: center;
+                margin-top: 15px;
+                padding-top: 15px;
+                border-top: 1px solid #e0e0e0;
+            }
+            
+            .more-info-btn {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 20px;
+                cursor: pointer;
+                font-size: 12px;
+                font-weight: 500;
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            
+            .more-info-btn:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            }
+            
+            .more-info-btn:active {
+                transform: translateY(0);
+            }
+            
+            /* 模态框样式 */
+            .modal {
+                display: none;
+                position: fixed;
+                z-index: 1000;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0,0,0,0.5);
+                backdrop-filter: blur(5px);
+            }
+            
+            .modal-content {
+                background-color: #fefefe;
+                margin: 2% auto;
+                padding: 0;
+                border: none;
+                border-radius: 12px;
+                width: 90%;
+                max-width: 1000px;
+                height: 90%;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .modal-header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 20px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            
+            .modal-header h2 {
+                margin: 0;
+                font-size: 20px;
+                font-weight: 600;
+            }
+            
+            .close {
+                color: white;
+                font-size: 28px;
+                font-weight: bold;
+                cursor: pointer;
+                line-height: 1;
+                transition: opacity 0.3s ease;
+            }
+            
+            .close:hover {
+                opacity: 0.7;
+            }
+            
+            .modal-body {
+                flex: 1;
+                padding: 20px;
+                overflow-y: auto;
+                background-color: #f8f9fa;
+            }
+            
+            .modal-controls {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+                gap: 15px;
+                flex-wrap: wrap;
+            }
+            
+            .search-container {
+                flex: 1;
+                min-width: 200px;
+            }
+            
+            /* 订单明细表格样式 */
+            .orders-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 1rem;
+                background: white;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            
+            .orders-table th,
+            .orders-table td {
+                padding: 12px 8px;
+                text-align: left;
+                border-bottom: 1px solid #e9ecef;
+                font-size: 13px;
+            }
+            
+            .orders-table th {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-size: 11px;
+            }
+            
+            .orders-table tbody tr:hover {
+                background-color: #f8f9fa;
+                transition: background-color 0.2s ease;
+            }
+            
+            .orders-table tbody tr:last-child td {
+                border-bottom: none;
+            }
+            
+            /* 订单状态样式 */
+            .status-badge {
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            
+            .status-filled {
+                background-color: #d4edda;
+                color: #155724;
+                border: 1px solid #c3e6cb;
+            }
+            
+            .status-pending {
+                background-color: #fff3cd;
+                color: #856404;
+                border: 1px solid #ffeaa7;
+            }
+            
+            .status-partial {
+                background-color: #d1ecf1;
+                color: #0c5460;
+                border: 1px solid #bee5eb;
+            }
+            
+            .status-cancelled {
+                background-color: #f8d7da;
+                color: #721c24;
+                border: 1px solid #f5c6cb;
+            }
+            
+            /* 买卖方向样式 */
+            .side-buy {
+                color: #28a745;
+                font-weight: 600;
+            }
+            
+            .side-sell {
+                color: #dc3545;
+                font-weight: 600;
+            }
+            
+            /* 盈亏样式 */
+            .profit-positive {
+                color: #28a745;
+                font-weight: 600;
+            }
+            
+            .profit-negative {
+                color: #dc3545;
+                font-weight: 600;
+            }
+            
+            /* 订单明细卡片特殊样式 */
+            .orders-card {
+                grid-column: span 2;
+                min-height: 400px;
+            }
+            
+            .orders-card .loading {
+                text-align: center;
+                color: #666;
+                font-style: italic;
+                padding: 2rem;
+            }
+            
+            /* 响应式设计 */
+            @media (max-width: 768px) {
+                .orders-card {
+                    grid-column: span 1;
+                }
+                
+                .orders-table {
+                    font-size: 11px;
+                }
+                
+                .orders-table th,
+                .orders-table td {
+                    padding: 8px 4px;
+                }
+            }
+            }
+            
+            .search-input {
+                width: 100%;
+                padding: 10px 15px;
+                border: 1px solid #ddd;
+                border-radius: 25px;
+                font-size: 14px;
+                outline: none;
+                transition: border-color 0.3s ease;
+            }
+            
+            .search-input:focus {
+                border-color: #667eea;
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            }
+            
+            .pagination-info {
+                color: #666;
+                font-size: 14px;
+                white-space: nowrap;
+            }
+            
+            .pagination-controls {
+                display: flex;
+                gap: 10px;
+                align-items: center;
+            }
+            
+            .pagination-btn {
+                background: #fff;
+                border: 1px solid #ddd;
+                padding: 8px 12px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                transition: all 0.3s ease;
+            }
+            
+            .pagination-btn:hover:not(:disabled) {
+                background: #f0f0f0;
+                border-color: #bbb;
+            }
+            
+            .pagination-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            
+            .pagination-btn.active {
+                background: #667eea;
+                color: white;
+                border-color: #667eea;
+            }
+            
+            .modal-important-info {
+                display: grid;
+                gap: 12px;
+            }
+            
+            .modal-important-item {
+                background: white;
+                border-radius: 8px;
+                padding: 15px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                border-left: 4px solid #ddd;
+                transition: all 0.3s ease;
+            }
+            
+            .modal-important-item:hover {
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                transform: translateY(-1px);
+            }
+            
+            .modal-important-item.type-order {
+                border-left-color: #28a745;
+            }
+            
+            .modal-important-item.type-risk {
+                border-left-color: #dc3545;
+            }
+            
+            .modal-important-item.type-market {
+                border-left-color: #007bff;
+            }
+            
+            .modal-important-item.type-system {
+                border-left-color: #6c757d;
+            }
+            
+            .modal-important-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 8px;
+            }
+            
+            .modal-important-type {
+                background: #f8f9fa;
+                color: #495057;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 500;
+                text-transform: uppercase;
+            }
+            
+            .modal-important-time {
+                color: #6c757d;
+                font-size: 12px;
+            }
+            
+            .modal-important-title {
+                font-weight: 600;
+                color: #333;
+                margin-bottom: 5px;
+                font-size: 14px;
+            }
+            
+            .modal-important-details {
+                color: #666;
+                font-size: 13px;
+                line-height: 1.4;
+            }
+
+        .important-info-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .important-info-item::before {
+            content: none;
+        }
+
+        /* shimmer removed for flatter design */
+
+        .important-info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.1rem;
+            gap: 0.2rem;
+        }
+
+        .important-info-type {
+            font-size: 0.6rem;
+            padding: 1px 3px;
+            border-radius: 6px;
+            color: white;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+            white-space: nowrap;
+        }
+
+        .type-order {
+            background-color: #3b82f6;
+        }
+
+        .type-risk {
+            background-color: #f59e0b;
+            color: #fff;
+        }
+
+        .type-market {
+            background-color: #10b981;
+        }
+
+        .type-system {
+            background-color: #6b7280;
+        }
+
+        /* Flatten alert backgrounds on important-info cards while keeping border color */
+        .important-info-item.alert-success,
+        .important-info-item.alert-info,
+        .important-info-item.alert-warning,
+        .important-info-item.alert-error,
+        .important-info-item.alert-critical {
+            background: #fff !important;
+            color: #2c3e50;
+        }
+        .important-info-item.alert-success { border-left-color: #28a745; }
+        .important-info-item.alert-info { border-left-color: #17a2b8; }
+        .important-info-item.alert-warning { border-left-color: #ffc107; }
+        .important-info-item.alert-error { border-left-color: #dc3545; }
+        .important-info-item.alert-critical { border-left-color: #dc3545; }
+
+        .important-info-title {
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: #2c3e50;
+            margin-bottom: 0.05rem;
+            line-height: 1.0;
+        }
+
+        .important-info-time {
+            font-size: 0.65rem;
+            color: #6c757d;
+            font-weight: 500;
+            background: rgba(108, 117, 125, 0.08);
+            padding: 1px 2px;
+            border-radius: 2px;
+            white-space: nowrap;
+        }
+
+        .important-info-message {
+            color: #495057;
+            line-height: 1.2;
+            margin-bottom: 0.05rem;
+            font-size: 0.7rem;
+        }
+
+        .important-info-details {
+            margin-top: 0.05rem;
+            font-size: 0.65rem;
+            background: rgba(102, 126, 234, 0.04);
+            padding: 0.15rem;
+            border-radius: 3px;
+            border: 1px solid rgba(102, 126, 234, 0.08);
+        }
+
+        .detail-item {
+            display: inline-block;
+            margin-right: 1.5rem;
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 4px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #667eea;
+            margin-right: 0.25rem;
+        }
+
+        .detail-value {
+            color: #2c3e50;
+            font-weight: 500;
         }
         
         @keyframes blink {
@@ -192,7 +695,10 @@
 </head>
 <body>
     <div class="header">
-        <h1>Firstrade交易系统监控面板 <span id="status-indicator" class="status-indicator status-offline"></span></h1>
+        <h1>IB TWS 量化交易系统监控面板 <span id="status-indicator" class="status-indicator status-offline"></span></h1>
+        <div id="simulation-mode-indicator" style="display: none; background-color: #ff9800; color: white; padding: 8px 16px; border-radius: 5px; margin-top: 10px; font-weight: bold; text-align: center;">
+            ⚠️ 模拟数据模式 - 当前显示的是模拟数据
+        </div>
     </div>
     
     <div class="dashboard">
@@ -226,11 +732,71 @@
             </div>
         </div>
         
-        <!-- 警报 -->
+        <!-- 重要信息 -->
         <div class="card">
-            <h3>系统警报</h3>
-            <div id="alerts">
-                <div class="loading">加载中...</div>
+            <h3>重要信息</h3>
+            <div id="important-info">
+                <div class="loading">正在加载重要信息...</div>
+            </div>
+            <div class="more-info-container">
+                <button id="more-info-btn" class="more-info-btn" onclick="openImportantInfoModal()">
+                    查看更多历史信息
+                </button>
+            </div>
+        </div>
+        
+        <!-- 订单明细 -->
+        <div class="card">
+            <h3>订单明细</h3>
+            <div id="orders-container">
+                <div class="loading">正在加载订单数据...</div>
+            </div>
+            <div class="orders-table-container" style="display: none;">
+                <table class="orders-table">
+                    <thead>
+                        <tr>
+                            <th>订单ID</th>
+                            <th>股票代码</th>
+                            <th>方向</th>
+                            <th>数量</th>
+                            <th>价格</th>
+                            <th>类型</th>
+                            <th>状态</th>
+                            <th>时间</th>
+                            <th>盈亏</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-table-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 重要信息历史模态框 -->
+    <div id="important-info-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>重要信息历史记录</h2>
+                <span class="close" onclick="closeImportantInfoModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="modal-controls">
+                    <div class="search-container">
+                        <input type="text" id="modal-search-input" class="search-input" placeholder="搜索重要信息..." onkeyup="filterModalImportantInfo()">
+                    </div>
+                    <div class="pagination-info">
+                        <span id="pagination-info-text">显示 1-20 条，共 0 条</span>
+                    </div>
+                </div>
+                <div id="modal-important-info" class="modal-important-info">
+                    <div class="loading">正在加载历史信息...</div>
+                </div>
+                <div class="pagination-controls">
+                    <button id="prev-page-btn" class="pagination-btn" onclick="changePage(-1)" disabled>上一页</button>
+                    <span id="page-info">第 1 页</span>
+                    <button id="next-page-btn" class="pagination-btn" onclick="changePage(1)" disabled>下一页</button>
+                </div>
             </div>
         </div>
     </div>
@@ -242,17 +808,44 @@
         // 图表实例
         let systemChart, tradingChart;
         
+        // 模态框相关变量
+        let allImportantInfo = [];
+        let filteredImportantInfo = [];
+        let currentPage = 1;
+        const itemsPerPage = 20;
+        
         // 连接状态
         socket.on('connect', function() {
             console.log('已连接到服务器');
             document.getElementById('status-indicator').className = 'status-indicator status-online';
             
+            // 检查是否为模拟数据模式
+            checkSimulationMode();
+            
             // 请求初始数据
             socket.emit('request_data', {type: 'system_metrics'});
             socket.emit('request_data', {type: 'trading_metrics'});
             socket.emit('request_data', {type: 'market_data'});
-            socket.emit('request_data', {type: 'alerts'});
+            socket.emit('request_data', {type: 'important_info'});
+            
+            // 请求订单数据
+            updateOrderData();
         });
+
+        // 检查模拟数据模式
+        function checkSimulationMode() {
+            fetch('/api/system-info')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.simulation_mode) {
+                        document.getElementById('simulation-mode-indicator').style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.log('无法获取系统信息，假设为模拟模式');
+                    document.getElementById('simulation-mode-indicator').style.display = 'block';
+                });
+        }
         
         socket.on('disconnect', function() {
             console.log('与服务器断开连接');
@@ -290,13 +883,13 @@
             updateMarketData(data);
         });
         
-        // 警报更新
-        socket.on('alerts', function(data) {
-            updateAlerts(data);
+        // 重要信息更新
+        socket.on('important_info', function(data) {
+            updateImportantInfo(data);
         });
-        
-        socket.on('new_alerts', function(data) {
-            updateAlerts(data, true);
+
+        socket.on('new_important_info', function(data) {
+            updateImportantInfo(data, true);
         });
         
         // 更新系统指标
@@ -391,36 +984,90 @@
             container.innerHTML = html;
         }
         
-        // 更新警报
-        function updateAlerts(data, isNew = false) {
-            const container = document.getElementById('alerts');
-            
+        // 重要信息最多显示条数
+        const MAX_IMPORTANT_ITEMS = 20;
+        // 更新重要信息
+        function updateImportantInfo(data, isNew = false) {
+            const container = document.getElementById('important-info');
+
             if (!data || data.length === 0) {
                 if (!isNew) {
-                    container.innerHTML = '<div class="loading">暂无警报</div>';
+                    container.innerHTML = '<div class="loading">暂无重要信息</div>';
                 }
                 return;
             }
-            
+
+            // 按时间倒序排列数据
+            const sortedData = data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
             let html = '';
-            data.forEach(alert => {
-                const alertClass = `alert-${alert.level.toLowerCase()}`;
-                const time = new Date(alert.timestamp).toLocaleTimeString();
-                
+            sortedData.forEach((info, index) => {
+                const levelClass = `alert-${info.level.toLowerCase()}`;
+                const typeClass = `type-${info.type.toLowerCase()}`;
+                const time = new Date(info.timestamp).toLocaleTimeString();
+
+                // 构建详情信息
+                let detailsHtml = '';
+                if (info.details && Object.keys(info.details).length > 0) {
+                    for (const [key, value] of Object.entries(info.details)) {
+                        if (value !== null && value !== undefined) {
+                            detailsHtml += `
+                                <span class="detail-item">
+                                    <span class="detail-label">${key}:</span>
+                                    <span class="detail-value">${value}</span>
+                                </span>
+                            `;
+                        }
+                    }
+                }
+
+                // 为新信息添加动画类
+                const newItemClass = (isNew && index === 0) ? ' new-item' : '';
+
                 html += `
-                    <div class="alert ${alertClass}">
-                        <strong>[${alert.level}] ${alert.category}</strong><br>
-                        ${alert.message}<br>
-                        <small>${time}</small>
+                    <div class="important-info-item ${levelClass}${newItemClass}">
+                        <div class="important-info-header">
+                            <div>
+                                <span class="important-info-type ${typeClass}">${info.type}</span>
+                                <span class="important-info-title">${info.title}</span>
+                            </div>
+                            <span class="important-info-time">${time}</span>
+                        </div>
+                        <div class="important-info-message">${info.message}</div>
+                        ${detailsHtml ? `<div class="important-info-details">${detailsHtml}</div>` : ''}
                     </div>
                 `;
             });
-            
+
             if (isNew) {
-                container.innerHTML = html + container.innerHTML;
+                // 创建新的DOM元素并插入到顶部
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                const newItems = tempDiv.querySelectorAll('.important-info-item');
+                
+                // 将新项目插入到容器顶部
+                newItems.forEach(item => {
+                    container.insertBefore(item, container.firstChild);
+                });
             } else {
                 container.innerHTML = html;
             }
+            
+            // 保持重要信息最多显示 MAX_IMPORTANT_ITEMS 条，移除更早的项
+            const items = container.querySelectorAll('.important-info-item');
+            if (items.length > MAX_IMPORTANT_ITEMS) {
+                for (let i = MAX_IMPORTANT_ITEMS; i < items.length; i++) {
+                    items[i].remove();
+                }
+            }
+
+            // 移除动画类，避免重复触发
+            setTimeout(() => {
+                const newItems = container.querySelectorAll('.important-info-item.new-item');
+                newItems.forEach(item => {
+                    item.classList.remove('new-item');
+                });
+            }, 500);
         }
         
         // 初始化图表
@@ -519,6 +1166,183 @@
         document.addEventListener('DOMContentLoaded', function() {
             initCharts();
         });
+        
+        // 更新订单数据
+        function updateOrderData() {
+            fetch('/api/orders')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('orders-table-body');
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #666;">暂无订单数据</td></tr>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    data.forEach(order => {
+                        const time = new Date(order.timestamp).toLocaleString();
+                        const statusClass = order.status === 'FILLED' ? 'status-filled' : 
+                                          order.status === 'PENDING' ? 'status-pending' : 
+                                          order.status === 'CANCELLED' ? 'status-cancelled' : 'status-partial';
+                        
+                        const profitLossClass = order.profit_loss > 0 ? 'profit-positive' : 
+                                              order.profit_loss < 0 ? 'profit-negative' : '';
+                        
+                        html += `
+                            <tr>
+                                <td>${order.order_id}</td>
+                                <td>${order.symbol}</td>
+                                <td class="side-${order.side.toLowerCase()}">${order.side}</td>
+                                <td>${order.quantity}</td>
+                                <td>$${order.price.toFixed(2)}</td>
+                                <td>${order.order_type}</td>
+                                <td><span class="status-badge ${statusClass}">${order.status}</span></td>
+                                <td>${time}</td>
+                                <td class="${profitLossClass}">
+                                    ${order.profit_loss !== null ? '$' + order.profit_loss.toFixed(2) : '-'}
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    tbody.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('获取订单数据失败:', error);
+                    const tbody = document.getElementById('orders-table-body');
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #f44336;">获取订单数据失败</td></tr>';
+                });
+        }
+        
+        // 定期更新订单数据
+        setInterval(updateOrderData, 5000);
+        
+        // 模态框相关函数
+        function openImportantInfoModal() {
+            const modal = document.getElementById('important-info-modal');
+            modal.style.display = 'block';
+            
+            // 请求完整的重要信息历史数据
+            fetch('/api/important_info_history')
+                .then(response => response.json())
+                .then(data => {
+                    allImportantInfo = data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                    filteredImportantInfo = [...allImportantInfo];
+                    currentPage = 1;
+                    renderModalImportantInfo();
+                })
+                .catch(error => {
+                    console.error('获取重要信息历史失败:', error);
+                    document.getElementById('modal-important-info').innerHTML = 
+                        '<div class="loading">获取历史信息失败</div>';
+                });
+        }
+        
+        function closeImportantInfoModal() {
+            const modal = document.getElementById('important-info-modal');
+            modal.style.display = 'none';
+        }
+        
+        function filterModalImportantInfo() {
+            const searchTerm = document.getElementById('modal-search-input').value.toLowerCase();
+            
+            if (searchTerm === '') {
+                filteredImportantInfo = [...allImportantInfo];
+            } else {
+                filteredImportantInfo = allImportantInfo.filter(info => 
+                    info.title.toLowerCase().includes(searchTerm) ||
+                    info.message.toLowerCase().includes(searchTerm) ||
+                    info.type.toLowerCase().includes(searchTerm) ||
+                    info.category.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            currentPage = 1;
+            renderModalImportantInfo();
+        }
+        
+        function changePage(direction) {
+            const totalPages = Math.ceil(filteredImportantInfo.length / itemsPerPage);
+            const newPage = currentPage + direction;
+            
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                renderModalImportantInfo();
+            }
+        }
+        
+        function renderModalImportantInfo() {
+            const container = document.getElementById('modal-important-info');
+            const totalItems = filteredImportantInfo.length;
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+            const pageData = filteredImportantInfo.slice(startIndex, endIndex);
+            
+            if (totalItems === 0) {
+                container.innerHTML = '<div class="loading">没有找到匹配的信息</div>';
+                document.getElementById('pagination-info-text').textContent = '显示 0-0 条，共 0 条';
+                document.getElementById('page-info').textContent = '第 0 页';
+                document.getElementById('prev-page-btn').disabled = true;
+                document.getElementById('next-page-btn').disabled = true;
+                return;
+            }
+            
+            let html = '';
+            pageData.forEach(info => {
+                const levelClass = `alert-${info.level.toLowerCase()}`;
+                const typeClass = `type-${info.type.toLowerCase()}`;
+                const time = new Date(info.timestamp).toLocaleString();
+                
+                // 构建详情信息
+                let detailsHtml = '';
+                if (info.details && Object.keys(info.details).length > 0) {
+                    for (const [key, value] of Object.entries(info.details)) {
+                        if (value !== null && value !== undefined) {
+                            detailsHtml += `
+                                <span class="detail-item">
+                                    <span class="detail-label">${key}:</span>
+                                    <span class="detail-value">${value}</span>
+                                </span>
+                            `;
+                        }
+                    }
+                }
+                
+                html += `
+                    <div class="modal-important-item ${levelClass}">
+                        <div class="modal-important-header">
+                            <div>
+                                <span class="modal-important-type ${typeClass}">${info.type}</span>
+                                <span class="modal-important-title">${info.title}</span>
+                            </div>
+                            <span class="modal-important-time">${time}</span>
+                        </div>
+                        <div class="important-info-message">${info.message}</div>
+                        ${detailsHtml ? `<div class="modal-important-details">${detailsHtml}</div>` : ''}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            
+            // 更新分页信息
+            document.getElementById('pagination-info-text').textContent = 
+                `显示 ${startIndex + 1}-${endIndex} 条，共 ${totalItems} 条`;
+            document.getElementById('page-info').textContent = `第 ${currentPage} 页`;
+            
+            // 更新分页按钮状态
+            document.getElementById('prev-page-btn').disabled = currentPage <= 1;
+            document.getElementById('next-page-btn').disabled = currentPage >= totalPages;
+        }
+        
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('important-info-modal');
+            if (event.target === modal) {
+                closeImportantInfoModal();
+            }
+        }
     </script>
 </body>
 </html>

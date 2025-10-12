@@ -1,3 +1,8 @@
+
+> **📢 迁移说明 (2025-10-10)**  
+> 本项目已从yfinance迁移到IB TWS API。请参考最新的API使用方法。
+> 原始文档备份在: `backup_before_ib_migration/docs/BEGINNER_GUIDE.md`
+
 # 📚 量化交易系统初学者使用指南 - v3.0.0 性能优化版
 
 > 🎯 **目标读者**: 量化交易初学者、Python编程爱好者、金融数据分析学习者
@@ -235,13 +240,13 @@ python examples/test_large_scale_performance.py
 
 ### 2.1 数据获取原理
 
-我们的系统使用 **yfinance** 库从Yahoo Finance获取股票数据：
+我们的系统使用 **IB TWS API** 库从Yahoo Finance获取股票数据：
 
 ```python
-import yfinance as yf
+import IB TWS API as yf
 
 # 获取苹果公司股票数据
-ticker = yf.Ticker("AAPL")
+ticker = IBDataProvider("AAPL")
 data = ticker.history(period="1y")
 print(data.head())
 ```

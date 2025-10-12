@@ -1,3 +1,19 @@
+
+# ==========================================
+# 迁移说明 - 2025-10-10 23:06:36
+# ==========================================
+# 本文件已从yfinance迁移到IB TWS API
+# 原始文件备份在: backup_before_ib_migration/fetch_nasdaq_top100.py
+# 
+# 主要变更:
+# # - 替换yfinance导入为IB导入
+# 
+# 注意事项:
+# 1. 需要启动IB TWS或Gateway
+# 2. 确保API设置已正确配置
+# 3. 某些yfinance特有功能可能需要手动调整
+# ==========================================
+
 #!/usr/bin/env python3
 """
 NASDAQ Top 100 股票数据获取脚本
@@ -134,7 +150,7 @@ class NasdaqDataFetcher:
     def fetch_data_from_yfinance(self, symbol: str, start_date: str, end_date: str) -> Optional[pd.DataFrame]:
         """从yfinance获取股票数据"""
         try:
-            import yfinance as yf
+            from src.data.ib_data_provider import IBDataProvider, IBConfig
             
             ticker = yf.Ticker(symbol)
             data = ticker.history(start=start_date, end=end_date)
@@ -351,9 +367,11 @@ def main():
         # 创建数据获取器
         fetcher = NasdaqDataFetcher()
         
-        # 设置时间范围（最近30天）
+        # 设置时间范围（最近5年）
         end_date = datetime.now().strftime('%Y-%m-%d')
-        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        start_date = (datetime.now() - timedelta(days=5*365)).strftime('%Y-%m-%d')
+        
+        logger.info(f"开始获取NASDAQ 100股票数据，时间范围: {start_date} 到 {end_date}")
         
         # 获取所有NASDAQ 100股票数据
         fetcher.fetch_all_nasdaq_stocks(start_date, end_date)

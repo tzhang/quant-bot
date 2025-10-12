@@ -97,7 +97,7 @@ class QuantTradingSystem:
             self.performance_analyzer = PerformanceAnalyzer()
             self.logger.info("✓ 性能分析器初始化完成")
             
-            # 初始化实时交易组件
+            # 初始化IB实时交易组件（主要交易系统）
             if enable_trading and IB_AVAILABLE and trading_config:
                 try:
                     self.ib_trading_manager = IBTradingManager(trading_config)
@@ -106,9 +106,10 @@ class QuantTradingSystem:
                     # 初始化策略管理器
                     self.strategy_manager = StrategyManager()
                     
-                    self.logger.info("✅ IB交易管理器初始化成功")
+                    self.logger.info("✅ Interactive Brokers (IB) 交易系统初始化完成")
                 except Exception as e:
-                    self.logger.error(f"❌ IB交易管理器初始化失败: {e}")
+                    self.logger.error(f"❌ IB交易系统初始化失败: {e}")
+                    self.logger.error("💡 请确保IB TWS或Gateway已启动并配置正确")
                     self.ib_trading_manager = None
                     self.trading_enabled = False
                     self.strategy_manager = None
@@ -118,6 +119,7 @@ class QuantTradingSystem:
                 self.strategy_manager = None
                 if enable_trading and not IB_AVAILABLE:
                     self.logger.warning("⚠️ 实时交易功能不可用，IB模块未正确安装")
+                    self.logger.warning("💡 请安装ib_insync: pip install ib_insync")
             
             self.initialized = True
             self.logger.info("🎉 所有核心组件初始化完成")

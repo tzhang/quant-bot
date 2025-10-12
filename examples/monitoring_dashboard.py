@@ -75,15 +75,54 @@ class MarketData:
     low_24h: float
 
 @dataclass
-class Alert:
-    """警报"""
+class TradingInfo:
+    """交易信息数据结构 - 替换原有的Alert类"""
     id: str
     timestamp: str
-    level: str  # INFO, WARNING, ERROR, CRITICAL
-    category: str  # SYSTEM, TRADING, MARKET, RISK
-    message: str
-    details: Dict[str, Any]
+    type: str  # ORDER, RISK, MARKET, SYSTEM
+    level: str  # INFO, SUCCESS, WARNING, ERROR, CRITICAL
+    category: str  # 具体分类
+    title: str  # 标题
+    message: str  # 详细信息
+    details: Dict[str, Any]  # 额外详情
     acknowledged: bool = False
+
+@dataclass
+class OrderInfo:
+    """订单信息"""
+    order_id: str
+    symbol: str
+    side: str  # BUY/SELL
+    quantity: float
+    price: float
+    order_type: str  # MARKET/LIMIT/STOP
+    status: str  # FILLED/PARTIAL/PENDING/CANCELLED
+    timestamp: str
+    profit_loss: Optional[float] = None
+
+@dataclass
+class RiskEvent:
+    """风险事件"""
+    event_id: str
+    risk_type: str  # POSITION_LIMIT, DRAWDOWN, VOLATILITY, CORRELATION
+    severity: str  # LOW, MEDIUM, HIGH, CRITICAL
+    description: str
+    current_value: float
+    threshold_value: float
+    timestamp: str
+    action_required: bool = False
+
+@dataclass
+class MarketEvent:
+    """市场事件"""
+    event_id: str
+    event_type: str  # PRICE_MOVEMENT, VOLUME_SPIKE, NEWS, EARNINGS
+    symbol: str
+    description: str
+    impact: str  # POSITIVE, NEGATIVE, NEUTRAL
+    magnitude: float  # 影响程度 0-1
+    timestamp: str
+    related_positions: List[str] = None
 
 class DataCollector:
     """数据收集器，负责收集系统指标、交易数据和市场数据"""
@@ -92,7 +131,7 @@ class DataCollector:
         self.system_metrics = deque(maxlen=1000)
         self.trading_metrics = deque(maxlen=1000)
         self.market_data = {}
-        self.alerts = deque(maxlen=500)
+        self.trading_info = deque(maxlen=500)  # 替换alerts为trading_info
         self.is_running = False
         self.collection_thread = None
         self.trading_system = trading_system
@@ -134,8 +173,8 @@ class DataCollector:
                 # 收集市场数据
                 self._collect_market_data()
                 
-                # 检查警报条件
-                self._check_alerts(system_metrics, trading_metrics)
+                # 收集交易信息
+                self._collect_trading_info(system_metrics, trading_metrics)
                 
                 logger.debug("数据收集循环完成")
                 
@@ -311,55 +350,230 @@ class DataCollector:
             
         logger.debug(f"生成了 {len(self.market_data)} 个股票的市场数据")
     
-    def _check_alerts(self, system_metrics: SystemMetrics, trading_metrics: TradingMetrics):
-        """检查警报条件"""
-        alerts = []
+    def _collect_trading_info(self, system_metrics: SystemMetrics, trading_metrics: TradingMetrics):
+        """收集交易信息，包括订单、风险事件、市场事件"""
+        trading_info_list = []
         
-        # 系统警报
+        # 1. 生成订单信息
+        self._generate_order_info(trading_metrics, trading_info_list)
+        
+        # 2. 生成风险事件
+        self._generate_risk_events(system_metrics, trading_metrics, trading_info_list)
+        
+        # 3. 生成市场事件
+        self._generate_market_events(trading_info_list)
+        
+        # 4. 生成系统信息
+        self._generate_system_info(system_metrics, trading_info_list)
+        
+        # 添加到队列
+        for info in trading_info_list:
+            self.trading_info.append(info)
+    
+    def _generate_order_info(self, trading_metrics: TradingMetrics, trading_info_list: List[TradingInfo]):
+        """生成订单相关信息"""
+        current_time = datetime.now().isoformat()
+        
+        # 模拟重要订单信息
+        if hasattr(self, '_last_order_check'):
+            time_diff = time.time() - self._last_order_check
+        else:
+            time_diff = 60  # 首次运行
+            
+        self._last_order_check = time.time()
+        
+        # 每分钟可能生成订单信息
+        if time_diff >= 30 and np.random.random() < 0.3:
+            symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'AMZN']
+            symbol = np.random.choice(symbols)
+            side = np.random.choice(['BUY', 'SELL'])
+            quantity = np.random.randint(10, 500)
+            price = np.random.uniform(100, 300)
+            
+            # 大订单信息
+            if quantity >= 200:
+                trading_info_list.append(TradingInfo(
+                    id=f"order_{int(time.time())}_{np.random.randint(1000, 9999)}",
+                    timestamp=current_time,
+                    type="ORDER",
+                    level="INFO",
+                    category="LARGE_ORDER",
+                    title=f"大额订单执行",
+                    message=f"{side} {quantity} 股 {symbol} @ ${price:.2f}",
+                    details={
+                        "symbol": symbol,
+                        "side": side,
+                        "quantity": quantity,
+                        "price": price,
+                        "order_value": quantity * price
+                    }
+                ))
+            
+            # 盈利订单信息
+            if trading_metrics.total_profit > 0 and np.random.random() < 0.4:
+                profit = np.random.uniform(500, 2000)
+                trading_info_list.append(TradingInfo(
+                    id=f"profit_{int(time.time())}_{np.random.randint(1000, 9999)}",
+                    timestamp=current_time,
+                    type="ORDER",
+                    level="SUCCESS",
+                    category="PROFITABLE_TRADE",
+                    title=f"盈利交易完成",
+                    message=f"{symbol} 交易获利 ${profit:.2f}",
+                    details={
+                        "symbol": symbol,
+                        "profit": profit,
+                        "return_rate": profit / (quantity * price) * 100
+                    }
+                ))
+    
+    def _generate_risk_events(self, system_metrics: SystemMetrics, trading_metrics: TradingMetrics, trading_info_list: List[TradingInfo]):
+        """生成风险事件信息"""
+        current_time = datetime.now().isoformat()
+        
+        # 仓位风险监控
+        if trading_metrics.active_positions > 10:
+            trading_info_list.append(TradingInfo(
+                id=f"risk_position_{int(time.time())}",
+                timestamp=current_time,
+                type="RISK",
+                level="WARNING",
+                category="POSITION_RISK",
+                title="仓位数量较高",
+                message=f"当前持有 {trading_metrics.active_positions} 个活跃仓位，建议关注风险分散",
+                details={
+                    "active_positions": trading_metrics.active_positions,
+                    "recommended_max": 10
+                }
+            ))
+        
+        # 胜率监控（改为正面信息）
+        if trading_metrics.win_rate > 0.6:
+            trading_info_list.append(TradingInfo(
+                id=f"risk_winrate_{int(time.time())}",
+                timestamp=current_time,
+                type="RISK",
+                level="SUCCESS",
+                category="PERFORMANCE",
+                title="交易表现优秀",
+                message=f"当前胜率 {trading_metrics.win_rate:.1%}，表现良好",
+                details={
+                    "win_rate": trading_metrics.win_rate,
+                    "total_trades": trading_metrics.total_trades
+                }
+            ))
+        elif trading_metrics.win_rate < 0.4 and trading_metrics.total_trades > 10:
+            trading_info_list.append(TradingInfo(
+                id=f"risk_winrate_low_{int(time.time())}",
+                timestamp=current_time,
+                type="RISK",
+                level="WARNING",
+                category="PERFORMANCE",
+                title="胜率需要关注",
+                message=f"当前胜率 {trading_metrics.win_rate:.1%}，建议优化策略",
+                details={
+                    "win_rate": trading_metrics.win_rate,
+                    "total_trades": trading_metrics.total_trades
+                }
+            ))
+        
+        # 系统资源监控
         if system_metrics.cpu_usage > 80:
-            alerts.append(Alert(
-                id=f"cpu_{int(time.time())}",
-                timestamp=datetime.now().isoformat(),
+            trading_info_list.append(TradingInfo(
+                id=f"risk_cpu_{int(time.time())}",
+                timestamp=current_time,
+                type="RISK",
                 level="WARNING",
-                category="SYSTEM",
-                message=f"CPU使用率过高: {system_metrics.cpu_usage:.1f}%",
-                details={"cpu_usage": system_metrics.cpu_usage}
+                category="SYSTEM_RESOURCE",
+                title="CPU使用率较高",
+                message=f"CPU使用率 {system_metrics.cpu_usage:.1f}%，可能影响交易执行速度",
+                details={
+                    "cpu_usage": system_metrics.cpu_usage,
+                    "threshold": 80
+                }
             ))
+    
+    def _generate_market_events(self, trading_info_list: List[TradingInfo]):
+        """生成市场事件信息"""
+        current_time = datetime.now().isoformat()
         
-        if system_metrics.memory_usage > 85:
-            alerts.append(Alert(
-                id=f"memory_{int(time.time())}",
-                timestamp=datetime.now().isoformat(),
-                level="ERROR",
-                category="SYSTEM",
-                message=f"内存使用率过高: {system_metrics.memory_usage:.1f}%",
-                details={"memory_usage": system_metrics.memory_usage}
+        # 模拟市场事件
+        if hasattr(self, '_last_market_event'):
+            time_diff = time.time() - self._last_market_event
+        else:
+            time_diff = 120  # 首次运行
+            
+        # 每2分钟可能生成市场事件
+        if time_diff >= 120 and np.random.random() < 0.2:
+            self._last_market_event = time.time()
+            
+            events = [
+                {
+                    "type": "VOLUME_SPIKE",
+                    "title": "交易量异常",
+                    "message": "AAPL 交易量较平均水平增长 150%",
+                    "impact": "POSITIVE",
+                    "level": "INFO"
+                },
+                {
+                    "type": "PRICE_MOVEMENT", 
+                    "title": "价格突破",
+                    "message": "TSLA 突破关键阻力位，上涨 3.2%",
+                    "impact": "POSITIVE",
+                    "level": "SUCCESS"
+                },
+                {
+                    "type": "NEWS",
+                    "title": "市场消息",
+                    "message": "科技股普遍上涨，市场情绪乐观",
+                    "impact": "POSITIVE",
+                    "level": "INFO"
+                }
+            ]
+            
+            event = np.random.choice(events)
+            trading_info_list.append(TradingInfo(
+                id=f"market_{int(time.time())}_{np.random.randint(1000, 9999)}",
+                timestamp=current_time,
+                type="MARKET",
+                level=event["level"],
+                category=event["type"],
+                title=event["title"],
+                message=event["message"],
+                details={
+                    "impact": event["impact"],
+                    "event_type": event["type"]
+                }
             ))
+    
+    def _generate_system_info(self, system_metrics: SystemMetrics, trading_info_list: List[TradingInfo]):
+        """生成系统信息"""
+        current_time = datetime.now().isoformat()
         
-        # 交易警报
-        if trading_metrics.win_rate < 0.4:
-            alerts.append(Alert(
-                id=f"winrate_{int(time.time())}",
-                timestamp=datetime.now().isoformat(),
-                level="WARNING",
-                category="TRADING",
-                message=f"胜率过低: {trading_metrics.win_rate:.1%}",
-                details={"win_rate": trading_metrics.win_rate}
-            ))
-        
-        if trading_metrics.total_profit < -10000:
-            alerts.append(Alert(
-                id=f"loss_{int(time.time())}",
-                timestamp=datetime.now().isoformat(),
-                level="CRITICAL",
-                category="RISK",
-                message=f"总亏损过大: ${trading_metrics.total_profit:,.2f}",
-                details={"total_profit": trading_metrics.total_profit}
-            ))
-        
-        # 添加警报到队列
-        for alert in alerts:
-            self.alerts.append(alert)
+        # 系统状态良好信息
+        if system_metrics.cpu_usage < 50 and system_metrics.memory_usage < 70:
+            if hasattr(self, '_last_system_good'):
+                time_diff = time.time() - self._last_system_good
+            else:
+                time_diff = 300  # 首次运行
+                
+            # 每5分钟报告一次系统状态良好
+            if time_diff >= 300:
+                self._last_system_good = time.time()
+                trading_info_list.append(TradingInfo(
+                    id=f"system_good_{int(time.time())}",
+                    timestamp=current_time,
+                    type="SYSTEM",
+                    level="SUCCESS",
+                    category="SYSTEM_STATUS",
+                    title="系统运行正常",
+                    message=f"CPU: {system_metrics.cpu_usage:.1f}%, 内存: {system_metrics.memory_usage:.1f}%",
+                    details={
+                        "cpu_usage": system_metrics.cpu_usage,
+                        "memory_usage": system_metrics.memory_usage,
+                        "status": "healthy"
+                    }
+                ))
 
 class MonitoringDashboard:
     """监控面板"""
@@ -412,22 +626,57 @@ class MonitoringDashboard:
                 "timestamp": datetime.now().isoformat()
             })
         
-        @self.app.route('/api/alerts')
-        def get_alerts():
-            """获取警报"""
-            alerts = list(self.data_collector.alerts)
+        @self.app.route('/api/important_info')
+        def get_important_info():
+            """获取重要信息"""
+            trading_info = list(self.data_collector.trading_info)
             # 按时间倒序排列，最新的在前面
-            sorted_alerts = sorted(alerts, key=lambda x: x.timestamp, reverse=True)
-            return jsonify([asdict(a) for a in sorted_alerts[:100]])  # 返回最近100个警报，按时间倒序
+            sorted_info = sorted(trading_info, key=lambda x: x.timestamp, reverse=True)
+            return jsonify([asdict(info) for info in sorted_info[:50]])  # 返回最近50条
         
-        @self.app.route('/api/alerts/<alert_id>/acknowledge', methods=['POST'])
-        def acknowledge_alert(alert_id):
-            """确认警报"""
-            for alert in self.data_collector.alerts:
-                if alert.id == alert_id:
-                    alert.acknowledged = True
+        @self.app.route('/api/important_info/<info_id>/acknowledge', methods=['POST'])
+        def acknowledge_important_info(info_id):
+            """确认重要信息"""
+            for info in self.data_collector.trading_info:
+                if info.id == info_id:
+                    info.acknowledged = True
                     return jsonify({"status": "success"})
-            return jsonify({"status": "error", "message": "Alert not found"}), 404
+            return jsonify({"status": "error", "message": "重要信息未找到"}), 404
+        
+        @self.app.route('/api/important_info_history')
+        def get_important_info_history():
+            """获取完整的重要信息历史数据"""
+            trading_info = list(self.data_collector.trading_info)
+            # 按时间倒序排列，最新的在前面
+            sorted_info = sorted(trading_info, key=lambda x: x.timestamp, reverse=True)
+            return jsonify([asdict(info) for info in sorted_info])  # 返回所有历史数据
+        
+        @self.app.route('/api/orders')
+        def get_orders():
+            """获取订单明细数据"""
+            # 生成模拟订单数据
+            orders = []
+            current_time = datetime.now()
+            
+            # 生成最近的订单数据
+            for i in range(20):
+                order_time = current_time - timedelta(minutes=i*5)
+                order = OrderInfo(
+                    order_id=f"ORD{1000+i:04d}",
+                    symbol=np.random.choice(['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'NVDA', 'META']),
+                    side=np.random.choice(['BUY', 'SELL']),
+                    quantity=np.random.randint(10, 500),
+                    price=round(np.random.uniform(100, 300), 2),
+                    order_type=np.random.choice(['MARKET', 'LIMIT', 'STOP']),
+                    status=np.random.choice(['FILLED', 'PARTIAL', 'PENDING', 'CANCELLED'], p=[0.6, 0.2, 0.1, 0.1]),
+                    timestamp=order_time.strftime('%Y-%m-%d %H:%M:%S'),
+                    profit_loss=round(np.random.uniform(-500, 1000), 2) if np.random.random() > 0.3 else None
+                )
+                orders.append(asdict(order))
+            
+            # 按时间倒序排列
+            orders.sort(key=lambda x: x['timestamp'], reverse=True)
+            return jsonify(orders)
     
     def _setup_socketio_events(self):
         """设置WebSocket事件"""
@@ -459,9 +708,9 @@ class MonitoringDashboard:
             elif data_type == 'market_data':
                 emit('market_data', {k: asdict(v) for k, v in self.data_collector.market_data.items()})
             
-            elif data_type == 'alerts':
-                alerts = list(self.data_collector.alerts)
-                emit('alerts', [asdict(a) for a in alerts[-20:]])
+            elif data_type == 'important_info':
+                trading_info = list(self.data_collector.trading_info)
+                emit('important_info', [asdict(info) for info in trading_info[-20:]])
     
     def start_real_time_updates(self):
         """启动实时更新"""
@@ -483,13 +732,13 @@ class MonitoringDashboard:
                         self.socketio.emit('market_data_update', 
                                          {k: asdict(v) for k, v in self.data_collector.market_data.items()})
                     
-                    # 发送新警报
-                    if self.data_collector.alerts:
-                        recent_alerts = [a for a in self.data_collector.alerts 
-                                       if not a.acknowledged and 
-                                       datetime.fromisoformat(a.timestamp) > datetime.now() - timedelta(minutes=5)]
-                        if recent_alerts:
-                            self.socketio.emit('new_alerts', [asdict(a) for a in recent_alerts])
+                    # 发送新重要信息
+                    if self.data_collector.trading_info:
+                        recent_info = [info for info in self.data_collector.trading_info 
+                                     if not info.acknowledged and 
+                                     datetime.fromisoformat(info.timestamp) > datetime.now() - timedelta(minutes=5)]
+                        if recent_info:
+                            self.socketio.emit('new_important_info', [asdict(info) for info in recent_info])
                     
                     time.sleep(5)  # 每5秒更新一次
                     
@@ -539,18 +788,41 @@ DASHBOARD_HTML_TEMPLATE = """
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f5f5f5;
             color: #333;
+            line-height: 1.6;
+            overflow-x: hidden;
         }
-        
+
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 1rem 2rem;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-        
+
         .header h1 {
             font-size: 2rem;
             font-weight: 300;
+            margin: 0;
+        }
+
+        /* 响应式标题 */
+        @media (max-width: 768px) {
+            .header {
+                padding: 0.75rem 1rem;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.25rem;
+            }
         }
         
         .status-indicator {
@@ -584,17 +856,58 @@ DASHBOARD_HTML_TEMPLATE = """
             max-width: 1400px;
             margin: 0 auto;
         }
+
+        /* 响应式网格布局 */
+        @media (max-width: 1200px) {
+            .dashboard {
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                gap: 1.25rem;
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dashboard {
+                padding: 0.75rem;
+                gap: 0.75rem;
+            }
+        }
         
         .card {
             background: white;
             border-radius: 10px;
             padding: 1.5rem;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.2s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: 1px solid rgba(0,0,0,0.05);
         }
-        
+
         .card:hover {
             transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+        }
+
+        /* 响应式卡片 */
+        @media (max-width: 768px) {
+            .card {
+                padding: 1.25rem;
+                border-radius: 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 1rem;
+                border-radius: 6px;
+            }
         }
         
         .card h3 {
@@ -610,18 +923,130 @@ DASHBOARD_HTML_TEMPLATE = """
             justify-content: space-between;
             align-items: center;
             margin: 0.5rem 0;
-            padding: 0.5rem;
+            padding: 0.75rem;
             background: #f8f9fa;
-            border-radius: 5px;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+            transition: background-color 0.2s ease;
         }
-        
+
+        .metric:hover {
+            background: #e9ecef;
+        }
+
         .metric-label {
             font-weight: 500;
+            color: #495057;
+            font-size: 0.9rem;
         }
-        
+
         .metric-value {
             font-weight: bold;
             color: #667eea;
+            font-size: 1rem;
+            text-align: right;
+        }
+
+        /* 动画效果 */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* 加载状态样式 */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 状态样式 */
+        .metric-warning {
+            color: #ff9800 !important;
+        }
+
+        .metric-error {
+            color: #f44336 !important;
+        }
+
+        .empty-state {
+            padding: 2rem;
+            text-align: center;
+            color: #666;
+        }
+
+        .empty-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-state {
+            padding: 2rem;
+            text-align: center;
+            color: #dc3545;
+        }
+
+        .error-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-message {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-details {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        .retry-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .retry-btn:hover {
+            background: #5a6fd8;
+        }
+
+        /* 响应式动画优化 */
+        @media (prefers-reduced-motion: reduce) {
+            .metric,
+            .order-row {
+                animation: none !important;
+            }
+            
+            .loading-spinner {
+                animation: none !important;
+            }
         }
         
         .chart-container {
@@ -637,29 +1062,532 @@ DASHBOARD_HTML_TEMPLATE = """
             border-left: 4px solid;
         }
         
+        .alert-success {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
         .alert-info {
             background-color: #d1ecf1;
             border-color: #17a2b8;
             color: #0c5460;
         }
-        
+
         .alert-warning {
             background-color: #fff3cd;
             border-color: #ffc107;
             color: #856404;
         }
-        
+
         .alert-error {
             background-color: #f8d7da;
             border-color: #dc3545;
             color: #721c24;
         }
-        
+
         .alert-critical {
             background-color: #f5c6cb;
             border-color: #dc3545;
             color: #721c24;
             animation: blink 1s infinite;
+        }
+
+        .important-info-item {
+            padding: 0.15rem;
+            margin: 0.05rem 0;
+            border-radius: 3px;
+            border: 1px solid #e9ecef;
+            border-left: 2px solid transparent;
+            background: #fff;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+            transition: box-shadow 0.15s ease, transform 0.15s ease, opacity 0.3s ease;
+            overflow: hidden;
+        }
+
+        .important-info-item.new-item {
+            animation: slideInFromTop 0.5s ease-out;
+        }
+
+        @keyframes slideInFromTop {
+                0% {
+                    opacity: 0;
+                    transform: translateY(-20px);
+                }
+                100% {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .more-info-container {
+                text-align: center;
+                margin-top: 15px;
+                padding-top: 15px;
+                border-top: 1px solid #e0e0e0;
+            }
+            
+            .more-info-btn {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 20px;
+                cursor: pointer;
+                font-size: 12px;
+                font-weight: 500;
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            
+            .more-info-btn:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            }
+            
+            .more-info-btn:active {
+                transform: translateY(0);
+            }
+            
+            /* 模态框样式 */
+            .modal {
+                display: none;
+                position: fixed;
+                z-index: 1000;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0,0,0,0.5);
+                backdrop-filter: blur(5px);
+            }
+            
+            .modal-content {
+                background-color: #fefefe;
+                margin: 2% auto;
+                padding: 0;
+                border: none;
+                border-radius: 12px;
+                width: 90%;
+                max-width: 1000px;
+                height: 90%;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .modal-header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 20px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            
+            .modal-header h2 {
+                margin: 0;
+                font-size: 20px;
+                font-weight: 600;
+            }
+            
+            .close {
+                color: white;
+                font-size: 28px;
+                font-weight: bold;
+                cursor: pointer;
+                line-height: 1;
+                transition: opacity 0.3s ease;
+            }
+            
+            .close:hover {
+                opacity: 0.7;
+            }
+            
+            .modal-body {
+                flex: 1;
+                padding: 20px;
+                overflow-y: auto;
+                background-color: #f8f9fa;
+            }
+            
+            .modal-controls {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+                gap: 15px;
+                flex-wrap: wrap;
+            }
+            
+            .search-container {
+                flex: 1;
+                min-width: 200px;
+            }
+            
+            /* 订单明细表格样式 */
+            .orders-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 1rem;
+                background: white;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            
+            .orders-table th,
+            .orders-table td {
+                padding: 12px 8px;
+                text-align: left;
+                border-bottom: 1px solid #e9ecef;
+                font-size: 13px;
+            }
+            
+            .orders-table th {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-size: 11px;
+            }
+            
+            .orders-table tbody tr:hover {
+                background-color: #f8f9fa;
+                transition: background-color 0.2s ease;
+            }
+            
+            .orders-table tbody tr:last-child td {
+                border-bottom: none;
+            }
+            
+            /* 订单状态样式 */
+            .status-badge {
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            
+            .status-filled {
+                background-color: #d4edda;
+                color: #155724;
+                border: 1px solid #c3e6cb;
+            }
+            
+            .status-pending {
+                background-color: #fff3cd;
+                color: #856404;
+                border: 1px solid #ffeaa7;
+            }
+            
+            .status-partial {
+                background-color: #d1ecf1;
+                color: #0c5460;
+                border: 1px solid #bee5eb;
+            }
+            
+            .status-cancelled {
+                background-color: #f8d7da;
+                color: #721c24;
+                border: 1px solid #f5c6cb;
+            }
+            
+            /* 买卖方向样式 */
+            .side-buy {
+                color: #28a745;
+                font-weight: 600;
+            }
+            
+            .side-sell {
+                color: #dc3545;
+                font-weight: 600;
+            }
+            
+            /* 盈亏样式 */
+            .profit-positive {
+                color: #28a745;
+                font-weight: 600;
+            }
+            
+            .profit-negative {
+                color: #dc3545;
+                font-weight: 600;
+            }
+            
+            /* 订单明细卡片特殊样式 */
+            .orders-card {
+                grid-column: span 2;
+                min-height: 400px;
+            }
+            
+            .orders-card .loading {
+                text-align: center;
+                color: #666;
+                font-style: italic;
+                padding: 2rem;
+            }
+            
+            /* 响应式设计 */
+            @media (max-width: 768px) {
+                .orders-card {
+                    grid-column: span 1;
+                }
+                
+                .orders-table {
+                    font-size: 11px;
+                }
+                
+                .orders-table th,
+                .orders-table td {
+                    padding: 8px 4px;
+                }
+            }
+            }
+            
+            .search-input {
+                width: 100%;
+                padding: 10px 15px;
+                border: 1px solid #ddd;
+                border-radius: 25px;
+                font-size: 14px;
+                outline: none;
+                transition: border-color 0.3s ease;
+            }
+            
+            .search-input:focus {
+                border-color: #667eea;
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            }
+            
+            .pagination-info {
+                color: #666;
+                font-size: 14px;
+                white-space: nowrap;
+            }
+            
+            .pagination-controls {
+                display: flex;
+                gap: 10px;
+                align-items: center;
+            }
+            
+            .pagination-btn {
+                background: #fff;
+                border: 1px solid #ddd;
+                padding: 8px 12px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                transition: all 0.3s ease;
+            }
+            
+            .pagination-btn:hover:not(:disabled) {
+                background: #f0f0f0;
+                border-color: #bbb;
+            }
+            
+            .pagination-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            
+            .pagination-btn.active {
+                background: #667eea;
+                color: white;
+                border-color: #667eea;
+            }
+            
+            .modal-important-info {
+                display: grid;
+                gap: 12px;
+            }
+            
+            .modal-important-item {
+                background: white;
+                border-radius: 8px;
+                padding: 15px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                border-left: 4px solid #ddd;
+                transition: all 0.3s ease;
+            }
+            
+            .modal-important-item:hover {
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                transform: translateY(-1px);
+            }
+            
+            .modal-important-item.type-order {
+                border-left-color: #28a745;
+            }
+            
+            .modal-important-item.type-risk {
+                border-left-color: #dc3545;
+            }
+            
+            .modal-important-item.type-market {
+                border-left-color: #007bff;
+            }
+            
+            .modal-important-item.type-system {
+                border-left-color: #6c757d;
+            }
+            
+            .modal-important-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 8px;
+            }
+            
+            .modal-important-type {
+                background: #f8f9fa;
+                color: #495057;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 500;
+                text-transform: uppercase;
+            }
+            
+            .modal-important-time {
+                color: #6c757d;
+                font-size: 12px;
+            }
+            
+            .modal-important-title {
+                font-weight: 600;
+                color: #333;
+                margin-bottom: 5px;
+                font-size: 14px;
+            }
+            
+            .modal-important-details {
+                color: #666;
+                font-size: 13px;
+                line-height: 1.4;
+            }
+
+        .important-info-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .important-info-item::before {
+            content: none;
+        }
+
+        /* shimmer removed for flatter design */
+
+        .important-info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.1rem;
+            gap: 0.2rem;
+        }
+
+        .important-info-type {
+            font-size: 0.6rem;
+            padding: 1px 3px;
+            border-radius: 6px;
+            color: white;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+            white-space: nowrap;
+        }
+
+        .type-order {
+            background-color: #3b82f6;
+        }
+
+        .type-risk {
+            background-color: #f59e0b;
+            color: #fff;
+        }
+
+        .type-market {
+            background-color: #10b981;
+        }
+
+        .type-system {
+            background-color: #6b7280;
+        }
+
+        /* Flatten alert backgrounds on important-info cards while keeping border color */
+        .important-info-item.alert-success,
+        .important-info-item.alert-info,
+        .important-info-item.alert-warning,
+        .important-info-item.alert-error,
+        .important-info-item.alert-critical {
+            background: #fff !important;
+            color: #2c3e50;
+        }
+        .important-info-item.alert-success { border-left-color: #28a745; }
+        .important-info-item.alert-info { border-left-color: #17a2b8; }
+        .important-info-item.alert-warning { border-left-color: #ffc107; }
+        .important-info-item.alert-error { border-left-color: #dc3545; }
+        .important-info-item.alert-critical { border-left-color: #dc3545; }
+
+        .important-info-title {
+            font-weight: 600;
+            font-size: 0.75rem;
+            color: #2c3e50;
+            margin-bottom: 0.05rem;
+            line-height: 1.0;
+        }
+
+        .important-info-time {
+            font-size: 0.65rem;
+            color: #6c757d;
+            font-weight: 500;
+            background: rgba(108, 117, 125, 0.08);
+            padding: 1px 2px;
+            border-radius: 2px;
+            white-space: nowrap;
+        }
+
+        .important-info-message {
+            color: #495057;
+            line-height: 1.2;
+            margin-bottom: 0.05rem;
+            font-size: 0.7rem;
+        }
+
+        .important-info-details {
+            margin-top: 0.05rem;
+            font-size: 0.65rem;
+            background: rgba(102, 126, 234, 0.04);
+            padding: 0.15rem;
+            border-radius: 3px;
+            border: 1px solid rgba(102, 126, 234, 0.08);
+        }
+
+        .detail-item {
+            display: inline-block;
+            margin-right: 1.5rem;
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 4px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #667eea;
+            margin-right: 0.25rem;
+        }
+
+        .detail-value {
+            color: #2c3e50;
+            font-weight: 500;
         }
         
         @keyframes blink {
@@ -709,6 +1637,189 @@ DASHBOARD_HTML_TEMPLATE = """
             color: #666;
             font-style: italic;
         }
+        
+        /* 加载动画样式 */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 错误状态样式 */
+        .error-state {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+        
+        .error-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .error-message {
+            font-weight: bold;
+            color: #f44336;
+            margin-bottom: 0.5rem;
+        }
+        
+        .error-details {
+            font-size: 0.9rem;
+            color: #999;
+            margin-bottom: 1rem;
+        }
+        
+        .retry-btn {
+            background-color: #667eea;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .retry-btn:hover {
+            background-color: #5a6fd8;
+        }
+        
+        /* 空状态样式 */
+        .empty-state {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            padding: 1rem;
+        }
+        
+        /* 风险警告样式 */
+        .high-risk {
+            background-color: #ffebee !important;
+            border-left: 4px solid #f44336 !important;
+        }
+        
+        .medium-risk {
+            background-color: #fff3e0 !important;
+            border-left: 4px solid #ff9800 !important;
+        }
+        
+        .low-risk {
+            background-color: #f3e5f5 !important;
+            border-left: 4px solid #9c27b0 !important;
+        }
+        
+        /* 数据更新动画 */
+        .data-updating {
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+        
+        .data-updated {
+            animation: highlight 0.5s ease;
+        }
+        
+        @keyframes highlight {
+            0% { background-color: #e8f5e8; }
+            100% { background-color: transparent; }
+        }
+        
+        /* 缓存状态指示器 */
+        .cache-indicator {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #4caf50;
+            opacity: 0.7;
+        }
+        
+        .cache-indicator.stale {
+            background-color: #ff9800;
+        }
+        
+        .cache-indicator.expired {
+            background-color: #f44336;
+        }
+        
+        /* 性能监控指示器 */
+        .performance-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .performance-indicator.show {
+            display: block;
+        }
+        
+        /* 批量更新优化样式 */
+        .batch-updating {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+        
+        .batch-updating::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        /* 响应式设计增强 */
+        @media (max-width: 768px) {
+            .error-state {
+                padding: 1rem;
+            }
+            
+            .error-icon {
+                font-size: 1.5rem;
+            }
+            
+            .performance-indicator {
+                bottom: 10px;
+                right: 10px;
+                font-size: 0.7rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .retry-btn {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.9rem;
+            }
+            
+            .cache-indicator {
+                width: 6px;
+                height: 6px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -750,11 +1861,71 @@ DASHBOARD_HTML_TEMPLATE = """
             </div>
         </div>
         
-        <!-- 警报 -->
+        <!-- 重要信息 -->
         <div class="card">
-            <h3>系统警报</h3>
-            <div id="alerts">
-                <div class="loading">加载中...</div>
+            <h3>重要信息</h3>
+            <div id="important-info">
+                <div class="loading">正在加载重要信息...</div>
+            </div>
+            <div class="more-info-container">
+                <button id="more-info-btn" class="more-info-btn" onclick="openImportantInfoModal()">
+                    查看更多历史信息
+                </button>
+            </div>
+        </div>
+        
+        <!-- 订单明细 -->
+        <div class="card">
+            <h3>订单明细</h3>
+            <div id="orders-container">
+                <div class="loading">正在加载订单数据...</div>
+            </div>
+            <div class="orders-table-container" style="display: none;">
+                <table class="orders-table">
+                    <thead>
+                        <tr>
+                            <th>订单ID</th>
+                            <th>股票代码</th>
+                            <th>方向</th>
+                            <th>数量</th>
+                            <th>价格</th>
+                            <th>类型</th>
+                            <th>状态</th>
+                            <th>时间</th>
+                            <th>盈亏</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-table-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 重要信息历史模态框 -->
+    <div id="important-info-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>重要信息历史记录</h2>
+                <span class="close" onclick="closeImportantInfoModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="modal-controls">
+                    <div class="search-container">
+                        <input type="text" id="modal-search-input" class="search-input" placeholder="搜索重要信息..." onkeyup="filterModalImportantInfo()">
+                    </div>
+                    <div class="pagination-info">
+                        <span id="pagination-info-text">显示 1-20 条，共 0 条</span>
+                    </div>
+                </div>
+                <div id="modal-important-info" class="modal-important-info">
+                    <div class="loading">正在加载历史信息...</div>
+                </div>
+                <div class="pagination-controls">
+                    <button id="prev-page-btn" class="pagination-btn" onclick="changePage(-1)" disabled>上一页</button>
+                    <span id="page-info">第 1 页</span>
+                    <button id="next-page-btn" class="pagination-btn" onclick="changePage(1)" disabled>下一页</button>
+                </div>
             </div>
         </div>
     </div>
@@ -766,10 +1937,167 @@ DASHBOARD_HTML_TEMPLATE = """
         // 图表实例
         let systemChart, tradingChart;
         
+        // 模态框相关变量
+        let allImportantInfo = [];
+        let filteredImportantInfo = [];
+        let currentPage = 1;
+        const itemsPerPage = 20;
+        
+        // 数据缓存机制
+        const dataCache = {
+            system_metrics: { data: null, timestamp: 0, ttl: 8000 },
+            trading_metrics: { data: null, timestamp: 0, ttl: 12000 },
+            market_data: { data: null, timestamp: 0, ttl: 3000 },
+            orders: { data: null, timestamp: 0, ttl: 6000 },
+            important_info: { data: null, timestamp: 0, ttl: 25000 }
+        };
+
+        // 检查缓存是否有效
+        function isCacheValid(cacheKey) {
+            const cache = dataCache[cacheKey];
+            if (!cache || !cache.data) return false;
+            return (Date.now() - cache.timestamp) < cache.ttl;
+        }
+
+        // 更新缓存
+        function updateCache(cacheKey, data) {
+            dataCache[cacheKey] = {
+                data: data,
+                timestamp: Date.now(),
+                ttl: dataCache[cacheKey].ttl
+            };
+        }
+
+        // 获取缓存数据
+        function getCachedData(cacheKey) {
+            return isCacheValid(cacheKey) ? dataCache[cacheKey].data : null;
+        }
+
+        // 批量DOM更新优化
+        const domUpdateQueue = [];
+        let domUpdateScheduled = false;
+
+        function scheduleDOMUpdate(updateFunction) {
+            domUpdateQueue.push(updateFunction);
+            if (!domUpdateScheduled) {
+                domUpdateScheduled = true;
+                requestAnimationFrame(() => {
+                    // 批量执行DOM更新
+                    domUpdateQueue.forEach(fn => fn());
+                    domUpdateQueue.length = 0;
+                    domUpdateScheduled = false;
+                });
+            }
+        }
+
+        // 防抖函数
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // 节流函数
+        function throttle(func, limit) {
+            let inThrottle;
+            return function() {
+                const args = arguments;
+                const context = this;
+                if (!inThrottle) {
+                    func.apply(context, args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }
+            }
+        }
+        const updateConfig = {
+            intervals: {
+                system_metrics: 10000,    // 系统指标：10秒
+                trading_metrics: 15000,   // 交易指标：15秒
+                market_data: 5000,        // 市场数据：5秒（更频繁）
+                orders: 8000,             // 订单数据：8秒
+                important_info: 30000     // 重要信息：30秒
+            },
+            lastUpdate: {},
+            timers: {},
+            isVisible: true,
+            retryCount: {},
+            maxRetries: 3
+        };
+
+        // 页面可见性检测
+        document.addEventListener('visibilitychange', function() {
+            updateConfig.isVisible = !document.hidden;
+            if (updateConfig.isVisible) {
+                console.log('页面变为可见，恢复数据更新');
+                startPeriodicUpdates();
+            } else {
+                console.log('页面不可见，暂停数据更新');
+                stopPeriodicUpdates();
+            }
+        });
+
+        // 启动周期性更新
+        function startPeriodicUpdates() {
+            if (!updateConfig.isVisible) return;
+            
+            // 系统指标更新
+            updateConfig.timers.system_metrics = setInterval(() => {
+                if (updateConfig.isVisible) {
+                    socket.emit('request_data', {type: 'system_metrics'});
+                }
+            }, updateConfig.intervals.system_metrics);
+
+            // 交易指标更新
+            updateConfig.timers.trading_metrics = setInterval(() => {
+                if (updateConfig.isVisible) {
+                    socket.emit('request_data', {type: 'trading_metrics'});
+                }
+            }, updateConfig.intervals.trading_metrics);
+
+            // 市场数据更新
+            updateConfig.timers.market_data = setInterval(() => {
+                if (updateConfig.isVisible) {
+                    socket.emit('request_data', {type: 'market_data'});
+                }
+            }, updateConfig.intervals.market_data);
+
+            // 订单数据更新
+            updateConfig.timers.orders = setInterval(() => {
+                if (updateConfig.isVisible) {
+                    updateOrderData();
+                }
+            }, updateConfig.intervals.orders);
+
+            // 重要信息更新
+            updateConfig.timers.important_info = setInterval(() => {
+                if (updateConfig.isVisible) {
+                    socket.emit('request_data', {type: 'important_info'});
+                }
+            }, updateConfig.intervals.important_info);
+        }
+
+        // 停止周期性更新
+        function stopPeriodicUpdates() {
+            Object.values(updateConfig.timers).forEach(timer => {
+                if (timer) clearInterval(timer);
+            });
+            updateConfig.timers = {};
+        }
+
         // 连接状态
         socket.on('connect', function() {
             console.log('已连接到服务器');
             document.getElementById('status-indicator').className = 'status-indicator status-online';
+            
+            // 重置重试计数
+            updateConfig.retryCount = {};
             
             // 检查是否为模拟数据模式
             checkSimulationMode();
@@ -778,7 +2106,13 @@ DASHBOARD_HTML_TEMPLATE = """
             socket.emit('request_data', {type: 'system_metrics'});
             socket.emit('request_data', {type: 'trading_metrics'});
             socket.emit('request_data', {type: 'market_data'});
-            socket.emit('request_data', {type: 'alerts'});
+            socket.emit('request_data', {type: 'important_info'});
+            
+            // 请求订单数据
+            updateOrderData();
+            
+            // 启动周期性更新
+            setTimeout(startPeriodicUpdates, 2000); // 延迟2秒启动，避免初始数据冲突
         });
 
         // 检查模拟数据模式
@@ -799,6 +2133,9 @@ DASHBOARD_HTML_TEMPLATE = """
         socket.on('disconnect', function() {
             console.log('与服务器断开连接');
             document.getElementById('status-indicator').className = 'status-indicator status-offline';
+            
+            // 停止所有定时器
+            stopPeriodicUpdates();
         });
         
         // 系统指标更新
@@ -832,136 +2169,450 @@ DASHBOARD_HTML_TEMPLATE = """
             updateMarketData(data);
         });
         
-        // 警报更新
-        socket.on('alerts', function(data) {
-            updateAlerts(data);
+        // 重要信息更新
+        socket.on('important_info', function(data) {
+            updateImportantInfo(data);
         });
-        
-        socket.on('new_alerts', function(data) {
-            updateAlerts(data, true);
+
+        socket.on('new_important_info', function(data) {
+            updateImportantInfo(data, true);
         });
         
         // 更新系统指标
+        // 优化后的系统指标更新函数
         function updateSystemMetrics(data) {
-            if (!data || data.length === 0) return;
-            
-            const latest = data[data.length - 1];
-            const container = document.getElementById('system-metrics');
-            
-            container.innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">CPU使用率</span>
-                    <span class="metric-value">${latest.cpu_usage.toFixed(1)}%</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">内存使用率</span>
-                    <span class="metric-value">${latest.memory_usage.toFixed(1)}%</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">磁盘使用率</span>
-                    <span class="metric-value">${latest.disk_usage.toFixed(1)}%</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">活跃连接</span>
-                    <span class="metric-value">${latest.active_connections}</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">错误数</span>
-                    <span class="metric-value">${latest.error_count}</span>
-                </div>
-            `;
+            try {
+                // 检查缓存
+                const cachedData = getCachedData('system_metrics');
+                if (cachedData && JSON.stringify(cachedData) === JSON.stringify(data)) {
+                    return; // 数据未变化，跳过更新
+                }
+
+                // 更新缓存
+                updateCache('system_metrics', data);
+
+                const container = document.getElementById('system-metrics');
+                if (!container) return;
+
+                // 使用批量DOM更新
+                scheduleDOMUpdate(() => {
+                    if (!data || data.length === 0) {
+                        container.innerHTML = `
+                            <div class="empty-state" style="text-align: center; padding: 2rem; color: #666;">
+                                <div class="empty-icon">📊</div>
+                                <div>暂无系统指标数据</div>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    try {
+                        const latest = data[data.length - 1];
+                        
+                        // 添加数据更新动画效果
+                        container.style.opacity = '0.7';
+                        
+                        container.innerHTML = `
+                            <div class="metric" style="animation: slideIn 0.3s ease-out;">
+                                <span class="metric-label">CPU使用率</span>
+                                <span class="metric-value ${latest.cpu_usage > 80 ? 'metric-warning' : ''}">${latest.cpu_usage.toFixed(1)}%</span>
+                            </div>
+                            <div class="metric" style="animation: slideIn 0.3s ease-out 0.1s;">
+                                <span class="metric-label">内存使用率</span>
+                                <span class="metric-value ${latest.memory_usage > 80 ? 'metric-warning' : ''}">${latest.memory_usage.toFixed(1)}%</span>
+                            </div>
+                            <div class="metric" style="animation: slideIn 0.3s ease-out 0.2s;">
+                                <span class="metric-label">磁盘使用率</span>
+                                <span class="metric-value ${latest.disk_usage > 80 ? 'metric-warning' : ''}">${latest.disk_usage.toFixed(1)}%</span>
+                            </div>
+                            <div class="metric" style="animation: slideIn 0.3s ease-out 0.3s;">
+                                <span class="metric-label">活跃连接</span>
+                                <span class="metric-value">${latest.active_connections}</span>
+                            </div>
+                            <div class="metric" style="animation: slideIn 0.3s ease-out 0.4s;">
+                                <span class="metric-label">错误数</span>
+                                <span class="metric-value ${latest.error_count > 0 ? 'metric-error' : ''}">${latest.error_count}</span>
+                            </div>
+                        `;
+                        
+                        // 恢复透明度
+                        setTimeout(() => {
+                            container.style.opacity = '1';
+                        }, 100);
+                        
+                    } catch (error) {
+                        console.error('更新系统指标失败:', error);
+                        container.innerHTML = `
+                            <div class="error-state" style="text-align: center; padding: 2rem; color: #dc3545;">
+                                <div class="error-icon">⚠️</div>
+                                <div class="error-message">系统指标加载失败</div>
+                                <button class="retry-btn" onclick="socket.emit('request_system_metrics')">刷新页面</button>
+                            </div>
+                        `;
+                        container.style.opacity = '1';
+                    }
+                });
+            } catch (error) {
+                console.error('系统指标更新异常:', error);
+            }
+        }
+                        <div>系统指标更新失败</div>
+                        <div style="font-size: 0.8rem; margin-top: 0.5rem; color: #666;">${error.message}</div>
+                    </div>
+                `;
+            }
         }
         
         // 更新交易指标
+        // 优化后的交易指标更新函数
         function updateTradingMetrics(data) {
-            if (!data || data.length === 0) return;
-            
-            const latest = data[data.length - 1];
-            const container = document.getElementById('trading-metrics');
-            
-            container.innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">总交易数</span>
-                    <span class="metric-value">${latest.total_trades}</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">成功交易</span>
-                    <span class="metric-value">${latest.successful_trades}</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">胜率</span>
-                    <span class="metric-value">${(latest.win_rate * 100).toFixed(1)}%</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">总盈利</span>
-                    <span class="metric-value ${latest.total_profit >= 0 ? 'positive' : 'negative'}">
-                        $${latest.total_profit.toLocaleString()}
-                    </span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">投资组合价值</span>
-                    <span class="metric-value">$${latest.portfolio_value.toLocaleString()}</span>
-                </div>
-            `;
+            try {
+                // 检查缓存
+                const cachedData = getCachedData('trading_metrics');
+                if (cachedData && JSON.stringify(cachedData) === JSON.stringify(data)) {
+                    return; // 数据未变化，跳过更新
+                }
+
+                // 更新缓存
+                updateCache('trading_metrics', data);
+
+                const container = document.getElementById('trading-metrics');
+                if (!container) return;
+
+                // 使用批量DOM更新
+                scheduleDOMUpdate(() => {
+                    if (!data || data.length === 0) {
+                        container.innerHTML = `
+                            <div class="empty-state" style="text-align: center; padding: 2rem; color: #666;">
+                                <div class="empty-icon">📈</div>
+                                <div>暂无交易指标数据</div>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    try {
+                        const latest = data[data.length - 1];
+                        
+                        // 添加数据更新动画效果
+                        container.style.opacity = '0.7';
+                        
+                        container.innerHTML = `
+                            <div class="metric" style="animation: slideIn 0.3s ease-out;">
+                                <span class="metric-label">总交易数</span>
+                                <span class="metric-value">${latest.total_trades}</span>
+                            </div>
+                            <div class="metric" style="animation: slideIn 0.3s ease-out 0.1s;">
+                                <span class="metric-label">成功交易</span>
+                                <span class="metric-value">${latest.successful_trades}</span>
+                            </div>
+                            <div class="metric" style="animation: slideIn 0.3s ease-out 0.2s;">
+                                <span class="metric-label">失败交易</span>
+                                <span class="metric-value ${latest.failed_trades > 0 ? 'metric-warning' : ''}">${latest.failed_trades || 0}</span>
+                            </div>
+                            <div class="metric" style="animation: slideIn 0.3s ease-out 0.3s;">
+                                <span class="metric-label">胜率</span>
+                                <span class="metric-value ${latest.win_rate < 0.5 ? 'metric-warning' : ''}">${(latest.win_rate * 100).toFixed(1)}%</span>
+                            </div>
+                            <div class="metric" style="animation: slideIn 0.3s ease-out 0.4s;">
+                                <span class="metric-label">总盈利</span>
+                                <span class="metric-value ${latest.total_profit >= 0 ? 'profit-positive' : 'profit-negative'}">
+                                    $${latest.total_profit.toLocaleString()}
+                                </span>
+                            </div>
+                            <div class="metric" style="animation: slideIn 0.3s ease-out 0.5s;">
+                                <span class="metric-label">投资组合价值</span>
+                                <span class="metric-value">$${latest.portfolio_value.toLocaleString()}</span>
+                            </div>
+                        `;
+                        
+                        // 恢复透明度
+                        setTimeout(() => {
+                            container.style.opacity = '1';
+                        }, 100);
+                        
+                    } catch (error) {
+                        console.error('更新交易指标失败:', error);
+                        container.innerHTML = `
+                            <div class="error-state" style="text-align: center; padding: 2rem; color: #dc3545;">
+                                <div class="error-icon">⚠️</div>
+                                <div class="error-message">交易指标加载失败</div>
+                                <div class="error-details" style="font-size: 0.8rem; margin-top: 0.5rem; color: #666;">${error.message}</div>
+                                <button class="retry-btn" onclick="socket.emit('request_trading_metrics')" style="margin-top: 1rem;">重试</button>
+                            </div>
+                        `;
+                        container.style.opacity = '1';
+                    }
+                });
+            } catch (error) {
+                console.error('交易指标更新异常:', error);
+            }
         }
         
         // 更新市场数据
         function updateMarketData(data) {
             const container = document.getElementById('market-data');
             
-            if (!data || Object.keys(data).length === 0) {
-                container.innerHTML = '<div class="loading">暂无市场数据</div>';
-                return;
-            }
-            
-            let html = '';
-            for (const [symbol, info] of Object.entries(data)) {
-                const changeClass = info.change >= 0 ? 'positive' : 'negative';
-                const changeSign = info.change >= 0 ? '+' : '';
+            try {
+                // 检查缓存，避免重复更新
+                const cacheKey = 'market_data';
+                const cachedData = getFromCache(cacheKey);
+                if (cachedData && JSON.stringify(cachedData) === JSON.stringify(data)) {
+                    return; // 数据未变化，跳过更新
+                }
                 
-                html += `
-                    <div class="market-item">
-                        <div class="market-symbol">${symbol}</div>
-                        <div class="market-price">$${info.price.toFixed(2)}</div>
-                        <div class="market-change ${changeClass}">
-                            ${changeSign}${info.change.toFixed(2)} (${changeSign}${info.change_percent.toFixed(2)}%)
+                // 更新缓存
+                updateCache(cacheKey, data);
+                
+                // 显示加载状态
+                container.style.opacity = '0.6';
+                
+                if (!data || Object.keys(data).length === 0) {
+                    // 批量DOM更新
+                    scheduleDOMUpdate(() => {
+                        container.innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-icon">📊</div>
+                                <div>暂无市场数据</div>
+                                <div class="empty-hint">等待市场数据更新...</div>
+                            </div>
+                        `;
+                        container.style.opacity = '1';
+                    });
+                    return;
+                }
+                
+                // 批量DOM更新
+                scheduleDOMUpdate(() => {
+                    let html = '';
+                    for (const [symbol, info] of Object.entries(data)) {
+                        const changeClass = info.change >= 0 ? 'positive' : 'negative';
+                        const changeSign = info.change >= 0 ? '+' : '';
+                        
+                        // 添加价格变化警告样式
+                        let priceClass = '';
+                        if (Math.abs(info.change_percent) > 5) {
+                            priceClass = 'metric-warning';
+                        }
+                        if (Math.abs(info.change_percent) > 10) {
+                            priceClass = 'metric-error';
+                        }
+                        
+                        // 添加成交量警告
+                        let volumeClass = '';
+                        if (info.volume > 1000000) {
+                            volumeClass = 'high-volume';
+                        }
+                        
+                        html += `
+                            <div class="market-item" style="animation: slideIn 0.3s ease-out;">
+                                <div class="market-symbol">${symbol}</div>
+                                <div class="market-price ${priceClass}">$${info.price.toFixed(2)}</div>
+                                <div class="market-change ${changeClass}">
+                                    ${changeSign}${info.change.toFixed(2)} (${changeSign}${info.change_percent.toFixed(2)}%)
+                                </div>
+                                <div class="market-volume ${volumeClass}">
+                                    成交量: ${info.volume.toLocaleString()}
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    container.innerHTML = html;
+                    container.style.opacity = '1';
+                });
+                
+            } catch (error) {
+                console.error('更新市场数据失败:', error);
+                scheduleDOMUpdate(() => {
+                    container.innerHTML = `
+                        <div class="error-state">
+                            <div class="error-icon">⚠️</div>
+                            <div class="error-message">市场数据更新失败</div>
+                            <div class="error-details">${error.message}</div>
+                            <button class="retry-btn" onclick="socket.emit('request_market_data')" style="margin-top: 1rem;">重新获取</button>
                         </div>
+                    `;
+                    container.style.opacity = '1';
+                });
+            }
+        }
+                        <div class="error-message">更新市场数据失败</div>
+                        <div class="error-details">${error.message}</div>
+                        <button class="retry-btn" onclick="location.reload()">刷新页面</button>
                     </div>
                 `;
+                container.style.opacity = '1';
             }
-            
-            container.innerHTML = html;
         }
         
-        // 更新警报
-        function updateAlerts(data, isNew = false) {
-            const container = document.getElementById('alerts');
-            
-            if (!data || data.length === 0) {
+        // 重要信息最多显示条数
+        const MAX_IMPORTANT_ITEMS = 20;
+        // 更新重要信息
+        function updateImportantInfo(data, isNew = false) {
+            const container = document.getElementById('important-info');
+
+            try {
+                // 检查缓存，避免重复更新
+                const cacheKey = 'important_info';
                 if (!isNew) {
-                    container.innerHTML = '<div class="loading">暂无警报</div>';
+                    const cachedData = getFromCache(cacheKey);
+                    if (cachedData && JSON.stringify(cachedData) === JSON.stringify(data)) {
+                        return; // 数据未变化，无需更新
+                    }
                 }
-                return;
+
+                // 显示加载状态
+                if (!container.querySelector('.loading-spinner')) {
+                    container.style.opacity = '0.7';
+                    container.style.transition = 'opacity 0.3s ease';
+                }
+
+                if (!data || data.length === 0) {
+                    if (!isNew) {
+                        scheduleDOMUpdate(() => {
+                            container.innerHTML = '<div class="empty-state">📢 暂无重要信息</div>';
+                            container.style.opacity = '1';
+                        });
+                    }
+                    return;
+                }
+
+                // 更新缓存
+                if (!isNew) {
+                    updateCache(cacheKey, data);
+                }
+
+                // 按时间倒序排列数据
+                const sortedData = data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+                scheduleDOMUpdate(() => {
+                    let html = '';
+                    sortedData.forEach((info, index) => {
+                        const levelClass = `alert-${info.level.toLowerCase()}`;
+                        const typeClass = `type-${info.type.toLowerCase()}`;
+                        const time = new Date(info.timestamp).toLocaleTimeString();
+                        
+                        // 根据级别添加警告样式
+                        let additionalClass = '';
+                        if (info.level === 'ERROR' || info.level === 'CRITICAL') {
+                            additionalClass = 'metric-error';
+                        } else if (info.level === 'WARNING') {
+                            additionalClass = 'metric-warning';
+                        }
+
+                        // 构建详情信息
+                        let detailsHtml = '';
+                        if (info.details && Object.keys(info.details).length > 0) {
+                            for (const [key, value] of Object.entries(info.details)) {
+                                if (value !== null && value !== undefined) {
+                                    detailsHtml += `
+                                        <span class="detail-item">
+                                            <span class="detail-label">${key}:</span>
+                                            <span class="detail-value">${value}</span>
+                                        </span>
+                                    `;
+                                }
+                            }
+                        }
+
+                        // 为新信息添加动画类
+                        const newItemClass = (isNew && index === 0) ? ' new-item' : '';
+
+                        html += `
+                            <div class="important-item ${levelClass} ${additionalClass}${newItemClass}" style="animation: fadeIn 0.3s ease-in;">
+                                <div class="important-header">
+                                    <div>
+                                        <span class="important-type ${typeClass}">${info.type}</span>
+                                        <span class="important-title">${info.title}</span>
+                                    </div>
+                                    <span class="important-time">${time}</span>
+                                </div>
+                                <div class="important-message">${info.message}</div>
+                                ${detailsHtml ? `<div class="important-details">${detailsHtml}</div>` : ''}
+                            </div>
+                        `;
+                    });
+
+                    container.innerHTML = html;
+                    container.style.opacity = '1';
+                });
+
+            } catch (error) {
+                console.error('重要信息更新异常:', error);
+                scheduleDOMUpdate(() => {
+                    container.innerHTML = `
+                        <div class="error-state">
+                            <div class="error-icon">⚠️</div>
+                            <div class="error-message">重要信息更新失败</div>
+                            <div class="error-details">${error.message}</div>
+                            <button class="retry-btn" onclick="socket.emit('request_important_info')" style="margin-top: 1rem;">重试</button>
+                        </div>
+                    `;
+                    container.style.opacity = '1';
+                });
             }
-            
-            let html = '';
-            data.forEach(alert => {
-                const alertClass = `alert-${alert.level.toLowerCase()}`;
-                const time = new Date(alert.timestamp).toLocaleTimeString();
+        }
+
+                    html += `
+                        <div class="important-info-item ${levelClass} ${additionalClass}${newItemClass}" style="animation: slideIn 0.3s ease-out;">
+                            <div class="important-info-header">
+                                <div>
+                                    <span class="important-info-type ${typeClass}">${info.type}</span>
+                                    <span class="important-info-title">${info.title}</span>
+                                </div>
+                                <span class="important-info-time">${time}</span>
+                            </div>
+                            <div class="important-info-message">${info.message}</div>
+                            ${detailsHtml ? `<div class="important-info-details">${detailsHtml}</div>` : ''}
+                        </div>
+                    `;
+                });
+
+                if (isNew) {
+                    // 创建新的DOM元素并插入到顶部
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = html;
+                    const newItems = tempDiv.querySelectorAll('.important-info-item');
+                    
+                    // 将新项目插入到容器顶部
+                    newItems.forEach(item => {
+                        container.insertBefore(item, container.firstChild);
+                    });
+                } else {
+                    container.innerHTML = html;
+                }
                 
-                html += `
-                    <div class="alert ${alertClass}">
-                        <strong>[${alert.level}] ${alert.category}</strong><br>
-                        ${alert.message}<br>
-                        <small>${time}</small>
+                // 保持重要信息最多显示 MAX_IMPORTANT_ITEMS 条，移除更早的项
+                const items = container.querySelectorAll('.important-info-item');
+                if (items.length > MAX_IMPORTANT_ITEMS) {
+                    for (let i = MAX_IMPORTANT_ITEMS; i < items.length; i++) {
+                        items[i].remove();
+                    }
+                }
+
+                // 移除动画类，避免重复触发
+                setTimeout(() => {
+                    const newItems = container.querySelectorAll('.important-info-item.new-item');
+                    newItems.forEach(item => {
+                        item.classList.remove('new-item');
+                    });
+                }, 500);
+
+                // 恢复正常透明度
+                container.style.opacity = '1';
+
+            } catch (error) {
+                console.error('更新重要信息失败:', error);
+                container.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-icon">⚠️</div>
+                        <div class="error-message">更新重要信息失败</div>
+                        <div class="error-details">${error.message}</div>
+                        <button class="retry-btn" onclick="location.reload()" style="margin-top: 1rem;">刷新页面</button>
                     </div>
                 `;
-            });
-            
-            if (isNew) {
-                container.innerHTML = html + container.innerHTML;
-            } else {
-                container.innerHTML = html;
+                container.style.opacity = '1';
             }
         }
         
@@ -1061,6 +2712,247 @@ DASHBOARD_HTML_TEMPLATE = """
         document.addEventListener('DOMContentLoaded', function() {
             initCharts();
         });
+        
+        // 更新订单数据
+        function updateOrderData() {
+            const tbody = document.getElementById('orders-table-body');
+            
+            try {
+                // 检查缓存，避免重复请求
+                const cacheKey = 'orders';
+                const cachedData = getFromCache(cacheKey);
+                if (cachedData) {
+                    renderOrderData(cachedData, tbody);
+                    return;
+                }
+                
+                // 显示加载状态
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #667eea;"><div class="loading-spinner"></div>正在加载订单数据...</td></tr>';
+                
+                fetch('/api/orders')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // 更新缓存
+                        updateCache(cacheKey, data);
+                        renderOrderData(data, tbody);
+                    })
+                    .catch(error => {
+                        console.error('获取订单数据失败:', error);
+                        scheduleDOMUpdate(() => {
+                            tbody.innerHTML = `
+                                <tr>
+                                    <td colspan="9" style="text-align: center; padding: 2rem;">
+                                        <div class="error-state">
+                                            <div class="error-icon">⚠️</div>
+                                            <div class="error-message">获取订单数据失败</div>
+                                            <div class="error-details">${error.message}</div>
+                                            <button class="retry-btn" onclick="updateOrderData()" style="margin-top: 1rem;">重试</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    });
+            } catch (error) {
+                console.error('订单数据更新异常:', error);
+                scheduleDOMUpdate(() => {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 2rem;">
+                                <div class="error-state">
+                                    <div class="error-icon">⚠️</div>
+                                    <div class="error-message">订单数据更新异常</div>
+                                    <div class="error-details">${error.message}</div>
+                                    <button class="retry-btn" onclick="updateOrderData()" style="margin-top: 1rem;">重试</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+        
+        // 渲染订单数据的辅助函数
+        function renderOrderData(data, tbody) {
+            scheduleDOMUpdate(() => {
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #666;"><div class="empty-state">📋 暂无订单数据</div></td></tr>';
+                    return;
+                }
+
+                let html = '';
+                data.forEach(order => {
+                    const time = new Date(order.timestamp).toLocaleString();
+                    const statusClass = order.status === 'FILLED' ? 'status-filled' : 
+                                      order.status === 'PENDING' ? 'status-pending' : 
+                                      order.status === 'CANCELLED' ? 'status-cancelled' : 'status-partial';
+                    
+                    const profitLossClass = order.profit_loss > 0 ? 'profit-positive' : 
+                                          order.profit_loss < 0 ? 'profit-negative' : '';
+                    
+                    // 添加风险警告样式
+                    let riskClass = '';
+                    if (order.profit_loss < -1000) {
+                        riskClass = 'high-risk';
+                    } else if (order.profit_loss < -500) {
+                        riskClass = 'medium-risk';
+                    }
+                    
+                    html += `
+                        <tr class="order-row ${riskClass}" style="animation: fadeIn 0.3s ease-in;">
+                            <td>${order.order_id}</td>
+                            <td>${order.symbol}</td>
+                            <td class="side-${order.side.toLowerCase()}">${order.side}</td>
+                            <td>${order.quantity}</td>
+                            <td>$${order.price.toFixed(2)}</td>
+                            <td>${order.order_type}</td>
+                            <td><span class="status-badge ${statusClass}">${order.status}</span></td>
+                            <td>${time}</td>
+                            <td class="${profitLossClass}">
+                                ${order.profit_loss !== null ? '$' + order.profit_loss.toFixed(2) : '-'}
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                tbody.innerHTML = html;
+            });
+        }
+        
+        // 定期更新订单数据 - 移除原有的setInterval，改用智能更新机制
+        // setInterval(updateOrderData, 5000); // 已移除，使用新的智能更新机制
+        
+        // 模态框相关函数
+        function openImportantInfoModal() {
+            const modal = document.getElementById('important-info-modal');
+            modal.style.display = 'block';
+            
+            // 请求完整的重要信息历史数据
+            fetch('/api/important_info_history')
+                .then(response => response.json())
+                .then(data => {
+                    allImportantInfo = data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                    filteredImportantInfo = [...allImportantInfo];
+                    currentPage = 1;
+                    renderModalImportantInfo();
+                })
+                .catch(error => {
+                    console.error('获取重要信息历史失败:', error);
+                    document.getElementById('modal-important-info').innerHTML = 
+                        '<div class="loading">获取历史信息失败</div>';
+                });
+        }
+        
+        function closeImportantInfoModal() {
+            const modal = document.getElementById('important-info-modal');
+            modal.style.display = 'none';
+        }
+        
+        function filterModalImportantInfo() {
+            const searchTerm = document.getElementById('modal-search-input').value.toLowerCase();
+            
+            if (searchTerm === '') {
+                filteredImportantInfo = [...allImportantInfo];
+            } else {
+                filteredImportantInfo = allImportantInfo.filter(info => 
+                    info.title.toLowerCase().includes(searchTerm) ||
+                    info.message.toLowerCase().includes(searchTerm) ||
+                    info.type.toLowerCase().includes(searchTerm) ||
+                    info.category.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            currentPage = 1;
+            renderModalImportantInfo();
+        }
+        
+        function changePage(direction) {
+            const totalPages = Math.ceil(filteredImportantInfo.length / itemsPerPage);
+            const newPage = currentPage + direction;
+            
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                renderModalImportantInfo();
+            }
+        }
+        
+        function renderModalImportantInfo() {
+            const container = document.getElementById('modal-important-info');
+            const totalItems = filteredImportantInfo.length;
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+            const pageData = filteredImportantInfo.slice(startIndex, endIndex);
+            
+            if (totalItems === 0) {
+                container.innerHTML = '<div class="loading">没有找到匹配的信息</div>';
+                document.getElementById('pagination-info-text').textContent = '显示 0-0 条，共 0 条';
+                document.getElementById('page-info').textContent = '第 0 页';
+                document.getElementById('prev-page-btn').disabled = true;
+                document.getElementById('next-page-btn').disabled = true;
+                return;
+            }
+            
+            let html = '';
+            pageData.forEach(info => {
+                const levelClass = `alert-${info.level.toLowerCase()}`;
+                const typeClass = `type-${info.type.toLowerCase()}`;
+                const time = new Date(info.timestamp).toLocaleString();
+                
+                // 构建详情信息
+                let detailsHtml = '';
+                if (info.details && Object.keys(info.details).length > 0) {
+                    for (const [key, value] of Object.entries(info.details)) {
+                        if (value !== null && value !== undefined) {
+                            detailsHtml += `
+                                <span class="detail-item">
+                                    <span class="detail-label">${key}:</span>
+                                    <span class="detail-value">${value}</span>
+                                </span>
+                            `;
+                        }
+                    }
+                }
+                
+                html += `
+                    <div class="modal-important-item ${levelClass}">
+                        <div class="modal-important-header">
+                            <div>
+                                <span class="modal-important-type ${typeClass}">${info.type}</span>
+                                <span class="modal-important-title">${info.title}</span>
+                            </div>
+                            <span class="modal-important-time">${time}</span>
+                        </div>
+                        <div class="important-info-message">${info.message}</div>
+                        ${detailsHtml ? `<div class="modal-important-details">${detailsHtml}</div>` : ''}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            
+            // 更新分页信息
+            document.getElementById('pagination-info-text').textContent = 
+                `显示 ${startIndex + 1}-${endIndex} 条，共 ${totalItems} 条`;
+            document.getElementById('page-info').textContent = `第 ${currentPage} 页`;
+            
+            // 更新分页按钮状态
+            document.getElementById('prev-page-btn').disabled = currentPage <= 1;
+            document.getElementById('next-page-btn').disabled = currentPage >= totalPages;
+        }
+        
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('important-info-modal');
+            if (event.target === modal) {
+                closeImportantInfoModal();
+            }
+        }
     </script>
 </body>
 </html>

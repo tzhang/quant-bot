@@ -1,4 +1,4 @@
-# Firstrade 交易系统用户手册
+# Interactive Brokers (IB) 交易系统用户手册
 
 ## 目录
 
@@ -12,7 +12,7 @@
 
 ## 系统介绍
 
-Firstrade 交易系统是一个专为量化交易设计的Python平台，提供以下核心功能：
+Interactive Brokers (IB) 交易系统是一个专为量化交易设计的Python平台，提供以下核心功能：
 
 ### 主要特性
 
@@ -29,7 +29,8 @@ Firstrade 交易系统是一个专为量化交易设计的Python平台，提供�
 - macOS 10.15+ / Windows 10+ / Linux
 - 内存: 最少4GB，推荐8GB+
 - 网络: 稳定的互联网连接
-- Firstrade账户（用于实盘交易）
+- Interactive Brokers账户（用于实盘交易）
+- IB TWS (Trader Workstation) 或 IB Gateway
 
 ## 安装和配置
 
@@ -37,8 +38,8 @@ Firstrade 交易系统是一个专为量化交易设计的Python平台，提供�
 
 ```bash
 # 克隆项目
-git clone https://github.com/your-repo/firstrade-trading-system.git
-cd firstrade-trading-system
+git clone https://github.com/your-repo/ib-trading-system.git
+cd ib-trading-system
 
 # 创建虚拟环境
 python -m venv venv
@@ -58,11 +59,11 @@ pip install -r requirements.txt
 创建配置文件 `config/config.yaml`:
 
 ```yaml
-# Firstrade账户配置
-account:
-  username: "your_username"
-  password: "your_password"
-  pin: "your_pin"
+# IB连接配置
+ib_connection:
+  host: "127.0.0.1"
+  port: 7497  # TWS: 7497, Gateway: 4001
+  client_id: 1
 
 # 交易配置
 trading:
@@ -100,10 +101,10 @@ monitoring:
 为了安全起见，建议使用环境变量存储敏感信息。创建 `.env` 文件：
 
 ```bash
-# Firstrade凭据
-FIRSTRADE_USERNAME=your_username
-FIRSTRADE_PASSWORD=your_password
-FIRSTRADE_PIN=your_pin
+# IB连接参数
+IB_HOST=127.0.0.1
+IB_PORT=7497
+IB_CLIENT_ID=1
 
 # API密钥（如果使用第三方数据源）
 ALPHA_VANTAGE_API_KEY=your_api_key
@@ -114,29 +115,33 @@ POLYGON_API_KEY=your_api_key
 
 ### 第一次运行
 
-1. **启动系统**
+1. **启动IB TWS或Gateway**
+
+首先确保IB TWS (Trader Workstation) 或 IB Gateway已启动并配置好API连接。
+
+2. **启动系统**
 
 ```bash
 cd examples
-python firstrade_trading_system.py
+python ib_automated_trading_system.py
 ```
 
-2. **基本交易操作**
+3. **基本交易操作**
 
 ```python
-from firstrade_trading_system import FirstradeTradingSystem
+from ib_automated_trading_system import IBAutomatedTradingSystem
 
 # 创建交易系统实例
-trading_system = FirstradeTradingSystem(
-    username="your_username",
-    password="your_password",
-    pin="your_pin",
-    dry_run=True  # 模拟模式
+trading_system = IBAutomatedTradingSystem(
+    host="127.0.0.1",
+    port=7497,
+    client_id=1,
+    use_ib=True  # 使用IB实盘交易，设为False使用模拟模式
 )
 
-# 登录
-if trading_system.login():
-    print("✅ 登录成功")
+# 连接
+if trading_system.connect():
+    print("✅ 连接成功")
     
     # 查看账户信息
     account = trading_system.get_account_info()
@@ -150,8 +155,8 @@ if trading_system.login():
     result = trading_system.place_order(
         symbol="AAPL",
         quantity=10,
-        order_type="market",
-        side="buy"
+        order_type="MKT",
+        action="BUY"
     )
     
     if result['status'] == 'success':
@@ -159,8 +164,8 @@ if trading_system.login():
     else:
         print(f"❌ 订单失败: {result['message']}")
         
-    # 登出
-    trading_system.logout()
+    # 断开连接
+    trading_system.disconnect()
 ```
 
 ### 启动监控面板
@@ -227,7 +232,7 @@ for symbol, quote in quotes.items():
 
 ```python
 # 获取历史K线数据
-historical_data = trading_system.get_historical_data("AAPL", "1y")
+historical_data = trading_system.get_historical_data("AAPL", "1 Y")
 print(f"获取到 {len(historical_data)} 条历史数据")
 
 # 数据格式
@@ -247,16 +252,16 @@ for data_point in historical_data[-5:]:  # 显示最近5天
 buy_order = trading_system.place_order(
     symbol="AAPL",
     quantity=100,
-    order_type="market",
-    side="buy"
+    order_type="MKT",
+    action="BUY"
 )
 
 # 限价卖单
 sell_order = trading_system.place_order(
     symbol="AAPL",
     quantity=50,
-    order_type="limit",
-    side="sell",
+    order_type="LMT",
+    action="SELL",
     price=155.00
 )
 
@@ -264,8 +269,8 @@ sell_order = trading_system.place_order(
 stop_order = trading_system.place_order(
     symbol="AAPL",
     quantity=100,
-    order_type="stop",
-    side="sell",
+    order_type="STP",
+    action="SELL",
     price=145.00  # 止损价格
 )
 ```
@@ -317,7 +322,7 @@ order_data = {
     'symbol': 'AAPL',
     'quantity': 100,
     'price': 150.00,
-    'side': 'buy'
+    'action': 'BUY'
 }
 
 is_valid, error_msg = trading_system.validate_order_risk(order_data)
@@ -340,7 +345,7 @@ from technical_indicators import TechnicalIndicators
 indicators = TechnicalIndicators()
 
 # 获取历史数据
-data = trading_system.get_historical_data("AAPL", "6m")
+data = trading_system.get_historical_data("AAPL", "6 M")
 
 # 计算技术指标
 sma_20 = indicators.sma(data, 20)  # 20日简单移动平均
@@ -377,7 +382,7 @@ def rsi_strategy(symbol, data):
 
 # 应用策略
 symbol = "AAPL"
-data = trading_system.get_historical_data(symbol, "3m")
+data = trading_system.get_historical_data(symbol, "3 M")
 signal, reason = rsi_strategy(symbol, data)
 
 print(f"交易信号: {signal}")
@@ -388,8 +393,8 @@ if signal == "BUY":
     result = trading_system.place_order(
         symbol=symbol,
         quantity=100,
-        order_type="market",
-        side="buy"
+        order_type="MKT",
+        action="BUY"
     )
 elif signal == "SELL":
     # 检查是否有持仓
@@ -399,8 +404,8 @@ elif signal == "SELL":
         result = trading_system.place_order(
             symbol=symbol,
             quantity=position['quantity'],
-            order_type="market",
-            side="sell"
+            order_type="MKT",
+            action="SELL"
         )
 ```
 
@@ -433,7 +438,7 @@ def moving_average_strategy(data, short_window=5, long_window=20):
     return signals
 
 # 获取历史数据进行回测
-historical_data = trading_system.get_historical_data("AAPL", "2y")
+historical_data = trading_system.get_historical_data("AAPL", "2 Y")
 
 # 执行回测
 results = backtester.backtest(
@@ -487,7 +492,7 @@ class TradingBot:
             for symbol in strategy['symbols']:
                 try:
                     # 获取数据
-                    data = self.trading_system.get_historical_data(symbol, "1m")
+                    data = self.trading_system.get_historical_data(symbol, "1 min")
                     
                     # 执行策略
                     signal, reason = strategy['func'](
@@ -510,8 +515,8 @@ class TradingBot:
         result = self.trading_system.place_order(
             symbol=symbol,
             quantity=quantity,
-            order_type="market",
-            side="buy"
+            order_type="MKT",
+            action="BUY"
         )
         
         if result['status'] == 'success':
@@ -528,8 +533,8 @@ class TradingBot:
             result = self.trading_system.place_order(
                 symbol=symbol,
                 quantity=position['quantity'],
-                order_type="market",
-                side="sell"
+                order_type="MKT",
+                action="SELL"
             )
             
             if result['status'] == 'success':
@@ -592,9 +597,9 @@ quotes = optimizer.get_quotes_batch(symbols)
 
 # 批量下单
 orders = [
-    {'symbol': 'AAPL', 'quantity': 10, 'side': 'buy'},
-    {'symbol': 'GOOGL', 'quantity': 5, 'side': 'buy'},
-    {'symbol': 'MSFT', 'quantity': 15, 'side': 'buy'}
+    {'symbol': 'AAPL', 'quantity': 10, 'action': 'BUY'},
+    {'symbol': 'GOOGL', 'quantity': 5, 'action': 'BUY'},
+    {'symbol': 'MSFT', 'quantity': 15, 'action': 'BUY'}
 ]
 
 results = optimizer.place_orders_batch(orders)
@@ -606,26 +611,28 @@ for result in results:
 
 ### 常见错误及解决方案
 
-#### 1. 登录失败
+#### 1. 连接失败
 
-**错误信息**: `LoginException: 登录失败`
+**错误信息**: `ConnectionException: IB连接失败`
 
 **可能原因**:
-- 用户名、密码或PIN错误
-- 账户被锁定
-- 网络连接问题
+- IB TWS/Gateway未启动
+- 端口配置错误
+- API连接未启用
+- 客户端ID冲突
 
 **解决方案**:
 ```python
-# 检查凭据
-print("检查登录凭据...")
+# 检查连接
+print("检查IB连接...")
 try:
-    trading_system.login()
-except LoginException as e:
-    print(f"登录失败: {e}")
-    # 1. 验证凭据是否正确
-    # 2. 检查账户状态
-    # 3. 尝试手动登录Firstrade网站
+    trading_system.connect()
+except ConnectionException as e:
+    print(f"连接失败: {e}")
+    # 1. 确认TWS/Gateway已启动
+    # 2. 检查端口配置 (TWS: 7497, Gateway: 4001)
+    # 3. 启用API连接设置
+    # 4. 更换客户端ID
 ```
 
 #### 2. 网络连接错误
@@ -668,21 +675,21 @@ quote = retry_with_backoff(
 **解决方案**:
 ```python
 # 检查订单前置条件
-def validate_order_preconditions(symbol, quantity, side):
+def validate_order_preconditions(symbol, quantity, action):
     # 1. 检查市场状态
     if not trading_system.is_market_open():
         return False, "市场未开放"
     
     # 2. 检查账户余额
     account = trading_system.get_account_info()
-    if side == "buy":
+    if action == "BUY":
         quote = trading_system.get_quote(symbol)
         required_cash = quantity * quote['price']
         if account['cash'] < required_cash:
             return False, f"余额不足，需要${required_cash:.2f}"
     
     # 3. 检查持仓
-    if side == "sell":
+    if action == "SELL":
         positions = trading_system.get_positions()
         position = next((p for p in positions if p['symbol'] == symbol), None)
         if not position or position['quantity'] < quantity:
@@ -691,13 +698,13 @@ def validate_order_preconditions(symbol, quantity, side):
     return True, "检查通过"
 
 # 使用前置检查
-is_valid, message = validate_order_preconditions("AAPL", 100, "buy")
+is_valid, message = validate_order_preconditions("AAPL", 100, "BUY")
 if is_valid:
     result = trading_system.place_order(
         symbol="AAPL",
         quantity=100,
-        order_type="market",
-        side="buy"
+        order_type="MKT",
+        action="BUY"
     )
 else:
     print(f"订单前置检查失败: {message}")
@@ -740,19 +747,21 @@ monitor.start()
 
 ### Q1: 如何在实盘和模拟模式之间切换？
 
-**A**: 在创建交易系统时设置 `dry_run` 参数：
+**A**: 在创建交易系统时设置相应的连接参数：
 
 ```python
-# 模拟模式
-trading_system = FirstradeTradingSystem(
-    username="user", password="pass", pin="1234",
-    dry_run=True
+# 模拟模式 (Paper Trading)
+trading_system = IBAutomatedTradingSystem(
+    host="127.0.0.1",
+    port=7497,  # TWS Paper Trading端口
+    client_id=1
 )
 
 # 实盘模式
-trading_system = FirstradeTradingSystem(
-    username="user", password="pass", pin="1234", 
-    dry_run=False
+trading_system = IBAutomatedTradingSystem(
+    host="127.0.0.1", 
+    port=7496,  # TWS Live Trading端口
+    client_id=1
 )
 ```
 
@@ -765,9 +774,9 @@ trading_system = FirstradeTradingSystem(
 stop_order = trading_system.place_order(
     symbol="AAPL",
     quantity=100,
-    order_type="stop",
-    side="sell",
-    price=145.00  # 止损价格
+    order_type="STP",
+    action="SELL",
+    aux_price=145.00  # 止损价格
 )
 
 # 方法2: 在风险管理中设置全局止损
@@ -787,8 +796,8 @@ def check_stop_loss():
             trading_system.place_order(
                 symbol=position['symbol'],
                 quantity=position['quantity'],
-                order_type="market",
-                side="sell"
+                order_type="MKT",
+                action="SELL"
             )
             print(f"触发止损: {position['symbol']}")
 ```
@@ -799,11 +808,11 @@ def check_stop_loss():
 
 ```python
 # 使用不同的时间周期
-data_1d = trading_system.get_historical_data("AAPL", "1d")    # 1天
-data_1w = trading_system.get_historical_data("AAPL", "1w")    # 1周  
-data_1m = trading_system.get_historical_data("AAPL", "1m")    # 1个月
-data_1y = trading_system.get_historical_data("AAPL", "1y")    # 1年
-data_5y = trading_system.get_historical_data("AAPL", "5y")    # 5年
+data_1d = trading_system.get_historical_data("AAPL", "1 D")    # 1天
+data_1w = trading_system.get_historical_data("AAPL", "1 W")    # 1周  
+data_1m = trading_system.get_historical_data("AAPL", "1 M")    # 1个月
+data_1y = trading_system.get_historical_data("AAPL", "1 Y")    # 1年
+data_5y = trading_system.get_historical_data("AAPL", "5 Y")    # 5年
 
 # 配置外部数据源
 trading_system.set_data_source("alpha_vantage", api_key="your_key")
@@ -825,10 +834,10 @@ if market_status['status'] == 'after_hours':
     result = trading_system.place_order(
         symbol="AAPL",
         quantity=100,
-        order_type="limit",
-        side="buy",
-        price=150.00,
-        extended_hours=True  # 启用盘后交易
+        order_type="LMT",
+        action="BUY",
+        lmt_price=150.00,
+        outside_rth=True  # 启用盘后交易
     )
 ```
 
@@ -881,6 +890,6 @@ quotes = trading_system.get_quotes_batch(symbols)  # 批量获取报价
 如需更多帮助，请参考：
 - [API文档](API_Documentation.md)
 - [示例代码](../examples/)
-- [GitHub Issues](https://github.com/your-repo/issues)
+- [GitHub Issues](https://github.com/your-repo/ib-trading-system/issues)
 
 *最后更新: 2024年1月*

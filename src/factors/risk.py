@@ -7,8 +7,18 @@ class RiskFactors:
     """Compute basic risk-related factors from OHLCV."""
 
     def calculate_daily_returns(self, df: pd.DataFrame) -> pd.Series:
-        close = self._ensure_series(df["Close"]) if hasattr(self, "_ensure_series") else (
-            df["Close"] if isinstance(df["Close"], pd.Series) else pd.Series(df["Close"]).astype(float)
+        # 尝试不同的列名格式
+        close_col = None
+        for col in ['close', 'Close', 'CLOSE']:
+            if col in df.columns:
+                close_col = col
+                break
+        
+        if close_col is None:
+            raise KeyError("No close price column found in data")
+            
+        close = self._ensure_series(df[close_col]) if hasattr(self, "_ensure_series") else (
+            df[close_col] if isinstance(df[close_col], pd.Series) else pd.Series(df[close_col]).astype(float)
         )
         return close.pct_change()
 
@@ -17,7 +27,17 @@ class RiskFactors:
         return returns.rolling(window).std() * (252 ** 0.5)
 
     def calculate_drawdown(self, df: pd.DataFrame) -> pd.Series:
-        cum = (1 + df["Close"].pct_change().fillna(0)).cumprod()
+        # 尝试不同的列名格式
+        close_col = None
+        for col in ['close', 'Close', 'CLOSE']:
+            if col in df.columns:
+                close_col = col
+                break
+        
+        if close_col is None:
+            raise KeyError("No close price column found in data")
+            
+        cum = (1 + df[close_col].pct_change().fillna(0)).cumprod()
         peak = cum.cummax()
         dd = (cum - peak) / peak
         return dd

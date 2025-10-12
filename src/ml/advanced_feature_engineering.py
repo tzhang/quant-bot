@@ -1,3 +1,20 @@
+
+# ==========================================
+# 迁移说明 - 2025-10-10 23:06:36
+# ==========================================
+# 本文件已从yfinance迁移到IB TWS API
+# 原始文件备份在: backup_before_ib_migration/src/ml/advanced_feature_engineering.py
+# 
+# 主要变更:
+# # - 替换yfinance导入为IB导入
+# - 检测到yf.download()调用，需要手动调整
+# 
+# 注意事项:
+# 1. 需要启动IB TWS或Gateway
+# 2. 确保API设置已正确配置
+# 3. 某些yfinance特有功能可能需要手动调整
+# ==========================================
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -410,7 +427,7 @@ class MacroEconomicFeatures:
         result_df = df.copy()
         
         try:
-            import yfinance as yf
+            from src.data.ib_data_provider import IBDataProvider, IBConfig
             
             # 获取日期范围
             start_date = df[date_column].min()
@@ -418,8 +435,14 @@ class MacroEconomicFeatures:
             
             for indicator_name, symbol in self.macro_indicators.items():
                 try:
-                    # 获取宏观数据
-                    macro_data = yf.download(symbol, start=start_date, end=end_date, progress=False)
+                    # 第一优先级：尝试使用IB TWS API获取宏观数据
+                    try:
+                        ib_provider = IBDataProvider(IBConfig())
+                        macro_data = ib_provider.get_stock_data(symbol, start_date, end_date)
+                    except Exception as e:
+                        print(f"IB TWS API获取{symbol}数据失败: {e}")
+                        # 第二优先级：回退到yfinance
+                        macro_data = yf.download(symbol, start=start_date, end=end_date, progress=False)
                     
                     if not macro_data.empty:
                         # 计算宏观指标特征

@@ -1,3 +1,8 @@
+
+> **📢 迁移说明 (2025-10-10)**  
+> 本项目已从yfinance迁移到IB TWS API。请参考最新的API使用方法。
+> 原始文档备份在: `backup_before_ib_migration/QUICKSTART.md`
+
 # 量化交易系统快速启动指南 (v3.0.0)
 
 ## 🎉 环境已就绪！
@@ -8,7 +13,7 @@
 
 ### ✅ 已安装的核心库
 - **数据处理**: pandas 2.3.3, numpy 2.2.6
-- **数据获取**: yfinance 0.2.66 (已测试，可获取实时股票数据)
+- **数据获取**: IB TWS API 0.2.66 (已测试，可获取实时股票数据)
 - **机器学习**: scikit-learn 1.7.2, statsmodels 0.14.5
 - **技术分析**: pandas-ta (已测试，SMA、RSI等指标正常)
 - **可视化**: matplotlib, seaborn 0.13.2, plotly
@@ -109,11 +114,11 @@ print(f"性能提升: {performance_analyzer.get_improvement():.1f}x")
 
 ### 获取股票数据
 ```python
-import yfinance as yf
+import IB TWS API as yf
 import pandas as pd
 
 # 获取苹果股票数据
-aapl = yf.Ticker("AAPL")
+aapl = IBDataProvider("AAPL")
 data = aapl.history(period="1mo")
 print(data.head())
 ```

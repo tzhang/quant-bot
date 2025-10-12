@@ -1,8 +1,8 @@
-# Firstrade 交易系统 API 文档
+# Interactive Brokers (IB) 交易系统 API 文档
 
 ## 概述
 
-Firstrade 交易系统是一个功能完整的量化交易平台，提供股票交易、风险管理、投资组合分析等功能。本文档详细介绍了系统的API接口和使用方法。
+Interactive Brokers (IB) 交易系统是一个功能完整的量化交易平台，基于IB API提供股票交易、风险管理、投资组合分析等功能。本文档详细介绍了系统的API接口和使用方法。
 
 ## 目录
 
@@ -17,9 +17,9 @@ Firstrade 交易系统是一个功能完整的量化交易平台，提供股票�
 ## 系统架构
 
 ```
-Firstrade交易系统
-├── FirstradeTradingSystem (主系统)
-├── FirstradeConnector (连接器)
+IB交易系统
+├── IBAutomatedTradingSystem (主系统)
+├── IBTradingManager (交易管理器)
 ├── RiskManager (风险管理)
 ├── OrderManager (订单管理)
 ├── PerformanceOptimizer (性能优化)
@@ -33,24 +33,25 @@ Firstrade交易系统
 
 ```bash
 pip install -r requirements.txt
+pip install ib_insync  # IB API依赖
 ```
 
 ### 基本使用
 
 ```python
-from firstrade_trading_system import FirstradeTradingSystem
+from ib_automated_trading_system import IBAutomatedTradingSystem
 
 # 创建交易系统实例
-trading_system = FirstradeTradingSystem(
-    username="your_username",
-    password="your_password", 
-    pin="your_pin",
+trading_system = IBAutomatedTradingSystem(
+    host="127.0.0.1",
+    port=7497,  # TWS端口，Gateway使用4001
+    client_id=1,
     dry_run=True  # 模拟模式
 )
 
-# 登录
-if trading_system.login():
-    print("登录成功")
+# 连接IB TWS/Gateway
+if trading_system.connect():
+    print("连接成功")
     
     # 获取账户信息
     account_info = trading_system.get_account_info()
@@ -64,52 +65,52 @@ if trading_system.login():
     order_result = trading_system.place_order(
         symbol="AAPL",
         quantity=10,
-        order_type="market",
-        side="buy"
+        order_type="MKT",
+        action="BUY"
     )
     print(f"订单结果: {order_result}")
 ```
 
 ## 核心模块
 
-### FirstradeTradingSystem
+### IBAutomatedTradingSystem
 
 主交易系统类，提供完整的交易功能。
 
 #### 构造函数
 
 ```python
-def __init__(self, username: str, password: str, pin: str, dry_run: bool = False):
+def __init__(self, host: str = "127.0.0.1", port: int = 7497, client_id: int = 1, dry_run: bool = False):
     """
-    初始化交易系统
+    初始化IB交易系统
     
     参数:
-        username (str): Firstrade用户名
-        password (str): 密码
-        pin (str): PIN码
+        host (str): IB TWS/Gateway主机地址，默认"127.0.0.1"
+        port (int): 端口号，TWS默认7497，Gateway默认4001
+        client_id (int): 客户端ID，默认1
         dry_run (bool): 是否为模拟模式，默认False
     """
 ```
 
 #### 主要方法
 
-##### 登录/登出
+##### 连接/断开
 
 ```python
-def login(self) -> bool:
+def connect(self) -> bool:
     """
-    登录到Firstrade系统
+    连接到IB TWS/Gateway
     
     返回:
-        bool: 登录是否成功
+        bool: 连接是否成功
     """
 
-def logout(self) -> bool:
+def disconnect(self) -> bool:
     """
-    登出系统
+    断开IB连接
     
     返回:
-        bool: 登出是否成功
+        bool: 断开是否成功
     """
 ```
 
@@ -186,15 +187,15 @@ def get_historical_data(self, symbol: str, period: str = "1y") -> list:
 
 ```python
 def place_order(self, symbol: str, quantity: int, order_type: str, 
-                side: str, price: float = None) -> dict:
+                action: str, price: float = None) -> dict:
     """
     下单
     
     参数:
         symbol (str): 股票代码
         quantity (int): 数量
-        order_type (str): 订单类型 ('market', 'limit', 'stop')
-        side (str): 买卖方向 ('buy', 'sell')
+        order_type (str): 订单类型 ('MKT', 'LMT', 'STP')
+        action (str): 买卖方向 ('BUY', 'SELL')
         price (float): 价格（限价单必需）
         
     返回:
@@ -229,20 +230,20 @@ def get_orders(self, status: str = "all") -> list:
     """
 ```
 
-### FirstradeConnector
+### IBTradingManager
 
-底层连接器，处理与Firstrade API的通信。
+底层交易管理器，处理与IB API的通信。
 
 ```python
-class FirstradeConnector:
-    def __init__(self, username: str, password: str, pin: str):
-        """初始化连接器"""
+class IBTradingManager:
+    def __init__(self, host: str, port: int, client_id: int):
+        """初始化交易管理器"""
         
-    def login(self) -> bool:
-        """登录"""
+    def connect(self) -> bool:
+        """连接IB"""
         
-    def logout(self) -> bool:
-        """登出"""
+    def disconnect(self) -> bool:
+        """断开连接"""
         
     def get_account_info(self) -> dict:
         """获取账户信息"""
@@ -298,11 +299,11 @@ class RiskManager:
 
 ```python
 class OrderManager:
-    def __init__(self, connector: FirstradeConnector):
+    def __init__(self, trading_manager: IBTradingManager):
         """初始化订单管理器"""
         
     def create_order(self, symbol: str, quantity: int, order_type: str, 
-                    side: str, price: float = None) -> dict:
+                    action: str, price: float = None) -> dict:
         """创建订单"""
         
     def execute_order(self, order: dict) -> dict:
@@ -321,7 +322,7 @@ class OrderManager:
 
 | 错误代码 | 描述 | 解决方案 |
 |---------|------|----------|
-| 1001 | 登录失败 | 检查用户名、密码和PIN |
+| 1001 | 连接失败 | 检查IB TWS/Gateway是否运行 |
 | 1002 | 网络连接错误 | 检查网络连接 |
 | 2001 | 订单金额超限 | 减少订单金额 |
 | 2002 | 股票代码无效 | 检查股票代码 |
@@ -351,6 +352,13 @@ SYSTEM_CONFIG = {
     'max_retries': 3,              # 最大重试次数
     'timeout': 30                  # 超时时间（秒）
 }
+
+# IB连接配置
+IB_CONFIG = {
+    'host': '127.0.0.1',           # IB Gateway/TWS主机
+    'port': 7497,                  # 端口 (7497=TWS, 4001=Gateway)
+    'client_id': 1                 # 客户端ID
+}
 ```
 
 ## 示例代码
@@ -359,23 +367,23 @@ SYSTEM_CONFIG = {
 
 ```python
 import logging
-from firstrade_trading_system import FirstradeTradingSystem
+from ib_automated_trading_system import IBAutomatedTradingSystem
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 
 # 创建交易系统
-trading_system = FirstradeTradingSystem(
-    username="your_username",
-    password="your_password",
-    pin="your_pin",
+trading_system = IBAutomatedTradingSystem(
+    host="127.0.0.1",
+    port=7497,
+    client_id=1,
     dry_run=True
 )
 
 try:
-    # 登录
-    if not trading_system.login():
-        raise Exception("登录失败")
+    # 连接IB
+    if not trading_system.connect():
+        raise Exception("连接IB失败")
     
     # 获取账户信息
     account = trading_system.get_account_info()
@@ -396,8 +404,8 @@ try:
         order_result = trading_system.place_order(
             symbol=symbol,
             quantity=quantity,
-            order_type="market",
-            side="buy"
+            order_type="MKT",
+            action="BUY"
         )
         
         if order_result['status'] == 'success':
@@ -409,8 +417,8 @@ except Exception as e:
     print(f"交易过程中发生错误: {e}")
     
 finally:
-    # 登出
-    trading_system.logout()
+    # 断开连接
+    trading_system.disconnect()
 ```
 
 ### 技术指标分析
@@ -468,16 +476,16 @@ for symbol, target_weight in target_weights.items():
         adjustment_quantity = int(adjustment_value / quote['price'])
         
         if adjustment_quantity != 0:
-            side = "buy" if adjustment_quantity > 0 else "sell"
+            action = "BUY" if adjustment_quantity > 0 else "SELL"
             quantity = abs(adjustment_quantity)
             
             order_result = trading_system.place_order(
                 symbol=symbol,
                 quantity=quantity,
-                order_type="market",
-                side=side
+                order_type="MKT",
+                action=action
             )
-            print(f"{symbol} 调整订单: {side} {quantity}股")
+            print(f"{symbol} 调整订单: {action} {quantity}股")
 ```
 
 ## 错误处理
@@ -485,23 +493,23 @@ for symbol, target_weight in target_weights.items():
 ### 异常类型
 
 ```python
-class FirstradeException(Exception):
-    """Firstrade系统基础异常"""
+class IBException(Exception):
+    """IB系统基础异常"""
     pass
 
-class LoginException(FirstradeException):
-    """登录异常"""
+class ConnectionException(IBException):
+    """连接异常"""
     pass
 
-class OrderException(FirstradeException):
+class OrderException(IBException):
     """订单异常"""
     pass
 
-class NetworkException(FirstradeException):
+class NetworkException(IBException):
     """网络异常"""
     pass
 
-class RiskException(FirstradeException):
+class RiskException(IBException):
     """风险管理异常"""
     pass
 ```
@@ -509,33 +517,33 @@ class RiskException(FirstradeException):
 ### 错误处理示例
 
 ```python
-from firstrade_trading_system import (
-    FirstradeTradingSystem, 
-    LoginException, 
+from ib_automated_trading_system import (
+    IBAutomatedTradingSystem, 
+    ConnectionException, 
     OrderException,
     NetworkException
 )
 
 try:
-    trading_system = FirstradeTradingSystem(
-        username="user", 
-        password="pass", 
-        pin="1234"
+    trading_system = IBAutomatedTradingSystem(
+        host="127.0.0.1",
+        port=7497,
+        client_id=1
     )
     
-    trading_system.login()
+    trading_system.connect()
     
     # 执行交易操作
     result = trading_system.place_order(
         symbol="AAPL",
         quantity=10,
-        order_type="market",
-        side="buy"
+        order_type="MKT",
+        action="BUY"
     )
     
-except LoginException as e:
-    print(f"登录失败: {e}")
-    # 重新尝试登录或检查凭据
+except ConnectionException as e:
+    print(f"连接失败: {e}")
+    # 检查IB TWS/Gateway是否运行
     
 except OrderException as e:
     print(f"订单错误: {e}")
@@ -554,9 +562,9 @@ except Exception as e:
 
 ### 1. 安全性
 
-- 不要在代码中硬编码凭据
+- 不要在代码中硬编码连接参数
 - 使用环境变量或配置文件存储敏感信息
-- 定期更换密码和PIN
+- 确保IB TWS/Gateway的API连接安全
 
 ```python
 import os
@@ -564,10 +572,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-trading_system = FirstradeTradingSystem(
-    username=os.getenv('FIRSTRADE_USERNAME'),
-    password=os.getenv('FIRSTRADE_PASSWORD'),
-    pin=os.getenv('FIRSTRADE_PIN')
+trading_system = IBAutomatedTradingSystem(
+    host=os.getenv('IB_HOST', '127.0.0.1'),
+    port=int(os.getenv('IB_PORT', '7497')),
+    client_id=int(os.getenv('IB_CLIENT_ID', '1'))
 )
 ```
 
@@ -638,10 +646,10 @@ monitor.start()
 
 ```python
 # 模拟模式测试
-trading_system = FirstradeTradingSystem(
-    username="test_user",
-    password="test_pass", 
-    pin="0000",
+trading_system = IBAutomatedTradingSystem(
+    host="127.0.0.1",
+    port=7497,
+    client_id=1,
     dry_run=True  # 启用模拟模式
 )
 
@@ -655,7 +663,7 @@ python -m pytest tests/
 
 - 邮箱: support@example.com
 - 文档: https://docs.example.com
-- GitHub: https://github.com/example/firstrade-trading-system
+- GitHub: https://github.com/example/ib-trading-system
 
 ---
 
