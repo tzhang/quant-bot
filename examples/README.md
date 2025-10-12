@@ -23,6 +23,16 @@
 - **`factor_tutorial.py`** - 因子计算教程
 - **`factor_evaluation.py`** - 因子评估教程
 
+### 🖥️ 监控面板
+- **`monitoring_dashboard.py`** - 实时监控面板
+  - 系统指标监控 (CPU、内存、网络)
+  - 交易指标展示 (持仓、收益、风险)
+  - 市场数据实时更新
+  - 系统警报管理 (按时间倒序显示)
+  - 模拟数据模式标识 (自动检测并显示)
+  - WebSocket实时通信
+  - 响应式Web界面
+
 ### 🎯 MVP演示
 - **`mvp_demo.py`** - 最小可行产品演示
 
@@ -63,7 +73,13 @@ python examples/quick_start_demo.py
 python examples/chart_gallery.py
 ```
 
-### 3. 运行特定教程
+### 3. 启动监控面板
+```bash
+python examples/monitoring_dashboard.py
+```
+访问 http://localhost:8080 查看实时监控界面
+
+### 4. 运行特定教程
 ```bash
 python examples/data_tutorial.py
 python examples/factor_tutorial.py

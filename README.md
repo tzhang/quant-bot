@@ -351,6 +351,18 @@ risk_monitor.set_position_limit('AAPL', 0.1)
 alerts = risk_monitor.check_risk_limits(positions, leverage)
 ```
 
+#### 6. 监控面板
+```python
+# 启动实时监控面板
+python examples/monitoring_dashboard.py
+```
+访问 http://localhost:8080 查看：
+- 📊 系统指标监控 (CPU、内存、网络)
+- 💰 交易指标展示 (持仓、收益、风险)
+- 📈 市场数据实时更新
+- ⚠️ 系统警报管理 (按时间倒序)
+- 🔍 模拟数据模式标识 (自动检测)
+
 ### 完整演示
 运行完整的核心模块演示：
 ```bash

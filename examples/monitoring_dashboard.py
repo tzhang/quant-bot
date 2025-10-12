@@ -119,12 +119,16 @@ class DataCollector:
         """数据收集主循环"""
         while self.is_running:
             try:
+                logger.debug("开始数据收集循环")
+                
                 # 收集系统指标
                 system_metrics = self._collect_system_metrics()
+                logger.debug(f"系统指标收集完成: CPU {system_metrics.cpu_usage:.1f}%")
                 self.system_metrics.append(system_metrics)
                 
                 # 收集交易指标
                 trading_metrics = self._collect_trading_metrics()
+                logger.debug(f"交易指标收集完成: 投资组合价值 ${trading_metrics.portfolio_value:,.0f}")
                 self.trading_metrics.append(trading_metrics)
                 
                 # 收集市场数据
@@ -133,10 +137,14 @@ class DataCollector:
                 # 检查警报条件
                 self._check_alerts(system_metrics, trading_metrics)
                 
+                logger.debug("数据收集循环完成")
+                
                 time.sleep(5)  # 每5秒收集一次数据
                 
             except Exception as e:
+                import traceback
                 logger.error(f"数据收集错误: {e}")
+                logger.error(f"错误详情: {traceback.format_exc()}")
                 time.sleep(10)
     
     def _collect_system_metrics(self) -> SystemMetrics:
@@ -164,8 +172,15 @@ class DataCollector:
                 'packets_recv': network.packets_recv
             }
             
-            # 活跃连接数（模拟）
-            active_connections = len(psutil.net_connections())
+            # 活跃连接数
+            try:
+                active_connections = len(psutil.net_connections())
+            except (psutil.AccessDenied, PermissionError, psutil.NoSuchProcess):
+                # 在 macOS 上可能需要特殊权限，使用模拟值
+                active_connections = np.random.randint(10, 50)
+            except Exception:
+                # 其他异常情况，使用模拟值
+                active_connections = np.random.randint(10, 50)
             
         except ImportError:
             # 如果psutil不可用，使用模拟数据
@@ -226,11 +241,10 @@ class DataCollector:
                     portfolio_value=portfolio_status.get('total_value', 0) if portfolio_status else 0
                 )
             except Exception as e:
-                logger.error(f"获取真实交易数据失败，详细错误: {type(e).__name__}: {str(e)}")
-                import traceback
-                logger.error(f"错误堆栈: {traceback.format_exc()}")
+                logger.warning(f"获取真实交易数据失败，使用模拟数据: {str(e)}")
         
         # 模拟交易数据（作为备用）
+        logger.debug("使用模拟交易数据")
         total_trades = np.random.randint(100, 1000)
         successful_trades = int(total_trades * np.random.uniform(0.6, 0.9))
         failed_trades = total_trades - successful_trades
@@ -273,7 +287,7 @@ class DataCollector:
                 logger.warning(f"获取真实市场数据失败，使用模拟数据: {str(e)}")
         
         # 模拟市场数据（作为备用）
-        symbols = self.watchlist
+        symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'NVDA']
         
         for symbol in symbols:
             # 模拟市场数据
@@ -294,6 +308,8 @@ class DataCollector:
             )
             
             self.market_data[symbol] = market_data
+            
+        logger.debug(f"生成了 {len(self.market_data)} 个股票的市场数据")
     
     def _check_alerts(self, system_metrics: SystemMetrics, trading_metrics: TradingMetrics):
         """检查警报条件"""
@@ -384,11 +400,25 @@ class MonitoringDashboard:
             """获取市场数据"""
             return jsonify({k: asdict(v) for k, v in self.data_collector.market_data.items()})
         
+        @self.app.route('/api/system-info')
+        def get_system_info():
+            """获取系统信息，包括是否为模拟数据模式"""
+            # 检查是否为模拟数据模式：要么没有broker_factory，要么没有实际的trading_system
+            is_simulation = not HAS_BROKER_FACTORY or self.data_collector.trading_system is None
+            return jsonify({
+                "simulation_mode": is_simulation,
+                "broker_factory_available": HAS_BROKER_FACTORY,
+                "trading_system_available": self.data_collector.trading_system is not None,
+                "timestamp": datetime.now().isoformat()
+            })
+        
         @self.app.route('/api/alerts')
         def get_alerts():
             """获取警报"""
             alerts = list(self.data_collector.alerts)
-            return jsonify([asdict(a) for a in alerts[-100:]])  # 返回最近100个警报
+            # 按时间倒序排列，最新的在前面
+            sorted_alerts = sorted(alerts, key=lambda x: x.timestamp, reverse=True)
+            return jsonify([asdict(a) for a in sorted_alerts[:100]])  # 返回最近100个警报，按时间倒序
         
         @self.app.route('/api/alerts/<alert_id>/acknowledge', methods=['POST'])
         def acknowledge_alert(alert_id):
@@ -495,7 +525,7 @@ DASHBOARD_HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firstrade交易系统监控面板</title>
+    <title>IB TWS 量化交易系统监控面板</title>
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -683,7 +713,10 @@ DASHBOARD_HTML_TEMPLATE = """
 </head>
 <body>
     <div class="header">
-        <h1>Firstrade交易系统监控面板 <span id="status-indicator" class="status-indicator status-offline"></span></h1>
+        <h1>IB TWS 量化交易系统监控面板 <span id="status-indicator" class="status-indicator status-offline"></span></h1>
+        <div id="simulation-mode-indicator" style="display: none; background-color: #ff9800; color: white; padding: 8px 16px; border-radius: 5px; margin-top: 10px; font-weight: bold; text-align: center;">
+            ⚠️ 模拟数据模式 - 当前显示的是模拟数据
+        </div>
     </div>
     
     <div class="dashboard">
@@ -738,12 +771,30 @@ DASHBOARD_HTML_TEMPLATE = """
             console.log('已连接到服务器');
             document.getElementById('status-indicator').className = 'status-indicator status-online';
             
+            // 检查是否为模拟数据模式
+            checkSimulationMode();
+            
             // 请求初始数据
             socket.emit('request_data', {type: 'system_metrics'});
             socket.emit('request_data', {type: 'trading_metrics'});
             socket.emit('request_data', {type: 'market_data'});
             socket.emit('request_data', {type: 'alerts'});
         });
+
+        // 检查模拟数据模式
+        function checkSimulationMode() {
+            fetch('/api/system-info')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.simulation_mode) {
+                        document.getElementById('simulation-mode-indicator').style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.log('无法获取系统信息，假设为模拟模式');
+                    document.getElementById('simulation-mode-indicator').style.display = 'block';
+                });
+        }
         
         socket.on('disconnect', function() {
             console.log('与服务器断开连接');
@@ -1042,6 +1093,10 @@ if __name__ == "__main__":
             logger.info("券商工厂可用，但需要配置凭据")
         except Exception as e:
             logger.warning(f"初始化交易系统失败: {str(e)}")
+    
+    # 如果没有真实的交易系统，记录信息并使用模拟数据
+    if trading_system is None:
+        logger.info("使用模拟数据模式运行监控面板")
     
     # 创建HTML模板
     create_dashboard_template()
