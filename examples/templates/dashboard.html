@@ -18,18 +18,41 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f5f5f5;
             color: #333;
+            line-height: 1.6;
+            overflow-x: hidden;
         }
-        
+
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 1rem 2rem;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-        
+
         .header h1 {
             font-size: 2rem;
             font-weight: 300;
+            margin: 0;
+        }
+
+        /* 响应式标题 */
+        @media (max-width: 768px) {
+            .header {
+                padding: 0.75rem 1rem;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.25rem;
+            }
         }
         
         .status-indicator {
@@ -63,17 +86,58 @@
             max-width: 1400px;
             margin: 0 auto;
         }
+
+        /* 响应式网格布局 */
+        @media (max-width: 1200px) {
+            .dashboard {
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                gap: 1.25rem;
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dashboard {
+                padding: 0.75rem;
+                gap: 0.75rem;
+            }
+        }
         
         .card {
             background: white;
             border-radius: 10px;
             padding: 1.5rem;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.2s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: 1px solid rgba(0,0,0,0.05);
         }
-        
+
         .card:hover {
             transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+        }
+
+        /* 响应式卡片 */
+        @media (max-width: 768px) {
+            .card {
+                padding: 1.25rem;
+                border-radius: 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 1rem;
+                border-radius: 6px;
+            }
         }
         
         .card h3 {
@@ -89,18 +153,130 @@
             justify-content: space-between;
             align-items: center;
             margin: 0.5rem 0;
-            padding: 0.5rem;
+            padding: 0.75rem;
             background: #f8f9fa;
-            border-radius: 5px;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+            transition: background-color 0.2s ease;
         }
-        
+
+        .metric:hover {
+            background: #e9ecef;
+        }
+
         .metric-label {
             font-weight: 500;
+            color: #495057;
+            font-size: 0.9rem;
         }
-        
+
         .metric-value {
             font-weight: bold;
             color: #667eea;
+            font-size: 1rem;
+            text-align: right;
+        }
+
+        /* 动画效果 */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* 加载状态样式 */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 状态样式 */
+        .metric-warning {
+            color: #ff9800 !important;
+        }
+
+        .metric-error {
+            color: #f44336 !important;
+        }
+
+        .empty-state {
+            padding: 2rem;
+            text-align: center;
+            color: #666;
+        }
+
+        .empty-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-state {
+            padding: 2rem;
+            text-align: center;
+            color: #dc3545;
+        }
+
+        .error-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-message {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-details {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        .retry-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .retry-btn:hover {
+            background: #5a6fd8;
+        }
+
+        /* 响应式动画优化 */
+        @media (prefers-reduced-motion: reduce) {
+            .metric,
+            .order-row {
+                animation: none !important;
+            }
+            
+            .loading-spinner {
+                animation: none !important;
+            }
         }
         
         .chart-container {
@@ -401,7 +577,6 @@
                     padding: 8px 4px;
                 }
             }
-            }
             
             .search-input {
                 width: 100%;
@@ -691,14 +866,194 @@
             color: #666;
             font-style: italic;
         }
+        
+        /* 加载动画样式 */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 错误状态样式 */
+        .error-state {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+        
+        .error-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .error-message {
+            font-weight: bold;
+            color: #f44336;
+            margin-bottom: 0.5rem;
+        }
+        
+        .error-details {
+            font-size: 0.9rem;
+            color: #999;
+            margin-bottom: 1rem;
+        }
+        
+        .retry-btn {
+            background-color: #667eea;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .retry-btn:hover {
+            background-color: #5a6fd8;
+        }
+        
+        /* 空状态样式 */
+        .empty-state {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            padding: 1rem;
+        }
+        
+        /* 风险警告样式 */
+        .high-risk {
+            background-color: #ffebee !important;
+            border-left: 4px solid #f44336 !important;
+        }
+        
+        .medium-risk {
+            background-color: #fff3e0 !important;
+            border-left: 4px solid #ff9800 !important;
+        }
+        
+        .low-risk {
+            background-color: #f3e5f5 !important;
+            border-left: 4px solid #9c27b0 !important;
+        }
+        
+        /* 数据更新动画 */
+        .data-updating {
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+        
+        .data-updated {
+            animation: highlight 0.5s ease;
+        }
+        
+        @keyframes highlight {
+            0% { background-color: #e8f5e8; }
+            100% { background-color: transparent; }
+        }
+        
+        /* 缓存状态指示器 */
+        .cache-indicator {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #4caf50;
+            opacity: 0.7;
+        }
+        
+        .cache-indicator.stale {
+            background-color: #ff9800;
+        }
+        
+        .cache-indicator.expired {
+            background-color: #f44336;
+        }
+        
+        /* 性能监控指示器 */
+        .performance-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .performance-indicator.show {
+            display: block;
+        }
+        
+        /* 批量更新优化样式 */
+        .batch-updating {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+        
+        .batch-updating::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        /* 响应式设计增强 */
+        @media (max-width: 768px) {
+            .error-state {
+                padding: 1rem;
+            }
+            
+            .error-icon {
+                font-size: 1.5rem;
+            }
+            
+            .performance-indicator {
+                bottom: 10px;
+                right: 10px;
+                font-size: 0.7rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .retry-btn {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.9rem;
+            }
+            
+            .cache-indicator {
+                width: 6px;
+                height: 6px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>IB TWS 量化交易系统监控面板 <span id="status-indicator" class="status-indicator status-offline"></span></h1>
-        <div id="simulation-mode-indicator" style="display: none; background-color: #ff9800; color: white; padding: 8px 16px; border-radius: 5px; margin-top: 10px; font-weight: bold; text-align: center;">
-            ⚠️ 模拟数据模式 - 当前显示的是模拟数据
-        </div>
     </div>
     
     <div class="dashboard">
@@ -814,13 +1169,161 @@
         let currentPage = 1;
         const itemsPerPage = 20;
         
+        // 数据缓存机制
+        const dataCache = {
+            system_metrics: { data: null, timestamp: 0, ttl: 8000 },
+            trading_metrics: { data: null, timestamp: 0, ttl: 12000 },
+            market_data: { data: null, timestamp: 0, ttl: 3000 },
+            orders: { data: null, timestamp: 0, ttl: 6000 },
+            important_info: { data: null, timestamp: 0, ttl: 25000 }
+        };
+
+        // 检查缓存是否有效
+        function isCacheValid(cacheKey) {
+            const cache = dataCache[cacheKey];
+            if (!cache || !cache.data) return false;
+            return (Date.now() - cache.timestamp) < cache.ttl;
+        }
+
+        // 更新缓存
+        function updateCache(cacheKey, data) {
+            dataCache[cacheKey] = {
+                data: data,
+                timestamp: Date.now(),
+                ttl: dataCache[cacheKey].ttl
+            };
+        }
+
+        // 获取缓存数据
+        function getCachedData(cacheKey) {
+            return isCacheValid(cacheKey) ? dataCache[cacheKey].data : null;
+        }
+
+        // 批量DOM更新优化
+        const domUpdateQueue = [];
+        let domUpdateScheduled = false;
+
+        function scheduleDOMUpdate(updateFunction) {
+            domUpdateQueue.push(updateFunction);
+            if (!domUpdateScheduled) {
+                domUpdateScheduled = true;
+                requestAnimationFrame(() => {
+                    // 批量执行DOM更新
+                    domUpdateQueue.forEach(fn => fn());
+                    domUpdateQueue.length = 0;
+                    domUpdateScheduled = false;
+                });
+            }
+        }
+
+        // 防抖函数
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // 节流函数
+        function throttle(func, limit) {
+            let inThrottle;
+            return function() {
+                const args = arguments;
+                const context = this;
+                if (!inThrottle) {
+                    func.apply(context, args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }
+            }
+        }
+        const updateConfig = {
+            intervals: {
+                system_metrics: 10000,    // 系统指标：10秒
+                trading_metrics: 15000,   // 交易指标：15秒
+                market_data: 5000,        // 市场数据：5秒（更频繁）
+                orders: 8000,             // 订单数据：8秒
+                important_info: 30000     // 重要信息：30秒
+            },
+            lastUpdate: {},
+            timers: {},
+            isVisible: true,
+            retryCount: {},
+            maxRetries: 3
+        };
+
+        // 页面可见性检测
+        document.addEventListener('visibilitychange', function() {
+            updateConfig.isVisible = !document.hidden;
+            if (updateConfig.isVisible) {
+                console.log('页面变为可见，恢复数据更新');
+                startPeriodicUpdates();
+            } else {
+                console.log('页面不可见，暂停数据更新');
+                stopPeriodicUpdates();
+            }
+        });
+
+        // 启动周期性更新
+        function startPeriodicUpdates() {
+            if (!updateConfig.isVisible) return;
+            
+            // 系统指标更新
+            updateConfig.timers.system_metrics = setInterval(() => {
+                if (updateConfig.isVisible) {
+                    socket.emit('request_data', {type: 'system_metrics'});
+                }
+            }, updateConfig.intervals.system_metrics);
+
+            // 交易指标更新
+            updateConfig.timers.trading_metrics = setInterval(() => {
+                if (updateConfig.isVisible) {
+                    socket.emit('request_data', {type: 'trading_metrics'});
+                }
+            }, updateConfig.intervals.trading_metrics);
+
+            // 市场数据更新
+            updateConfig.timers.market_data = setInterval(() => {
+                if (updateConfig.isVisible) {
+                    socket.emit('request_data', {type: 'market_data'});
+                }
+            }, updateConfig.intervals.market_data);
+
+            // 订单数据更新
+            updateConfig.timers.orders = setInterval(() => {
+                if (updateConfig.isVisible) {
+                    updateOrderData();
+                }
+            }, updateConfig.intervals.orders);
+
+            // 重要信息更新
+            updateConfig.timers.important_info = setInterval(() => {
+                if (updateConfig.isVisible) {
+                    socket.emit('request_data', {type: 'important_info'});
+                }
+            }, updateConfig.intervals.important_info);
+        }
+
+        // 停止周期性更新
+        function stopPeriodicUpdates() {
+            Object.values(updateConfig.timers).forEach(timer => {
+                if (timer) clearInterval(timer);
+            });
+            updateConfig.timers = {};
+        }
+
         // 连接状态
         socket.on('connect', function() {
             console.log('已连接到服务器');
             document.getElementById('status-indicator').className = 'status-indicator status-online';
             
-            // 检查是否为模拟数据模式
-            checkSimulationMode();
+            // 重置重试计数
+            updateConfig.retryCount = {};
             
             // 请求初始数据
             socket.emit('request_data', {type: 'system_metrics'});
@@ -830,26 +1333,19 @@
             
             // 请求订单数据
             updateOrderData();
+            
+            // 启动周期性更新
+            setTimeout(startPeriodicUpdates, 2000); // 延迟2秒启动，避免初始数据冲突
         });
 
-        // 检查模拟数据模式
-        function checkSimulationMode() {
-            fetch('/api/system-info')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.simulation_mode) {
-                        document.getElementById('simulation-mode-indicator').style.display = 'block';
-                    }
-                })
-                .catch(error => {
-                    console.log('无法获取系统信息，假设为模拟模式');
-                    document.getElementById('simulation-mode-indicator').style.display = 'block';
-                });
-        }
+        // 模拟数据模式检查已移除
         
         socket.on('disconnect', function() {
             console.log('与服务器断开连接');
             document.getElementById('status-indicator').className = 'status-indicator status-offline';
+            
+            // 停止所有定时器
+            stopPeriodicUpdates();
         });
         
         // 系统指标更新
@@ -893,95 +1389,271 @@
         });
         
         // 更新系统指标
+        // 优化后的系统指标更新函数
         function updateSystemMetrics(data) {
-            if (!data || data.length === 0) return;
-            
-            const latest = data[data.length - 1];
-            const container = document.getElementById('system-metrics');
-            
-            container.innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">CPU使用率</span>
-                    <span class="metric-value">${latest.cpu_usage.toFixed(1)}%</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">内存使用率</span>
-                    <span class="metric-value">${latest.memory_usage.toFixed(1)}%</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">磁盘使用率</span>
-                    <span class="metric-value">${latest.disk_usage.toFixed(1)}%</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">活跃连接</span>
-                    <span class="metric-value">${latest.active_connections}</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">错误数</span>
-                    <span class="metric-value">${latest.error_count}</span>
-                </div>
-            `;
+            try {
+                // 检查缓存
+                const cachedData = getCachedData('system_metrics');
+                if (cachedData && JSON.stringify(cachedData) === JSON.stringify(data)) {
+                    return; // 数据未变化，跳过更新
+                }
+
+                // 更新缓存
+                updateCache('system_metrics', data);
+
+                const container = document.getElementById('system-metrics');
+                if (!container) return;
+
+                // 使用批量DOM更新
+                scheduleDOMUpdate(() => {
+                    if (!data || data.length === 0) {
+                        container.innerHTML = `
+                            <div class="empty-state" style="text-align: center; padding: 2rem; color: #666;">
+                                <div class="empty-icon">📊</div>
+                                <div>暂无系统指标数据</div>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    try {
+                        const latest = data[data.length - 1];
+                        
+                        // 添加数据更新动画效果
+                        container.style.opacity = '0.7';
+                        
+                        container.innerHTML = `
+                            <div class="metric" style="animation: slideIn 0.3s ease-out;">
+                                <span class="metric-label">CPU使用率</span>
+                                <span class="metric-value ${latest.cpu_usage > 80 ? 'metric-warning' : ''}">${latest.cpu_usage.toFixed(1)}%</span>
+                            </div>
+                            <div class="metric" style="animation: slideIn 0.3s ease-out 0.1s;">
+                                <span class="metric-label">内存使用率</span>
+                                <span class="metric-value ${latest.memory_usage > 80 ? 'metric-warning' : ''}">${latest.memory_usage.toFixed(1)}%</span>
+                            </div>
+                            <div class="metric" style="animation: slideIn 0.3s ease-out 0.2s;">
+                                <span class="metric-label">磁盘使用率</span>
+                                <span class="metric-value ${latest.disk_usage > 80 ? 'metric-warning' : ''}">${latest.disk_usage.toFixed(1)}%</span>
+                            </div>
+                            <div class="metric" style="animation: slideIn 0.3s ease-out 0.3s;">
+                                <span class="metric-label">活跃连接</span>
+                                <span class="metric-value">${latest.active_connections}</span>
+                            </div>
+                            <div class="metric" style="animation: slideIn 0.3s ease-out 0.4s;">
+                                <span class="metric-label">错误数</span>
+                                <span class="metric-value ${latest.error_count > 0 ? 'metric-error' : ''}">${latest.error_count}</span>
+                            </div>
+                        `;
+                        
+                        // 恢复透明度
+                        setTimeout(() => {
+                            container.style.opacity = '1';
+                        }, 100);
+                        
+                    } catch (error) {
+                        console.error('更新系统指标失败:', error);
+                        container.innerHTML = `
+                            <div class="error-state" style="text-align: center; padding: 2rem; color: #dc3545;">
+                                <div class="error-icon">⚠️</div>
+                                <div class="error-message">系统指标加载失败</div>
+                                <button class="retry-btn" onclick="socket.emit('request_system_metrics')">刷新页面</button>
+                            </div>
+                        `;
+                        container.style.opacity = '1';
+                    }
+                });
+            } catch (error) {
+                console.error('系统指标更新异常:', error);
+                // 显示错误状态
+                scheduleDOMUpdate(() => {
+                    const container = document.getElementById('system-metrics');
+                    if (container) {
+                        container.innerHTML = `
+                            <div class="error-state" style="text-align: center; padding: 2rem; color: #dc3545;">
+                                <div class="error-icon">⚠️</div>
+                                <div class="error-message">系统指标更新失败</div>
+                                <div class="error-details" style="font-size: 0.8rem; margin-top: 0.5rem; color: #666;">${error.message}</div>
+                                <button class="retry-btn" onclick="socket.emit('request_system_metrics')" style="margin-top: 1rem;">重试</button>
+                            </div>
+                        `;
+                    }
+                });
+            }
         }
         
         // 更新交易指标
+        // 优化后的交易指标更新函数
         function updateTradingMetrics(data) {
-            if (!data || data.length === 0) return;
-            
-            const latest = data[data.length - 1];
-            const container = document.getElementById('trading-metrics');
-            
-            container.innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">总交易数</span>
-                    <span class="metric-value">${latest.total_trades}</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">成功交易</span>
-                    <span class="metric-value">${latest.successful_trades}</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">胜率</span>
-                    <span class="metric-value">${(latest.win_rate * 100).toFixed(1)}%</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">总盈利</span>
-                    <span class="metric-value ${latest.total_profit >= 0 ? 'positive' : 'negative'}">
-                        $${latest.total_profit.toLocaleString()}
-                    </span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">投资组合价值</span>
-                    <span class="metric-value">$${latest.portfolio_value.toLocaleString()}</span>
-                </div>
-            `;
+            try {
+                // 检查缓存
+                const cachedData = getCachedData('trading_metrics');
+                if (cachedData && JSON.stringify(cachedData) === JSON.stringify(data)) {
+                    return; // 数据未变化，跳过更新
+                }
+
+                // 更新缓存
+                updateCache('trading_metrics', data);
+
+                const container = document.getElementById('trading-metrics');
+                if (!container) return;
+
+                // 使用批量DOM更新
+                scheduleDOMUpdate(() => {
+                    if (!data || data.length === 0) {
+                        container.innerHTML = `
+                            <div class="empty-state" style="text-align: center; padding: 2rem; color: #666;">
+                                <div class="empty-icon">📈</div>
+                                <div>暂无交易指标数据</div>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    try {
+                        const latest = data[data.length - 1];
+                        
+                        // 添加数据更新动画效果
+                        container.style.opacity = '0.7';
+                        
+                        container.innerHTML = `
+                            <div class="metric" style="animation: slideIn 0.3s ease-out;">
+                                <span class="metric-label">总交易数</span>
+                                <span class="metric-value">${latest.total_trades}</span>
+                            </div>
+                            <div class="metric" style="animation: slideIn 0.3s ease-out 0.1s;">
+                                <span class="metric-label">成功交易</span>
+                                <span class="metric-value">${latest.successful_trades}</span>
+                            </div>
+                            <div class="metric" style="animation: slideIn 0.3s ease-out 0.2s;">
+                                <span class="metric-label">失败交易</span>
+                                <span class="metric-value ${latest.failed_trades > 0 ? 'metric-warning' : ''}">${latest.failed_trades || 0}</span>
+                            </div>
+                            <div class="metric" style="animation: slideIn 0.3s ease-out 0.3s;">
+                                <span class="metric-label">胜率</span>
+                                <span class="metric-value ${latest.win_rate < 0.5 ? 'metric-warning' : ''}">${(latest.win_rate * 100).toFixed(1)}%</span>
+                            </div>
+                            <div class="metric" style="animation: slideIn 0.3s ease-out 0.4s;">
+                                <span class="metric-label">总盈利</span>
+                                <span class="metric-value ${latest.total_profit >= 0 ? 'profit-positive' : 'profit-negative'}">
+                                    $${latest.total_profit.toLocaleString()}
+                                </span>
+                            </div>
+                            <div class="metric" style="animation: slideIn 0.3s ease-out 0.5s;">
+                                <span class="metric-label">投资组合价值</span>
+                                <span class="metric-value">$${latest.portfolio_value.toLocaleString()}</span>
+                            </div>
+                        `;
+                        
+                        // 恢复透明度
+                        setTimeout(() => {
+                            container.style.opacity = '1';
+                        }, 100);
+                        
+                    } catch (error) {
+                        console.error('更新交易指标失败:', error);
+                        container.innerHTML = `
+                            <div class="error-state" style="text-align: center; padding: 2rem; color: #dc3545;">
+                                <div class="error-icon">⚠️</div>
+                                <div class="error-message">交易指标加载失败</div>
+                                <div class="error-details" style="font-size: 0.8rem; margin-top: 0.5rem; color: #666;">${error.message}</div>
+                                <button class="retry-btn" onclick="socket.emit('request_trading_metrics')" style="margin-top: 1rem;">重试</button>
+                            </div>
+                        `;
+                        container.style.opacity = '1';
+                    }
+                });
+            } catch (error) {
+                console.error('交易指标更新异常:', error);
+            }
         }
         
         // 更新市场数据
         function updateMarketData(data) {
             const container = document.getElementById('market-data');
             
-            if (!data || Object.keys(data).length === 0) {
-                container.innerHTML = '<div class="loading">暂无市场数据</div>';
-                return;
-            }
-            
-            let html = '';
-            for (const [symbol, info] of Object.entries(data)) {
-                const changeClass = info.change >= 0 ? 'positive' : 'negative';
-                const changeSign = info.change >= 0 ? '+' : '';
+            try {
+                // 检查缓存，避免重复更新
+                const cacheKey = 'market_data';
+                const cachedData = getFromCache(cacheKey);
+                if (cachedData && JSON.stringify(cachedData) === JSON.stringify(data)) {
+                    return; // 数据未变化，跳过更新
+                }
                 
-                html += `
-                    <div class="market-item">
-                        <div class="market-symbol">${symbol}</div>
-                        <div class="market-price">$${info.price.toFixed(2)}</div>
-                        <div class="market-change ${changeClass}">
-                            ${changeSign}${info.change.toFixed(2)} (${changeSign}${info.change_percent.toFixed(2)}%)
+                // 更新缓存
+                updateCache(cacheKey, data);
+                
+                // 显示加载状态
+                container.style.opacity = '0.6';
+                
+                if (!data || Object.keys(data).length === 0) {
+                    // 批量DOM更新
+                    scheduleDOMUpdate(() => {
+                        container.innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-icon">📊</div>
+                                <div>暂无市场数据</div>
+                                <div class="empty-hint">等待市场数据更新...</div>
+                            </div>
+                        `;
+                        container.style.opacity = '1';
+                    });
+                    return;
+                }
+                
+                // 批量DOM更新
+                scheduleDOMUpdate(() => {
+                    let html = '';
+                    for (const [symbol, info] of Object.entries(data)) {
+                        const changeClass = info.change >= 0 ? 'positive' : 'negative';
+                        const changeSign = info.change >= 0 ? '+' : '';
+                        
+                        // 添加价格变化警告样式
+                        let priceClass = '';
+                        if (Math.abs(info.change_percent) > 5) {
+                            priceClass = 'metric-warning';
+                        }
+                        if (Math.abs(info.change_percent) > 10) {
+                            priceClass = 'metric-error';
+                        }
+                        
+                        // 添加成交量警告
+                        let volumeClass = '';
+                        if (info.volume > 1000000) {
+                            volumeClass = 'high-volume';
+                        }
+                        
+                        html += `
+                            <div class="market-item" style="animation: slideIn 0.3s ease-out;">
+                                <div class="market-symbol">${symbol}</div>
+                                <div class="market-price ${priceClass}">$${info.price.toFixed(2)}</div>
+                                <div class="market-change ${changeClass}">
+                                    ${changeSign}${info.change.toFixed(2)} (${changeSign}${info.change_percent.toFixed(2)}%)
+                                </div>
+                                <div class="market-volume ${volumeClass}">
+                                    成交量: ${info.volume.toLocaleString()}
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    container.innerHTML = html;
+                    container.style.opacity = '1';
+                });
+                
+            } catch (error) {
+                console.error('更新市场数据失败:', error);
+                scheduleDOMUpdate(() => {
+                    container.innerHTML = `
+                        <div class="error-state">
+                            <div class="error-icon">⚠️</div>
+                            <div class="error-message">市场数据更新失败</div>
+                            <div class="error-details">${error.message}</div>
+                            <button class="retry-btn" onclick="socket.emit('request_market_data')" style="margin-top: 1rem;">重新获取</button>
                         </div>
-                    </div>
-                `;
+                    `;
+                    container.style.opacity = '1';
+                });
             }
-            
-            container.innerHTML = html;
         }
         
         // 重要信息最多显示条数
@@ -990,42 +1662,110 @@
         function updateImportantInfo(data, isNew = false) {
             const container = document.getElementById('important-info');
 
-            if (!data || data.length === 0) {
+            try {
+                // 检查缓存，避免重复更新
+                const cacheKey = 'important_info';
                 if (!isNew) {
-                    container.innerHTML = '<div class="loading">暂无重要信息</div>';
-                }
-                return;
-            }
-
-            // 按时间倒序排列数据
-            const sortedData = data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-            let html = '';
-            sortedData.forEach((info, index) => {
-                const levelClass = `alert-${info.level.toLowerCase()}`;
-                const typeClass = `type-${info.type.toLowerCase()}`;
-                const time = new Date(info.timestamp).toLocaleTimeString();
-
-                // 构建详情信息
-                let detailsHtml = '';
-                if (info.details && Object.keys(info.details).length > 0) {
-                    for (const [key, value] of Object.entries(info.details)) {
-                        if (value !== null && value !== undefined) {
-                            detailsHtml += `
-                                <span class="detail-item">
-                                    <span class="detail-label">${key}:</span>
-                                    <span class="detail-value">${value}</span>
-                                </span>
-                            `;
-                        }
+                    const cachedData = getFromCache(cacheKey);
+                    if (cachedData && JSON.stringify(cachedData) === JSON.stringify(data)) {
+                        return; // 数据未变化，无需更新
                     }
                 }
 
-                // 为新信息添加动画类
-                const newItemClass = (isNew && index === 0) ? ' new-item' : '';
+                // 显示加载状态
+                if (!container.querySelector('.loading-spinner')) {
+                    container.style.opacity = '0.7';
+                    container.style.transition = 'opacity 0.3s ease';
+                }
+
+                if (!data || data.length === 0) {
+                    if (!isNew) {
+                        scheduleDOMUpdate(() => {
+                            container.innerHTML = '<div class="empty-state">📢 暂无重要信息</div>';
+                            container.style.opacity = '1';
+                        });
+                    }
+                    return;
+                }
+
+                // 更新缓存
+                if (!isNew) {
+                    updateCache(cacheKey, data);
+                }
+
+                // 按时间倒序排列数据
+                const sortedData = data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+                scheduleDOMUpdate(() => {
+                    let html = '';
+                    sortedData.forEach((info, index) => {
+                        const levelClass = `alert-${info.level.toLowerCase()}`;
+                        const typeClass = `type-${info.type.toLowerCase()}`;
+                        const time = new Date(info.timestamp).toLocaleTimeString();
+                        
+                        // 根据级别添加警告样式
+                        let additionalClass = '';
+                        if (info.level === 'ERROR' || info.level === 'CRITICAL') {
+                            additionalClass = 'metric-error';
+                        } else if (info.level === 'WARNING') {
+                            additionalClass = 'metric-warning';
+                        }
+
+                        // 构建详情信息
+                        let detailsHtml = '';
+                        if (info.details && Object.keys(info.details).length > 0) {
+                            for (const [key, value] of Object.entries(info.details)) {
+                                if (value !== null && value !== undefined) {
+                                    detailsHtml += `
+                                        <span class="detail-item">
+                                            <span class="detail-label">${key}:</span>
+                                            <span class="detail-value">${value}</span>
+                                        </span>
+                                    `;
+                                }
+                            }
+                        }
+
+                        // 为新信息添加动画类
+                        const newItemClass = (isNew && index === 0) ? ' new-item' : '';
+
+                        html += `
+                            <div class="important-item ${levelClass} ${additionalClass}${newItemClass}" style="animation: fadeIn 0.3s ease-in;">
+                                <div class="important-header">
+                                    <div>
+                                        <span class="important-type ${typeClass}">${info.type}</span>
+                                        <span class="important-title">${info.title}</span>
+                                    </div>
+                                    <span class="important-time">${time}</span>
+                                </div>
+                                <div class="important-message">${info.message}</div>
+                                ${detailsHtml ? `<div class="important-details">${detailsHtml}</div>` : ''}
+                            </div>
+                        `;
+                    });
+
+                    container.innerHTML = html;
+                    container.style.opacity = '1';
+                });
+
+            } catch (error) {
+                console.error('重要信息更新异常:', error);
+                scheduleDOMUpdate(() => {
+                    container.innerHTML = `
+                        <div class="error-state">
+                            <div class="error-icon">⚠️</div>
+                            <div class="error-message">重要信息更新失败</div>
+                            <div class="error-details">${error.message}</div>
+                            <button class="retry-btn" onclick="socket.emit('request_important_info')" style="margin-top: 1rem;">重试</button>
+                        </div>
+                    `;
+                    container.style.opacity = '1';
+                });
+            }
+        }
 
                 html += `
-                    <div class="important-info-item ${levelClass}${newItemClass}">
+                    <div class="important-info-item ${levelClass} ${additionalClass}${newItemClass}" style="animation: slideIn 0.3s ease-out;">
                         <div class="important-info-header">
                             <div>
                                 <span class="important-info-type ${typeClass}">${info.type}</span>
@@ -1039,35 +1779,51 @@
                 `;
             });
 
-            if (isNew) {
-                // 创建新的DOM元素并插入到顶部
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = html;
-                const newItems = tempDiv.querySelectorAll('.important-info-item');
-                
-                // 将新项目插入到容器顶部
-                newItems.forEach(item => {
-                    container.insertBefore(item, container.firstChild);
-                });
-            } else {
-                container.innerHTML = html;
-            }
-            
-            // 保持重要信息最多显示 MAX_IMPORTANT_ITEMS 条，移除更早的项
-            const items = container.querySelectorAll('.important-info-item');
-            if (items.length > MAX_IMPORTANT_ITEMS) {
-                for (let i = MAX_IMPORTANT_ITEMS; i < items.length; i++) {
-                    items[i].remove();
+                if (isNew) {
+                    // 创建新的DOM元素并插入到顶部
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = html;
+                    const newItems = tempDiv.querySelectorAll('.important-info-item');
+                    
+                    // 将新项目插入到容器顶部
+                    newItems.forEach(item => {
+                        container.insertBefore(item, container.firstChild);
+                    });
+                } else {
+                    container.innerHTML = html;
                 }
-            }
+                
+                // 保持重要信息最多显示 MAX_IMPORTANT_ITEMS 条，移除更早的项
+                const items = container.querySelectorAll('.important-info-item');
+                if (items.length > MAX_IMPORTANT_ITEMS) {
+                    for (let i = MAX_IMPORTANT_ITEMS; i < items.length; i++) {
+                        items[i].remove();
+                    }
+                }
 
-            // 移除动画类，避免重复触发
-            setTimeout(() => {
-                const newItems = container.querySelectorAll('.important-info-item.new-item');
-                newItems.forEach(item => {
-                    item.classList.remove('new-item');
-                });
-            }, 500);
+                // 移除动画类，避免重复触发
+                setTimeout(() => {
+                    const newItems = container.querySelectorAll('.important-info-item.new-item');
+                    newItems.forEach(item => {
+                        item.classList.remove('new-item');
+                    });
+                }, 500);
+
+                // 恢复正常透明度
+                container.style.opacity = '1';
+
+            } catch (error) {
+                console.error('更新重要信息失败:', error);
+                container.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-icon">⚠️</div>
+                        <div class="error-message">更新重要信息失败</div>
+                        <div class="error-details">${error.message}</div>
+                        <button class="retry-btn" onclick="location.reload()" style="margin-top: 1rem;">刷新页面</button>
+                    </div>
+                `;
+                container.style.opacity = '1';
+            }
         }
         
         // 初始化图表
@@ -1169,53 +1925,117 @@
         
         // 更新订单数据
         function updateOrderData() {
-            fetch('/api/orders')
-                .then(response => response.json())
-                .then(data => {
-                    const tbody = document.getElementById('orders-table-body');
-                    if (!data || data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #666;">暂无订单数据</td></tr>';
-                        return;
-                    }
-                    
-                    let html = '';
-                    data.forEach(order => {
-                        const time = new Date(order.timestamp).toLocaleString();
-                        const statusClass = order.status === 'FILLED' ? 'status-filled' : 
-                                          order.status === 'PENDING' ? 'status-pending' : 
-                                          order.status === 'CANCELLED' ? 'status-cancelled' : 'status-partial';
-                        
-                        const profitLossClass = order.profit_loss > 0 ? 'profit-positive' : 
-                                              order.profit_loss < 0 ? 'profit-negative' : '';
-                        
-                        html += `
-                            <tr>
-                                <td>${order.order_id}</td>
-                                <td>${order.symbol}</td>
-                                <td class="side-${order.side.toLowerCase()}">${order.side}</td>
-                                <td>${order.quantity}</td>
-                                <td>$${order.price.toFixed(2)}</td>
-                                <td>${order.order_type}</td>
-                                <td><span class="status-badge ${statusClass}">${order.status}</span></td>
-                                <td>${time}</td>
-                                <td class="${profitLossClass}">
-                                    ${order.profit_loss !== null ? '$' + order.profit_loss.toFixed(2) : '-'}
-                                </td>
-                            </tr>
-                        `;
+            const tbody = document.getElementById('orders-table-body');
+            
+            try {
+                // 检查缓存，避免重复请求
+                const cacheKey = 'orders';
+                const cachedData = getFromCache(cacheKey);
+                if (cachedData) {
+                    renderOrderData(cachedData, tbody);
+                    return;
+                }
+                
+                // 显示加载状态
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #667eea;"><div class="loading-spinner"></div>正在加载订单数据...</td></tr>';
+                
+                fetch('/api/orders')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // 更新缓存
+                        updateCache(cacheKey, data);
+                        renderOrderData(data, tbody);
+                    })
+                    .catch(error => {
+                        console.error('获取订单数据失败:', error);
+                        scheduleDOMUpdate(() => {
+                            tbody.innerHTML = `
+                                <tr>
+                                    <td colspan="9" style="text-align: center; padding: 2rem;">
+                                        <div class="error-state">
+                                            <div class="error-icon">⚠️</div>
+                                            <div class="error-message">获取订单数据失败</div>
+                                            <div class="error-details">${error.message}</div>
+                                            <button class="retry-btn" onclick="updateOrderData()" style="margin-top: 1rem;">重试</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        });
                     });
-                    
-                    tbody.innerHTML = html;
-                })
-                .catch(error => {
-                    console.error('获取订单数据失败:', error);
-                    const tbody = document.getElementById('orders-table-body');
-                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #f44336;">获取订单数据失败</td></tr>';
+            } catch (error) {
+                console.error('订单数据更新异常:', error);
+                scheduleDOMUpdate(() => {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 2rem;">
+                                <div class="error-state">
+                                    <div class="error-icon">⚠️</div>
+                                    <div class="error-message">订单数据更新异常</div>
+                                    <div class="error-details">${error.message}</div>
+                                    <button class="retry-btn" onclick="updateOrderData()" style="margin-top: 1rem;">重试</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
                 });
+            }
         }
         
-        // 定期更新订单数据
-        setInterval(updateOrderData, 5000);
+        // 渲染订单数据的辅助函数
+        function renderOrderData(data, tbody) {
+            scheduleDOMUpdate(() => {
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #666;"><div class="empty-state">📋 暂无订单数据</div></td></tr>';
+                    return;
+                }
+
+                let html = '';
+                data.forEach(order => {
+                    const time = new Date(order.timestamp).toLocaleString();
+                    const statusClass = order.status === 'FILLED' ? 'status-filled' : 
+                                      order.status === 'PENDING' ? 'status-pending' : 
+                                      order.status === 'CANCELLED' ? 'status-cancelled' : 'status-partial';
+                    
+                    const profitLossClass = order.profit_loss > 0 ? 'profit-positive' : 
+                                          order.profit_loss < 0 ? 'profit-negative' : '';
+                    
+                    // 添加风险警告样式
+                    let riskClass = '';
+                    if (order.profit_loss < -1000) {
+                        riskClass = 'high-risk';
+                    } else if (order.profit_loss < -500) {
+                        riskClass = 'medium-risk';
+                    }
+                    
+                    html += `
+                        <tr class="order-row ${riskClass}" style="animation: fadeIn 0.3s ease-in;">
+                            <td>${order.order_id}</td>
+                            <td>${order.symbol}</td>
+                            <td class="side-${order.side.toLowerCase()}">${order.side}</td>
+                            <td>${order.quantity}</td>
+                            <td>$${order.price.toFixed(2)}</td>
+                            <td>${order.order_type}</td>
+                            <td><span class="status-badge ${statusClass}">${order.status}</span></td>
+                            <td>${time}</td>
+                            <td class="${profitLossClass}">
+                                ${order.profit_loss !== null ? '$' + order.profit_loss.toFixed(2) : '-'}
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                tbody.innerHTML = html;
+            });
+        }
+        
+        // 定期更新订单数据 - 移除原有的setInterval，改用智能更新机制
+        // setInterval(updateOrderData, 5000); // 已移除，使用新的智能更新机制
         
         // 模态框相关函数
         function openImportantInfoModal() {
@@ -1342,7 +2162,7 @@
             if (event.target === modal) {
                 closeImportantInfoModal();
             }
-        }
+        };
     </script>
 </body>
 </html>
