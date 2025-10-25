@@ -49,7 +49,7 @@ def print_success(message):
 
 def create_sample_stock_data(symbol="AAPL", days=126):
     """
-    创建模拟股票数据用于演示
+    创建模拟股票数据 - 仅用于测试和演示
     
     Args:
         symbol: 股票代码
@@ -58,18 +58,18 @@ def create_sample_stock_data(symbol="AAPL", days=126):
     Returns:
         包含OHLCV数据的DataFrame
     """
-    # 设置随机种子以获得可重复的结果
+    # 设置随机种子以获得可重复的结果 - 仅用于测试和演示
     np.random.seed(42)
     
-    # 生成日期索引
+    # 生成日期索引 - 模拟数据仅用于演示
     end_date = datetime.now()
     start_date = end_date - timedelta(days=days)
     dates = pd.date_range(start=start_date, end=end_date, freq='D')
     dates = dates[dates.weekday < 5]  # 只保留工作日
     
-    # 生成价格数据
+    # 生成价格数据 - 模拟数据仅用于演示
     initial_price = 250.0
-    returns = np.random.normal(0.001, 0.02, len(dates))  # 日收益率
+    returns = np.random.normal(0.001, 0.02, len(dates))  # 日收益率 - 模拟数据仅用于测试
     
     # 计算价格序列
     prices = [initial_price]
@@ -78,17 +78,17 @@ def create_sample_stock_data(symbol="AAPL", days=126):
     
     prices = np.array(prices)
     
-    # 生成OHLC数据
+    # 生成OHLC数据 - 模拟数据仅用于演示
     data = []
     for i, price in enumerate(prices):
-        # 生成日内波动
+        # 生成日内波动 - 模拟数据仅用于测试
         high_factor = 1 + abs(np.random.normal(0, 0.01))
         low_factor = 1 - abs(np.random.normal(0, 0.01))
         
         high = price * high_factor
         low = price * low_factor
         
-        # 开盘价基于前一日收盘价
+        # 开盘价基于前一日收盘价 - 模拟数据仅用于演示
         if i == 0:
             open_price = price
         else:
@@ -99,7 +99,7 @@ def create_sample_stock_data(symbol="AAPL", days=126):
         high = max(high, open_price, price)
         low = min(low, open_price, price)
         
-        # 生成成交量
+        # 生成成交量 - 模拟数据仅用于测试
         volume = int(np.random.normal(50000000, 10000000))
         volume = max(volume, 1000000)  # 最小成交量
         
@@ -348,19 +348,19 @@ def create_strategy_performance_charts():
     """创建策略表现图表"""
     print_header("策略表现图表演示")
     
-    # 创建模拟策略数据
+    # 创建模拟策略数据 - 仅用于测试和演示
     print_info("生成模拟策略表现数据...")
     
-    # 生成基准和策略收益数据
+    # 生成基准和策略收益数据 - 模拟数据仅用于演示
     np.random.seed(42)
     days = 252  # 一年交易日
     dates = pd.date_range(start='2023-01-01', periods=days, freq='D')
     dates = dates[dates.weekday < 5][:days]  # 只保留工作日
     
-    # 基准收益（市场指数）
+    # 基准收益（市场指数）- 模拟数据仅用于测试
     benchmark_returns = np.random.normal(0.0008, 0.015, len(dates))  # 年化8%，波动率15%
     
-    # 策略收益（稍微优于基准）
+    # 策略收益（稍微优于基准）- 模拟数据仅用于测试
     strategy_returns = np.random.normal(0.001, 0.018, len(dates))  # 年化10%，波动率18%
     
     # 计算累计收益
@@ -525,17 +525,17 @@ def create_market_analysis_charts():
     """创建市场分析图表"""
     print_header("市场分析图表演示")
     
-    # 创建模拟市场数据
+    # 创建模拟市场数据 - 仅用于测试和演示
     print_info("生成模拟市场分析数据...")
     
     np.random.seed(42)
     
-    # 生成多只股票的数据
+    # 生成多只股票的数据 - 模拟数据仅用于演示
     symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN']
     dates = pd.date_range(start='2023-01-01', periods=252, freq='D')
     dates = dates[dates.weekday < 5][:200]  # 只保留工作日
     
-    # 生成相关的股票收益数据
+    # 生成相关的股票收益数据 - 模拟数据仅用于测试
     correlation_matrix = np.array([
         [1.0, 0.6, 0.7, 0.3, 0.5],
         [0.6, 1.0, 0.8, 0.4, 0.6],
@@ -544,12 +544,12 @@ def create_market_analysis_charts():
         [0.5, 0.6, 0.7, 0.3, 1.0]
     ])
     
-    # 使用Cholesky分解生成相关的随机数
+    # 使用Cholesky分解生成相关的随机数 - 模拟数据仅用于测试
     L = np.linalg.cholesky(correlation_matrix)
     random_data = np.random.normal(0, 0.02, (len(dates), len(symbols)))
     correlated_returns = random_data @ L.T
     
-    # 创建股票价格数据
+    # 创建股票价格数据 - 模拟数据仅用于演示
     stock_data = {}
     initial_prices = [150, 2800, 300, 200, 3200]
     

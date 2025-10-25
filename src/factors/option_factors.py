@@ -126,24 +126,24 @@ class OptionFactorCalculator:
         return short_term_iv / long_term_iv - 1
     
     def _generate_mock_iv_factors(self, dates: pd.DatetimeIndex, symbol: str) -> Dict[str, pd.Series]:
-        """生成模拟隐含波动率因子"""
-        np.random.seed(hash(symbol) % 2**32)
+        """生成模拟隐含波动率因子 - 仅用于测试和演示"""
+        np.random.seed(hash(symbol) % 2**32)  # 设置随机种子 - 模拟数据仅用于测试
         
-        # 基础IV水平
+        # 基础IV水平 - 仅用于测试和演示
         base_iv = 20.0
         
-        # IV的均值回归过程
-        iv_changes = np.random.normal(0, 2, len(dates))
-        iv_level = np.zeros(len(dates))
-        iv_level[0] = base_iv
+        # IV的均值回归过程 - 模拟数据仅用于演示
+        iv_changes = np.random.normal(0, 2, len(dates))  # 随机变化 - 仅用于测试
+        iv_level = np.zeros(len(dates))  # 初始化IV序列 - 模拟数据
+        iv_level[0] = base_iv  # 设置初始值 - 仅用于演示
         
         for i in range(1, len(dates)):
-            # 均值回归 + 随机冲击
-            mean_reversion = -0.1 * (iv_level[i-1] - base_iv)
-            iv_level[i] = iv_level[i-1] + mean_reversion + iv_changes[i]
-            iv_level[i] = max(iv_level[i], 5)  # 最小值5%
+            # 均值回归 + 随机冲击 - 模拟数据仅用于测试
+            mean_reversion = -0.1 * (iv_level[i-1] - base_iv)  # 均值回归项 - 仅用于演示
+            iv_level[i] = iv_level[i-1] + mean_reversion + iv_changes[i]  # 更新IV - 模拟数据
+            iv_level[i] = max(iv_level[i], 5)  # 最小值5% - 仅用于测试
         
-        iv_series = pd.Series(iv_level, index=dates, name='implied_volatility')
+        iv_series = pd.Series(iv_level, index=dates, name='implied_volatility')  # 创建序列 - 模拟数据
         
         return {
             'implied_volatility': iv_series,
@@ -177,37 +177,37 @@ class OptionFactorCalculator:
         return factors
     
     def _generate_mock_option_flow_factors(self, dates: pd.DatetimeIndex, symbol: str) -> Dict[str, pd.Series]:
-        """生成模拟期权流量因子"""
-        np.random.seed(hash(symbol + 'flow') % 2**32)
+        """生成模拟期权流量因子 - 仅用于测试和演示"""
+        np.random.seed(hash(symbol + 'flow') % 2**32)  # 设置随机种子 - 模拟数据仅用于测试
         
-        # 1. Put/Call比率
-        base_pc_ratio = 0.8
-        pc_ratio_noise = np.random.normal(0, 0.1, len(dates))
-        pc_ratio = base_pc_ratio + pc_ratio_noise
-        pc_ratio = np.clip(pc_ratio, 0.3, 2.0)
+        # 1. Put/Call比率 - 模拟数据仅用于演示
+        base_pc_ratio = 0.8  # 基础比率 - 仅用于测试
+        pc_ratio_noise = np.random.normal(0, 0.1, len(dates))  # 随机噪声 - 模拟数据
+        pc_ratio = base_pc_ratio + pc_ratio_noise  # 计算比率 - 仅用于演示
+        pc_ratio = np.clip(pc_ratio, 0.3, 2.0)  # 限制范围 - 仅用于测试
         
-        # 2. 期权总成交量
-        base_volume = 1000000
-        volume_trend = np.random.normal(1, 0.2, len(dates))
-        option_volume = base_volume * volume_trend
-        option_volume = np.maximum(option_volume, 100000)
+        # 2. 期权总成交量 - 模拟数据仅用于演示
+        base_volume = 1000000  # 基础成交量 - 仅用于测试
+        volume_trend = np.random.normal(1, 0.2, len(dates))  # 成交量趋势 - 模拟数据
+        option_volume = base_volume * volume_trend  # 计算成交量 - 仅用于演示
+        option_volume = np.maximum(option_volume, 100000)  # 最小值限制 - 仅用于测试
         
-        # 3. Call期权成交量
-        call_volume = option_volume / (1 + pc_ratio)
+        # 3. Call期权成交量 - 模拟数据仅用于演示
+        call_volume = option_volume / (1 + pc_ratio)  # 计算Call成交量 - 仅用于测试
         
-        # 4. Put期权成交量
-        put_volume = option_volume - call_volume
+        # 4. Put期权成交量 - 模拟数据仅用于演示
+        put_volume = option_volume - call_volume  # 计算Put成交量 - 仅用于测试
         
-        # 5. 期权成交量与股票成交量比率
-        stock_volume = base_volume * 10 * np.random.normal(1, 0.15, len(dates))
-        option_stock_ratio = option_volume / stock_volume
+        # 5. 期权成交量与股票成交量比率 - 模拟数据仅用于演示
+        stock_volume = base_volume * 10 * np.random.normal(1, 0.15, len(dates))  # 股票成交量 - 仅用于测试
+        option_stock_ratio = option_volume / stock_volume  # 计算比率 - 模拟数据
         
-        # 6. 大单期权交易比例
-        large_trade_ratio = np.random.uniform(0.1, 0.3, len(dates))
+        # 6. 大单期权交易比例 - 模拟数据仅用于演示
+        large_trade_ratio = np.random.uniform(0.1, 0.3, len(dates))  # 大单比例 - 仅用于测试
         
-        # 7. 期权未平仓合约
-        open_interest = base_volume * 5 * np.random.normal(1, 0.1, len(dates))
-        open_interest = np.maximum(open_interest, base_volume)
+        # 7. 期权未平仓合约 - 模拟数据仅用于演示
+        open_interest = base_volume * 5 * np.random.normal(1, 0.1, len(dates))  # 未平仓合约 - 仅用于测试
+        open_interest = np.maximum(open_interest, base_volume)  # 最小值限制 - 模拟数据
         
         return {
             'put_call_ratio': pd.Series(pc_ratio, index=dates, name='put_call_ratio'),
@@ -273,16 +273,16 @@ class OptionFactorCalculator:
         return pd.Series()
     
     def _generate_mock_price(self, dates: pd.DatetimeIndex, symbol: str) -> pd.Series:
-        """生成模拟价格数据"""
-        np.random.seed(hash(symbol + 'price') % 2**32)
+        """生成模拟价格数据 - 仅用于测试和演示"""
+        np.random.seed(hash(symbol + 'price') % 2**32)  # 设置随机种子 - 模拟数据仅用于测试
         
-        # 几何布朗运动
-        initial_price = 400.0  # SPY大约价格
-        mu = 0.08 / 252  # 年化8%收益率
-        sigma = 0.16 / np.sqrt(252)  # 年化16%波动率
+        # 几何布朗运动 - 模拟数据仅用于演示
+        initial_price = 400.0  # SPY大约价格 - 仅用于测试
+        mu = 0.08 / 252  # 年化8%收益率 - 模拟数据
+        sigma = 0.16 / np.sqrt(252)  # 年化16%波动率 - 模拟数据
         
-        returns = np.random.normal(mu, sigma, len(dates))
-        prices = initial_price * np.cumprod(1 + returns)
+        returns = np.random.normal(mu, sigma, len(dates))  # 生成收益率 - 仅用于测试
+        prices = initial_price * np.cumprod(1 + returns)  # 计算价格 - 模拟数据
         
         return pd.Series(prices, index=dates, name=f'{symbol}_price')
     
@@ -382,30 +382,30 @@ class OptionFactorCalculator:
         return factors
     
     def _generate_mock_volatility_surface_factors(self, dates: pd.DatetimeIndex, symbol: str) -> Dict[str, pd.Series]:
-        """生成模拟波动率曲面因子"""
-        np.random.seed(hash(symbol + 'vol_surface') % 2**32)
+        """生成模拟波动率曲面因子 - 仅用于测试和演示"""
+        np.random.seed(hash(symbol + 'vol_surface') % 2**32)  # 设置随机种子 - 模拟数据仅用于测试
         
-        # 1. 波动率偏斜 (Put偏斜)
-        vol_skew = np.random.normal(-0.05, 0.02, len(dates))  # 通常为负
+        # 1. 波动率偏斜 (Put偏斜) - 模拟数据仅用于演示
+        vol_skew = np.random.normal(-0.05, 0.02, len(dates))  # 通常为负 - 仅用于测试
         
-        # 2. 波动率凸性
-        vol_convexity = np.random.normal(0.001, 0.0005, len(dates))
+        # 2. 波动率凸性 - 模拟数据仅用于演示
+        vol_convexity = np.random.normal(0.001, 0.0005, len(dates))  # 凸性计算 - 仅用于测试
         
-        # 3. 期限结构斜率
-        term_structure_slope = np.random.normal(0.02, 0.01, len(dates))
+        # 3. 期限结构斜率 - 模拟数据仅用于演示
+        term_structure_slope = np.random.normal(0.02, 0.01, len(dates))  # 期限斜率 - 仅用于测试
         
-        # 4. 波动率曲面的曲率
-        surface_curvature = np.random.normal(0, 0.001, len(dates))
+        # 4. 波动率曲面的曲率 - 模拟数据仅用于演示
+        surface_curvature = np.random.normal(0, 0.001, len(dates))  # 曲面曲率 - 仅用于测试
         
-        # 5. ATM波动率
-        atm_vol = 20 + 5 * np.sin(2 * np.pi * np.arange(len(dates)) / 252) + np.random.normal(0, 2, len(dates))
-        atm_vol = np.clip(atm_vol, 10, 40)
+        # 5. ATM波动率 - 模拟数据仅用于演示
+        atm_vol = 20 + 5 * np.sin(2 * np.pi * np.arange(len(dates)) / 252) + np.random.normal(0, 2, len(dates))  # ATM波动率 - 仅用于测试
+        atm_vol = np.clip(atm_vol, 10, 40)  # 限制范围 - 模拟数据
         
-        # 6. 25Delta风险逆转 (25D Call IV - 25D Put IV)
-        risk_reversal_25d = np.random.normal(-2, 1, len(dates))
+        # 6. 25Delta风险逆转 (25D Call IV - 25D Put IV) - 模拟数据仅用于演示
+        risk_reversal_25d = np.random.normal(-2, 1, len(dates))  # 风险逆转 - 仅用于测试
         
-        # 7. 25Delta蝶式价差 (平均(25D Call IV + 25D Put IV) - ATM IV)
-        butterfly_25d = np.random.normal(2, 0.5, len(dates))
+        # 7. 25Delta蝶式价差 (平均(25D Call IV + 25D Put IV) - ATM IV) - 模拟数据仅用于演示
+        butterfly_25d = np.random.normal(2, 0.5, len(dates))  # 蝶式价差 - 仅用于测试
         
         return {
             'vol_skew': pd.Series(vol_skew, index=dates, name='vol_skew'),
@@ -448,25 +448,25 @@ class OptionFactorCalculator:
         return factors
     
     def _generate_mock_sentiment_factors(self, dates: pd.DatetimeIndex, symbol: str) -> Dict[str, pd.Series]:
-        """生成模拟期权情绪因子"""
-        np.random.seed(hash(symbol + 'sentiment') % 2**32)
+        """生成模拟期权情绪因子 - 仅用于测试和演示"""
+        np.random.seed(hash(symbol + 'sentiment') % 2**32)  # 设置随机种子 - 模拟数据仅用于测试
         
-        # 1. 投资者恐慌指数 (基于Put/Call比率)
+        # 1. 投资者恐慌指数 (基于Put/Call比率) - 模拟数据仅用于演示
         panic_index = 50 + 20 * np.sin(2 * np.pi * np.arange(len(dates)) / 252) + np.random.normal(0, 10, len(dates))
         panic_index = np.clip(panic_index, 10, 90)
         
-        # 2. 期权情绪指数
+        # 2. 期权情绪指数 - 模拟数据仅用于测试
         option_sentiment = np.random.normal(50, 15, len(dates))
         option_sentiment = np.clip(option_sentiment, 0, 100)
         
-        # 3. 智能资金指数 (大单交易偏向)
+        # 3. 智能资金指数 (大单交易偏向) - 模拟数据仅用于演示
         smart_money_index = np.random.normal(0, 1, len(dates))
         
-        # 4. 散户情绪指数
+        # 4. 散户情绪指数 - 仅用于测试
         retail_sentiment = -smart_money_index + np.random.normal(0, 0.5, len(dates))
         
-        # 5. 期权偏斜情绪
-        skew_sentiment = np.random.normal(-10, 5, len(dates))  # 通常为负值
+        # 5. 期权偏斜情绪 - 模拟数据仅用于演示
+        skew_sentiment = np.random.normal(-10, 5, len(dates))  # 通常为负值 - 仅用于测试
         
         return {
             'panic_index': pd.Series(panic_index, index=dates, name='panic_index'),

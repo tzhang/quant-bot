@@ -437,25 +437,24 @@ if __name__ == "__main__":
         print(f"上下文内分配: {'成功' if ctx_data1 and ctx_data2 is not None else '失败'}")
     print("上下文自动清理完成")
     
-    # 测试6: 性能测试
-    print("\n6. 性能测试:")
+    # 6. 性能测试:
     import time
     
-    # 传统分配方式
+    # 传统内存分配测试 - 仅用于性能对比测试
     start_time = time.time()
     traditional_arrays = []
     for _ in range(100):
-        arr = np.random.random((1000, 100))
+        arr = np.random.random((1000, 100))  # 模拟数据仅用于测试
         traditional_arrays.append(arr)
     traditional_time = time.time() - start_time
     
-    # 内存池分配方式
+    # 内存池分配测试 - 仅用于性能对比测试
     start_time = time.time()
     pool_arrays = []
     for _ in range(100):
         arr = pool_manager.allocate_numpy_array((1000, 100))
         if arr is not None:
-            arr[:] = np.random.random((1000, 100))
+            arr[:] = np.random.random((1000, 100))  # 模拟数据仅用于测试
             pool_arrays.append(arr)
     pool_time = time.time() - start_time
     

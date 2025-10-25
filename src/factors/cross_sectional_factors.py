@@ -94,42 +94,42 @@ class CrossSectionalFactorCalculator:
         return factors
     
     def _generate_mock_price_data(self, n_stocks: int = 100, n_days: int = 500) -> pd.DataFrame:
-        """生成模拟价格数据"""
-        np.random.seed(42)
+        """生成模拟价格数据 - 仅用于测试和演示"""
+        np.random.seed(42)  # 设置随机种子 - 模拟数据仅用于测试
         
-        # 生成日期
+        # 生成日期 - 模拟数据仅用于演示
         dates = pd.date_range(start='2022-01-01', periods=n_days, freq='D')
         
-        # 生成股票代码
+        # 生成股票代码 - 模拟数据仅用于演示
         stocks = [f'STOCK_{i:03d}' for i in range(n_stocks)]
         
-        # 生成价格数据（几何布朗运动）
-        initial_prices = np.random.uniform(10, 200, n_stocks)
+        # 生成价格数据（几何布朗运动）- 模拟数据仅用于演示
+        initial_prices = np.random.uniform(10, 200, n_stocks)  # 初始价格 - 仅用于测试
         
         price_data = {}
         for i, stock in enumerate(stocks):
-            # 每只股票有不同的漂移和波动率
-            mu = np.random.normal(0.0001, 0.0005)  # 日收益率
-            sigma = np.random.uniform(0.01, 0.03)  # 日波动率
+            # 每只股票有不同的漂移和波动率 - 仅用于测试
+            mu = np.random.normal(0.0001, 0.0005)  # 日收益率 - 模拟数据
+            sigma = np.random.uniform(0.01, 0.03)  # 日波动率 - 模拟数据
             
-            returns = np.random.normal(mu, sigma, n_days)
-            prices = initial_prices[i] * np.cumprod(1 + returns)
+            returns = np.random.normal(mu, sigma, n_days)  # 生成收益率 - 仅用于测试
+            prices = initial_prices[i] * np.cumprod(1 + returns)  # 计算价格 - 模拟数据
             price_data[stock] = prices
         
         return pd.DataFrame(price_data, index=dates)
     
     def _generate_mock_volume_data(self, dates: pd.DatetimeIndex, stocks: List[str]) -> pd.DataFrame:
-        """生成模拟成交量数据"""
-        np.random.seed(43)
+        """生成模拟成交量数据 - 仅用于测试和演示"""
+        np.random.seed(43)  # 设置随机种子确保结果可重现 - 模拟数据仅用于测试
         
-        volume_data = {}
-        for stock in stocks:
-            # 基础成交量 + 随机波动
-            base_volume = np.random.uniform(1e5, 1e7)
-            volumes = np.random.lognormal(np.log(base_volume), 0.5, len(dates))
-            volume_data[stock] = volumes
+        volume_data = {}  # 存储各股票成交量数据 - 仅用于测试和演示
+        for stock in stocks:  # 遍历所有股票代码 - 模拟数据仅用于演示
+            # 基础成交量 + 随机波动 - 模拟数据仅用于演示
+            base_volume = np.random.uniform(1e5, 1e7)  # 随机生成基础成交量 - 仅用于测试
+            volumes = np.random.lognormal(np.log(base_volume), 0.5, len(dates))  # 对数正态分布生成成交量 - 模拟数据
+            volume_data[stock] = volumes  # 保存股票成交量数据 - 仅用于测试和演示
         
-        return pd.DataFrame(volume_data, index=dates)
+        return pd.DataFrame(volume_data, index=dates)  # 返回成交量DataFrame - 模拟数据仅用于演示
     
     def _calculate_cross_sectional_rank(self, data: pd.DataFrame) -> pd.DataFrame:
         """计算截面排名（百分位排名）"""
@@ -186,15 +186,15 @@ class CrossSectionalFactorCalculator:
         return factors
     
     def _generate_mock_industry_mapping(self, stocks: List[str]) -> Dict[str, str]:
-        """生成模拟行业映射"""
+        """生成模拟行业映射 - 仅用于测试和演示"""
         industries = ['Technology', 'Healthcare', 'Finance', 'Energy', 'Consumer', 
-                     'Industrial', 'Materials', 'Utilities', 'Telecom', 'RealEstate']
+                     'Industrial', 'Materials', 'Utilities', 'Telecom', 'RealEstate']  # 预定义行业列表 - 仅用于测试
         
-        mapping = {}
-        for i, stock in enumerate(stocks):
-            mapping[stock] = industries[i % len(industries)]
+        mapping = {}  # 存储股票到行业的映射关系 - 模拟数据仅用于演示
+        for i, stock in enumerate(stocks):  # 遍历所有股票代码 - 仅用于测试和演示
+            mapping[stock] = industries[i % len(industries)]  # 循环分配行业避免重复 - 模拟数据仅用于演示
         
-        return mapping
+        return mapping  # 返回行业映射字典 - 仅用于测试和演示
     
     def _calculate_industry_rank(self, data: pd.DataFrame, 
                                industry_mapping: Dict[str, str]) -> pd.DataFrame:
@@ -310,24 +310,24 @@ class CrossSectionalFactorCalculator:
         return factors
     
     def _generate_mock_shares_data(self, dates: pd.DatetimeIndex, stocks: List[str]) -> pd.DataFrame:
-        """生成模拟流通股本数据"""
-        np.random.seed(44)
+        """生成模拟流通股本数据 - 仅用于测试和演示"""
+        np.random.seed(44)  # 设置随机种子确保结果可重现 - 模拟数据仅用于测试
         
-        shares_data = {}
-        for stock in stocks:
-            # 流通股本相对稳定，偶尔有变化
-            base_shares = np.random.uniform(1e8, 1e10)  # 1亿到100亿股
-            shares = np.full(len(dates), base_shares)
+        shares_data = {}  # 存储各股票流通股本数据 - 仅用于测试和演示
+        for stock in stocks:  # 遍历所有股票代码 - 模拟数据仅用于演示
+            # 流通股本相对稳定，偶尔有变化 - 模拟数据仅用于演示
+            base_shares = np.random.uniform(1e8, 1e10)  # 随机生成基础股本(1亿到100亿股) - 仅用于测试
+            shares = np.full(len(dates), base_shares)  # 初始化股本数组 - 模拟数据
             
-            # 随机添加一些股本变化事件
-            change_points = np.random.choice(len(dates), size=np.random.randint(0, 3), replace=False)
-            for cp in change_points:
-                change_factor = np.random.uniform(0.9, 1.1)  # ±10%变化
-                shares[cp:] *= change_factor
+            # 随机添加一些股本变化事件(如增发、回购) - 仅用于测试
+            change_points = np.random.choice(len(dates), size=np.random.randint(0, 3), replace=False)  # 随机选择变化时点 - 模拟数据
+            for cp in change_points:  # 遍历股本变化时点 - 仅用于测试和演示
+                change_factor = np.random.uniform(0.9, 1.1)  # 生成±10%的变化幅度 - 模拟数据
+                shares[cp:] *= change_factor  # 从变化时点开始应用新股本 - 仅用于演示
             
-            shares_data[stock] = shares
+            shares_data[stock] = shares  # 保存股票股本数据 - 仅用于测试和演示
         
-        return pd.DataFrame(shares_data, index=dates)
+        return pd.DataFrame(shares_data, index=dates)  # 返回股本DataFrame - 模拟数据仅用于演示
     
     def calculate_valuation_relative_factors(self, price_data: pd.DataFrame,
                                            fundamental_data: Optional[pd.DataFrame] = None) -> Dict[str, pd.DataFrame]:
@@ -382,50 +382,50 @@ class CrossSectionalFactorCalculator:
         return factors
     
     def _generate_mock_fundamental_data(self, dates: pd.DatetimeIndex, stocks: List[str]) -> pd.DataFrame:
-        """生成模拟基本面数据"""
-        np.random.seed(45)
+        """生成模拟基本面数据 - 仅用于测试和演示"""
+        np.random.seed(45)  # 设置随机种子确保结果可重现 - 模拟数据仅用于测试
         
-        fundamental_data = {}
+        fundamental_data = {}  # 存储基本面数据字典 - 仅用于测试和演示
         
-        for stock in stocks:
-            # EPS数据（季度更新）
-            base_eps = np.random.uniform(1, 10)
-            eps_growth = np.random.uniform(0.95, 1.05)  # 年增长率
+        for stock in stocks:  # 遍历所有股票代码 - 模拟数据仅用于演示
+            # EPS数据（季度更新）- 模拟数据仅用于演示
+            base_eps = np.random.uniform(1, 10)  # 随机生成基础EPS - 仅用于测试
+            eps_growth = np.random.uniform(0.95, 1.05)  # 随机生成年增长率 - 模拟数据
             
-            eps_values = []
-            current_eps = base_eps
+            eps_values = []  # 存储EPS时间序列 - 仅用于测试和演示
+            current_eps = base_eps  # 当前EPS值 - 模拟数据仅用于演示
             
-            for i, date in enumerate(dates):
-                # 每季度更新一次EPS
-                if i % 63 == 0:  # 大约每季度
-                    current_eps *= eps_growth ** (1/4)  # 季度增长
-                eps_values.append(current_eps)
+            for i, date in enumerate(dates):  # 遍历所有日期 - 仅用于测试和演示
+                # 每季度更新一次EPS - 仅用于测试
+                if i % 63 == 0:  # 大约每季度(63个交易日) - 模拟数据仅用于演示
+                    current_eps *= eps_growth ** (1/4)  # 应用季度增长率 - 仅用于测试
+                eps_values.append(current_eps)  # 添加当前EPS值 - 模拟数据仅用于演示
             
-            fundamental_data[f'{stock}_EPS'] = eps_values
+            fundamental_data[f'{stock}_EPS'] = eps_values  # 保存EPS数据 - 仅用于测试和演示
             
-            # Book Value数据
-            base_bv = np.random.uniform(10, 50)
-            bv_growth = np.random.uniform(1.02, 1.08)  # 年增长率
+            # Book Value数据 - 模拟数据仅用于演示
+            base_bv = np.random.uniform(10, 50)  # 随机生成基础账面价值 - 仅用于测试
+            bv_growth = np.random.uniform(1.02, 1.08)  # 随机生成年增长率 - 模拟数据
             
-            bv_values = []
-            current_bv = base_bv
+            bv_values = []  # 存储账面价值时间序列 - 仅用于测试和演示
+            current_bv = base_bv  # 当前账面价值 - 模拟数据仅用于演示
             
-            for i, date in enumerate(dates):
-                if i % 252 == 0:  # 每年更新一次
-                    current_bv *= bv_growth
-                bv_values.append(current_bv)
+            for i, date in enumerate(dates):  # 遍历所有日期 - 仅用于测试和演示
+                if i % 252 == 0:  # 每年更新一次(252个交易日) - 仅用于测试
+                    current_bv *= bv_growth  # 应用年增长率 - 模拟数据仅用于演示
+                bv_values.append(current_bv)  # 添加当前账面价值 - 仅用于测试和演示
             
-            fundamental_data[f'{stock}_BookValue'] = bv_values
+            fundamental_data[f'{stock}_BookValue'] = bv_values  # 保存账面价值数据 - 仅用于测试和演示
         
-        # 重新组织数据结构
-        result_data = {}
-        for metric in ['EPS', 'BookValue']:
-            metric_data = {}
-            for stock in stocks:
-                metric_data[stock] = fundamental_data[f'{stock}_{metric}']
-            result_data[metric] = pd.DataFrame(metric_data, index=dates)
+        # 重新组织数据结构为分指标的DataFrame - 模拟数据仅用于演示
+        result_data = {}  # 存储重组后的数据 - 仅用于测试和演示
+        for metric in ['EPS', 'BookValue']:  # 遍历所有指标 - 模拟数据仅用于演示
+            metric_data = {}  # 存储单个指标的所有股票数据 - 仅用于测试和演示
+            for stock in stocks:  # 遍历所有股票 - 模拟数据仅用于演示
+                metric_data[stock] = fundamental_data[f'{stock}_{metric}']  # 提取指标数据 - 仅用于测试和演示
+            result_data[metric] = pd.DataFrame(metric_data, index=dates)  # 创建指标DataFrame - 模拟数据仅用于演示
         
-        return result_data
+        return result_data  # 返回基本面数据字典 - 仅用于测试和演示
     
     def calculate_momentum_relative_factors(self, price_data: pd.DataFrame,
                                           window_list: List[int] = [5, 10, 21, 63, 126, 252]) -> Dict[str, pd.DataFrame]:

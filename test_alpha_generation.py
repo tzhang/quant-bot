@@ -47,7 +47,7 @@ class AlphaGenerationTester:
     
     def generate_mock_data(self, n_stocks: int = 100, n_days: int = 252) -> dict:
         """
-        生成模拟数据
+        生成模拟数据 - 仅用于测试和演示
         
         Args:
             n_stocks: 股票数量
@@ -58,42 +58,42 @@ class AlphaGenerationTester:
         """
         print(f"生成模拟数据: {n_stocks}只股票, {n_days}个交易日")
         
-        # 生成日期索引
+        # 生成日期索引 - 模拟数据仅用于测试
         dates = pd.date_range(start='2023-01-01', periods=n_days, freq='B')
         
-        # 生成股票代码
+        # 生成股票代码 - 模拟数据仅用于演示
         stocks = [f'STOCK_{i:03d}' for i in range(n_stocks)]
         
-        # 生成价格数据
+        # 生成价格数据 - 模拟数据仅用于测试
         np.random.seed(42)
         
-        # 初始价格
+        # 初始价格 - 模拟数据仅用于演示
         initial_prices = np.random.uniform(10, 100, n_stocks)
         
-        # 生成收益率 (带有一些趋势和波动性)
+        # 生成收益率 (带有一些趋势和波动性) - 模拟数据仅用于测试
         returns = np.random.normal(0.0005, 0.02, (n_days, n_stocks))
         
-        # 添加一些市场因子
+        # 添加一些市场因子 - 模拟数据仅用于演示
         market_factor = np.random.normal(0, 0.015, n_days)
         for i in range(n_stocks):
             beta = np.random.uniform(0.5, 1.5)
             returns[:, i] += beta * market_factor
         
-        # 计算价格
+        # 计算价格 - 模拟数据仅用于测试
         prices = np.zeros((n_days, n_stocks))
         prices[0] = initial_prices
         
         for t in range(1, n_days):
             prices[t] = prices[t-1] * (1 + returns[t])
         
-        # 创建DataFrame
+        # 创建DataFrame - 模拟数据仅用于演示
         price_df = pd.DataFrame(prices, index=dates, columns=stocks)
         
-        # 生成成交量数据
+        # 生成成交量数据 - 模拟数据仅用于测试
         volumes = np.random.lognormal(10, 1, (n_days, n_stocks))
         volume_df = pd.DataFrame(volumes, index=dates, columns=stocks)
         
-        # 生成基本面数据 (季度数据)
+        # 生成基本面数据 (季度数据) - 模拟数据仅用于演示
         quarterly_dates = pd.date_range(start='2023-01-01', periods=n_days//60, freq='Q')
         
         fundamental_data = {}

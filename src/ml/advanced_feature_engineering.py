@@ -683,22 +683,23 @@ class AdvancedFeatureEngineeringPipeline:
 
 # 使用示例
 if __name__ == "__main__":
-    # 创建示例数据
+    # 生成模拟数据进行测试 - 仅用于测试和演示
     np.random.seed(42)
     dates = pd.date_range('2020-01-01', periods=200, freq='D')
     
+    # 创建模拟市场数据 - 模拟数据仅用于演示
     data = {
         'date': dates,
-        'price': np.cumsum(np.random.randn(200) * 0.02) + 100,
-        'volume': np.random.lognormal(10, 0.5, 200),
-        'feature1': np.random.randn(200),
-        'feature2': np.random.randn(200),
-        'feature3': np.random.randn(200),
+        'price': np.cumsum(np.random.randn(200) * 0.02) + 100,  # 模拟价格仅用于测试
+        'volume': np.random.lognormal(10, 0.5, 200),  # 模拟成交量仅用于测试
+        'feature1': np.random.randn(200),  # 模拟特征仅用于测试
+        'feature2': np.random.randn(200),  # 模拟特征仅用于测试
+        'feature3': np.random.randn(200),  # 模拟特征仅用于测试
     }
     
     df = pd.DataFrame(data)
     
-    # 应用高级特征工程
+    # 测试高级特征工程管道
     pipeline = AdvancedFeatureEngineeringPipeline()
     enhanced_df = pipeline.transform(
         df, 

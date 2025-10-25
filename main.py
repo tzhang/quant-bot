@@ -344,8 +344,8 @@ def main():
             
             trading_config = {
                 'host': args.ib_host,
-                'paper_port': 7497,
-                'live_port': 7496,
+                'paper_port': 4002,  # IB Gateway 模拟交易端口
+                'live_port': 4001,   # IB Gateway 实盘交易端口
                 'client_id': args.client_id,
                 'paper_trading': args.paper,
                 'risk_limits': {

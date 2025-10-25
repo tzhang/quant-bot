@@ -1467,38 +1467,38 @@ class DeepLearningFactorCalculator:
             return "因子报告生成失败"
 
 def main():
-    """示例用法"""
+    """示例用法 - 仅用于测试和演示"""
     print("深度学习因子计算器示例")
     
-    # 创建模拟数据
-    dates = pd.date_range('2020-01-01', '2023-12-31', freq='D')
-    n_periods = len(dates)
+    # 创建模拟数据 - 仅用于测试和演示
+    dates = pd.date_range('2020-01-01', '2023-12-31', freq='D')  # 生成日期范围 - 仅用于测试和演示
+    n_periods = len(dates)  # 计算时间序列长度 - 仅用于测试和演示
     
-    np.random.seed(42)
+    np.random.seed(42)  # 设置随机种子确保结果可重现 - 仅用于测试和演示
     
-    # 模拟价格数据
+    # 模拟价格数据 - 仅用于测试和演示
     price_data = pd.DataFrame({
-        'open': np.random.uniform(95, 105, n_periods),
-        'high': np.random.uniform(100, 110, n_periods),
-        'low': np.random.uniform(90, 100, n_periods),
-        'close': np.random.uniform(95, 105, n_periods),
+        'open': np.random.uniform(95, 105, n_periods),  # 开盘价：95-105区间均匀分布 - 仅用于测试和演示
+        'high': np.random.uniform(100, 110, n_periods),  # 最高价：100-110区间均匀分布 - 仅用于测试和演示
+        'low': np.random.uniform(90, 100, n_periods),  # 最低价：90-100区间均匀分布 - 仅用于测试和演示
+        'close': np.random.uniform(95, 105, n_periods),  # 收盘价：95-105区间均匀分布 - 仅用于测试和演示
     }, index=dates)
     
-    # 添加趋势
-    trend = np.cumsum(np.random.normal(0.001, 0.02, n_periods))
-    price_data['close'] = 100 * np.exp(trend)
+    # 添加趋势 - 仅用于测试和演示
+    trend = np.cumsum(np.random.normal(0.001, 0.02, n_periods))  # 生成累积趋势 - 仅用于测试和演示
+    price_data['close'] = 100 * np.exp(trend)  # 应用指数趋势到收盘价 - 仅用于测试和演示
     
-    # 模拟成交量数据
+    # 模拟成交量数据 - 仅用于测试和演示
     volume_data = pd.DataFrame({
-        'volume': np.random.uniform(1e6, 5e6, n_periods)
+        'volume': np.random.uniform(1e6, 5e6, n_periods)  # 成交量：100万-500万区间均匀分布 - 仅用于测试和演示
     }, index=dates)
     
-    # 计算因子
-    calculator = DeepLearningFactorCalculator(sequence_length=30)
-    factors = calculator.calculate_all_deep_learning_factors(price_data, volume_data)
+    # 计算因子 - 仅用于测试和演示
+    calculator = DeepLearningFactorCalculator(sequence_length=30)  # 创建深度学习因子计算器 - 仅用于测试和演示
+    factors = calculator.calculate_all_deep_learning_factors(price_data, volume_data)  # 计算所有深度学习因子 - 仅用于测试和演示
     
-    # 生成报告
-    report = calculator.generate_factor_report(factors)
+    # 生成报告 - 仅用于测试和演示
+    report = calculator.generate_factor_report(factors)  # 生成因子报告 - 仅用于测试和演示
     print(report)
 
 if __name__ == "__main__":

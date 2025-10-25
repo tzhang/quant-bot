@@ -502,55 +502,55 @@ def simulate_crypto_trading(data: pd.DataFrame,
                            strategy_params: Dict,
                            initial_capital: float = 100000) -> Dict:
     """
-    模拟加密货币交易
+    模拟加密货币交易 - 仅用于测试和演示交易策略效果
     
     Args:
-        data: 历史数据
-        strategy_params: 策略参数
-        initial_capital: 初始资金
+        data: 历史数据 - 仅用于测试和演示
+        strategy_params: 策略参数 - 仅用于测试和演示
+        initial_capital: 初始资金 - 仅用于测试和演示
         
     Returns:
-        交易模拟结果
+        交易模拟结果 - 仅用于测试和演示
     """
-    portfolio_manager = CryptoPortfolioManager(initial_capital)
-    risk_manager = CryptoRiskManager(initial_capital)
+    portfolio_manager = CryptoPortfolioManager(initial_capital)  # 创建投资组合管理器 - 仅用于测试和演示
+    risk_manager = CryptoRiskManager(initial_capital)  # 创建风险管理器 - 仅用于测试和演示
     
-    # 生成交易信号
+    # 生成交易信号 - 仅用于测试和演示
     optimizer = CryptoStrategyOptimizer()
     
-    # 模拟交易执行
+    # 模拟交易执行 - 仅用于测试和演示，不代表真实交易
     for i in range(1, len(data)):
-        current_price = data.iloc[i]['close']
-        timestamp = data.index[i]
+        current_price = data.iloc[i]['close']  # 获取当前价格 - 仅用于测试和演示
+        timestamp = data.index[i]  # 获取时间戳 - 仅用于测试和演示
         
-        # 简化的信号生成逻辑
-        if i > 20:  # 确保有足够的历史数据
-            # 这里可以根据具体策略生成信号
-            # 示例：简单的动量策略
-            short_ma = data['close'].iloc[i-10:i].mean()
-            long_ma = data['close'].iloc[i-20:i].mean()
+        # 简化的信号生成逻辑 - 仅用于测试和演示
+        if i > 20:  # 确保有足够的历史数据 - 仅用于测试和演示
+            # 这里可以根据具体策略生成信号 - 仅用于测试和演示
+            # 示例：简单的动量策略 - 仅用于测试和演示
+            short_ma = data['close'].iloc[i-10:i].mean()  # 计算短期移动平均 - 仅用于测试和演示
+            long_ma = data['close'].iloc[i-20:i].mean()   # 计算长期移动平均 - 仅用于测试和演示
             
             if short_ma > long_ma and 'BTC' not in portfolio_manager.positions:
-                # 买入信号
+                # 买入信号 - 仅用于测试和演示
                 position_size = risk_manager.calculate_position_size(
                     current_price, 
-                    data['close'].iloc[i-20:i].std() / current_price,
+                    data['close'].iloc[i-20:i].std() / current_price,  # 计算波动率 - 仅用于测试和演示
                     0.6
                 )
                 if position_size > 0:
-                    portfolio_manager.execute_trade('BTC', 'buy', position_size, current_price, timestamp)
+                    portfolio_manager.execute_trade('BTC', 'buy', position_size, current_price, timestamp)  # 执行买入 - 仅用于测试和演示
             
             elif short_ma < long_ma and portfolio_manager.positions.get('BTC', 0) > 0:
-                # 卖出信号
-                position_size = portfolio_manager.positions.get('BTC', 0)
-                portfolio_manager.execute_trade('BTC', 'sell', position_size, current_price, timestamp)
+                # 卖出信号 - 仅用于测试和演示
+                position_size = portfolio_manager.positions.get('BTC', 0)  # 获取持仓数量 - 仅用于测试和演示
+                portfolio_manager.execute_trade('BTC', 'sell', position_size, current_price, timestamp)  # 执行卖出 - 仅用于测试和演示
     
-    # 计算最终绩效
-    final_prices = {'BTC': data.iloc[-1]['close']}
-    performance = portfolio_manager.get_performance_metrics(final_prices)
+    # 计算最终绩效 - 仅用于测试和演示
+    final_prices = {'BTC': data.iloc[-1]['close']}  # 获取最终价格 - 仅用于测试和演示
+    performance = portfolio_manager.get_performance_metrics(final_prices)  # 计算绩效指标 - 仅用于测试和演示
     
     return {
-        'portfolio_manager': portfolio_manager,
-        'performance': performance,
-        'trade_history': portfolio_manager.trade_history
+        'portfolio_manager': portfolio_manager,  # 返回投资组合管理器 - 仅用于测试和演示
+        'performance': performance,              # 返回绩效指标 - 仅用于测试和演示
+        'trade_history': portfolio_manager.trade_history  # 返回交易历史 - 仅用于测试和演示
     }

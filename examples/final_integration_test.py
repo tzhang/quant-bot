@@ -270,13 +270,13 @@ class IntegratedOptimizationTest:
             
             # 分配内存用于数据处理
             price_data = self.memory_pool.allocate(data_size)
-            price_data[:] = np.random.random(data_size) * 100  # 模拟价格数据
+            price_data[:] = np.random.random(data_size) * 100  # 模拟价格数据 - 仅用于测试和演示
             
             # 计算技术指标 - 修复数组长度问题
             if data_size < 100:  # 确保有足够的数据
                 data_size = 100
                 price_data = self.memory_pool.allocate(data_size)
-                price_data[:] = np.random.random(data_size) * 100
+                price_data[:] = np.random.random(data_size) * 100  # 模拟价格数据 - 仅用于测试和演示
             
             # 计算移动平均线
             sma_20_window = min(20, data_size // 5)

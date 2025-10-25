@@ -44,10 +44,10 @@ from src.ml.feature_validation import (
 
 
 def create_sample_data(n_samples=1000):
-    """创建示例金融数据"""
+    """创建示例金融数据 - 仅用于测试和演示"""
     np.random.seed(42)
     
-    # 生成基础价格序列
+    # 生成基础价格序列 - 模拟数据仅用于演示
     dates = pd.date_range('2020-01-01', periods=n_samples, freq='D')
     price = 100 + np.cumsum(np.random.randn(n_samples) * 0.02)
     

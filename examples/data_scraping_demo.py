@@ -93,7 +93,7 @@ def demonstrate_data_processing():
     """演示数据处理功能"""
     print_section("5. 数据处理演示")
     
-    # 生成模拟数据
+    # 生成模拟数据 - 仅用于测试和演示
     dates = pd.date_range(start='2023-01-01', end='2024-01-01', freq='D')
     symbols = ['AAPL', 'GOOGL', 'MSFT']
     
@@ -101,12 +101,12 @@ def demonstrate_data_processing():
     time.sleep(1)
     
     for symbol in symbols:
-        # 模拟价格数据
+        # 模拟价格数据 - 仅用于演示
         base_price = np.random.uniform(100, 300)
         returns = np.random.normal(0.001, 0.02, len(dates))
         prices = base_price * (1 + returns).cumprod()
         
-        # 模拟数据质量检查
+        # 模拟数据质量检查 - 仅用于测试
         missing_data = np.random.randint(0, 10)
         outliers = np.random.randint(0, 5)
         
@@ -116,7 +116,7 @@ def demonstrate_data_processing():
         print(f"      🔍 缺失数据: {missing_data} 个 {'✅ 已修复' if missing_data > 0 else '✅ 无缺失'}")
         print(f"      ⚠️  异常值: {outliers} 个 {'✅ 已处理' if outliers > 0 else '✅ 无异常'}")
         print(f"      💹 价格范围: ${prices.min():.2f} - ${prices.max():.2f}")
-        print(f"      📊 平均成交量: {np.random.uniform(10, 100):.1f}M")
+        print(f"      📊 平均成交量: {np.random.uniform(10, 100):.1f}M")  # 模拟成交量数据 - 仅用于演示
 
 def demonstrate_technical_indicators():
     """演示技术指标计算"""

@@ -372,12 +372,12 @@ class SentimentFactorCalculator:
                 factors['social_sentiment_trend'] = sentiment_series.rolling(7).mean()
                 
             else:
-                # 创建模拟社交情绪因子
+                # 创建模拟社交情绪因子 - 仅用于测试和演示
                 self.logger.warning("没有社交媒体数据，创建模拟社交情绪因子")
                 dates = pd.date_range(start='2023-01-01', end='2024-01-01', freq='D')
                 
-                mock_mentions = np.random.poisson(100, len(dates))
-                mock_sentiment = np.random.normal(0, 0.5, len(dates))
+                mock_mentions = np.random.poisson(100, len(dates))  # 模拟提及次数 - 仅用于测试
+                mock_sentiment = np.random.normal(0, 0.5, len(dates))  # 模拟情绪分数 - 仅用于演示
                 
                 factors['mock_social_mentions'] = pd.Series(mock_mentions, index=dates)
                 factors['mock_social_sentiment'] = pd.Series(mock_sentiment, index=dates)
@@ -513,26 +513,26 @@ class SentimentFactorCalculator:
 
 
 def main():
-    """示例用法"""
-    # 创建示例数据
-    dates = pd.date_range(start='2023-01-01', end='2024-01-01', freq='D')
-    n_days = len(dates)
+    """示例用法 - 仅用于测试和演示"""
+    # 创建示例数据 - 仅用于测试和演示
+    dates = pd.date_range(start='2023-01-01', end='2024-01-01', freq='D')  # 生成日期范围 - 仅用于测试和演示
+    n_days = len(dates)  # 计算天数 - 仅用于测试和演示
     
-    # 模拟股票数据
-    np.random.seed(42)
-    price_base = 100
-    returns = np.random.normal(0.001, 0.02, n_days)
-    prices = price_base * np.exp(np.cumsum(returns))
+    # 模拟股票数据 - 仅用于测试和演示
+    np.random.seed(42)  # 设置随机种子确保结果可重现 - 仅用于测试和演示
+    price_base = 100  # 设置基础价格 - 仅用于测试和演示
+    returns = np.random.normal(0.001, 0.02, n_days)  # 生成正态分布的收益率 - 仅用于测试和演示
+    prices = price_base * np.exp(np.cumsum(returns))  # 计算累积价格 - 仅用于测试和演示
     
-    data = pd.DataFrame({
-        'close': prices,
-        'high': prices * (1 + np.random.uniform(0, 0.03, n_days)),
-        'low': prices * (1 - np.random.uniform(0, 0.03, n_days)),
-        'volume': np.random.lognormal(10, 0.5, n_days)
+    data = pd.DataFrame({  # 创建模拟股票数据DataFrame - 仅用于测试和演示
+        'close': prices,  # 收盘价 - 仅用于测试和演示
+        'high': prices * (1 + np.random.uniform(0, 0.03, n_days)),  # 最高价 - 仅用于测试和演示
+        'low': prices * (1 - np.random.uniform(0, 0.03, n_days)),  # 最低价 - 仅用于测试和演示
+        'volume': np.random.lognormal(10, 0.5, n_days)  # 成交量 - 仅用于测试和演示
     }, index=dates)
     
-    data['open'] = data['close'].shift(1)
-    data = data.dropna()
+    data['open'] = data['close'].shift(1)  # 计算开盘价 - 仅用于测试和演示
+    data = data.dropna()  # 删除缺失值 - 仅用于测试和演示
     
     # 创建情绪因子计算器
     calculator = SentimentFactorCalculator()

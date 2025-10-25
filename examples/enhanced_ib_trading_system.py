@@ -25,7 +25,7 @@ from ibapi.wrapper import EWrapper
 from ibapi.contract import Contract
 from ibapi.order import Order
 from ibapi.common import TickerId, OrderId
-from ibapi.execution import Execution
+from ibapi.execution import Execution, ExecutionFilter
 
 # 配置日志
 logging.basicConfig(
@@ -52,8 +52,8 @@ class TradingConfig:
     """交易配置"""
     # 连接配置
     host: str = "127.0.0.1"
-    paper_port: int = 7497  # 模拟交易端口
-    live_port: int = 7496   # 实盘交易端口
+    paper_port: int = 4002  # IB Gateway 模拟交易端口
+    live_port: int = 4001   # IB Gateway 实盘交易端口
     client_id: int = 1
     
     # 交易模式
@@ -475,10 +475,22 @@ class EnhancedIBTradingSystem(EWrapper, EClient):
             contract.exchange = "SMART"
             contract.currency = "USD"
             
+            # 为特定股票设置主要交易所 - 这是关键修复
+            if symbol == "AAPL":
+                contract.primaryExchange = "NASDAQ"
+            elif symbol == "GOOGL":
+                contract.primaryExchange = "NASDAQ"
+            elif symbol == "MSFT":
+                contract.primaryExchange = "NASDAQ"
+            elif symbol == "TSLA":
+                contract.primaryExchange = "NASDAQ"
+            elif symbol == "NVDA":
+                contract.primaryExchange = "NASDAQ"
+            
             self._symbol_req_map[req_id] = symbol
             self.reqMktData(req_id, contract, "", False, False, [])
             
-            logger.info(f"已订阅市场数据: {symbol}")
+            logger.info(f"已订阅市场数据: {symbol} (主要交易所: {contract.primaryExchange})")
             return True
         except Exception as e:
             logger.error(f"订阅市场数据失败: {e}")
@@ -590,8 +602,9 @@ class EnhancedIBTradingSystem(EWrapper, EClient):
         # 请求持仓信息
         self.reqPositions()
         
-        # 请求当日执行
-        self.reqExecutions(9002, None)
+        # 请求当日执行 - 使用ExecutionFilter对象
+        execution_filter = ExecutionFilter()
+        self.reqExecutions(9002, execution_filter)
 
 
 def example_usage():

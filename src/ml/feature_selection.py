@@ -488,37 +488,38 @@ class FeatureSelectionPipeline:
 
 # 使用示例
 if __name__ == "__main__":
-    # 创建示例数据
-    np.random.seed(42)
-    n_samples, n_features = 1000, 50
+    # 生成模拟数据进行测试 - 仅用于测试和演示
+    np.random.seed(42)  # 设置随机种子确保结果可重现 - 仅用于测试和演示
+    n_samples, n_features = 1000, 50  # 设置样本数和特征数 - 仅用于测试和演示
     
-    X = pd.DataFrame(
-        np.random.randn(n_samples, n_features),
-        columns=[f'feature_{i}' for i in range(n_features)]
+    # 创建模拟特征数据 - 模拟数据仅用于演示
+    X = pd.DataFrame(  # 创建特征DataFrame - 仅用于测试和演示
+        np.random.randn(n_samples, n_features),  # 生成正态分布的模拟特征 - 仅用于测试和演示
+        columns=[f'feature_{i}' for i in range(n_features)]  # 设置特征列名 - 仅用于测试和演示
     )
     
-    # 创建目标变量（只有前10个特征有用）
-    y = (X.iloc[:, :10].sum(axis=1) + 
-         np.random.randn(n_samples) * 0.1)
+    # 创建模拟目标变量 - 仅用于测试
+    y = (X.iloc[:, :10].sum(axis=1) +  # 使用前10个特征的和作为基础 - 仅用于测试和演示
+         np.random.randn(n_samples) * 0.1)  # 添加噪声生成目标变量 - 仅用于测试和演示
     
-    # 创建特征选择管道
-    pipeline = FeatureSelectionPipeline()
+    # 创建特征选择管道 - 仅用于测试和演示
+    pipeline = FeatureSelectionPipeline()  # 初始化特征选择管道 - 仅用于测试和演示
     
-    # 添加多个选择器
-    pipeline.add_selector('rfe', RecursiveFeatureElimination(n_features_to_select=15))
-    pipeline.add_selector('importance', ImportanceBasedSelection(method='random_forest'))
-    pipeline.add_selector('stability', StabilitySelection(threshold=0.5))
-    pipeline.add_selector('mutual_info', InformationGainSelection(method='mutual_info', k=20))
-    pipeline.add_selector('correlation', CorrelationBasedSelection(threshold=0.9))
-    pipeline.add_selector('variance', VarianceBasedSelection(threshold=0.1))
+    # 添加多个选择器 - 仅用于测试和演示
+    pipeline.add_selector('rfe', RecursiveFeatureElimination(n_features_to_select=15))  # 添加递归特征消除 - 仅用于测试和演示
+    pipeline.add_selector('importance', ImportanceBasedSelection(method='random_forest'))  # 添加重要性选择 - 仅用于测试和演示
+    pipeline.add_selector('stability', StabilitySelection(threshold=0.5))  # 添加稳定性选择 - 仅用于测试和演示
+    pipeline.add_selector('mutual_info', InformationGainSelection(method='mutual_info', k=20))  # 添加信息增益选择 - 仅用于测试和演示
+    pipeline.add_selector('correlation', CorrelationBasedSelection(threshold=0.9))  # 添加相关性选择 - 仅用于测试和演示
+    pipeline.add_selector('variance', VarianceBasedSelection(threshold=0.1))  # 添加方差选择 - 仅用于测试和演示
     
-    # 拟合并选择特征
-    X_selected = pipeline.fit_transform(X, y)
+    # 拟合并选择特征 - 仅用于测试和演示
+    X_selected = pipeline.fit_transform(X, y)  # 执行特征选择 - 仅用于测试和演示
     
-    print(f"\n最终选择的特征数: {X_selected.shape[1]}")
-    print(f"选择率: {X_selected.shape[1]/X.shape[1]:.2%}")
+    print(f"\n最终选择的特征数: {X_selected.shape[1]}")  # 输出选择的特征数 - 仅用于测试和演示
+    print(f"选择率: {X_selected.shape[1]/X.shape[1]:.2%}")  # 输出特征选择率 - 仅用于测试和演示
     
-    # 显示选择摘要
-    summary = pipeline.get_selection_summary()
-    print("\n选择器摘要:")
-    print(summary)
+    # 显示选择摘要 - 仅用于测试和演示
+    summary = pipeline.get_selection_summary()  # 获取选择摘要 - 仅用于测试和演示
+    print("\n选择器摘要:")  # 输出摘要标题 - 仅用于测试和演示
+    print(summary)  # 输出摘要内容 - 仅用于测试和演示

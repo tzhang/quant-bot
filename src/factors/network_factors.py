@@ -93,25 +93,31 @@ class NetworkFactorCalculator:
         return factors
     
     def _generate_mock_returns_data(self, n_stocks: int = 50, n_days: int = 500) -> pd.DataFrame:
-        """生成模拟收益率数据"""
-        np.random.seed(42)
+        """生成模拟收益率数据用于测试 - 仅用于测试和演示"""
+        np.random.seed(42)  # 设置随机种子 - 模拟数据仅用于测试
         
-        # 生成日期
-        dates = pd.date_range(start='2022-01-01', periods=n_days, freq='D')
+        # 生成日期序列 - 仅用于测试和演示
+        dates = pd.date_range(start='2020-01-01', periods=n_days, freq='D')
         
-        # 生成股票代码
+        # 生成股票代码 - 仅用于测试和演示
         stocks = [f'STOCK_{i:03d}' for i in range(n_stocks)]
         
-        # 生成相关的收益率数据
-        # 创建一些行业因子
-        n_factors = 5
-        factor_loadings = np.random.normal(0, 1, (n_stocks, n_factors))
-        factor_returns = np.random.normal(0, 0.02, (n_days, n_factors))
+        # 生成行业因子 - 模拟数据仅用于测试
+        industry_factor = np.random.normal(0, 0.02, n_days)
         
-        # 股票收益率 = 因子收益率 * 因子载荷 + 特异性收益率
-        stock_returns = np.dot(factor_returns, factor_loadings.T) + np.random.normal(0, 0.01, (n_days, n_stocks))
+        # 生成因子载荷 - 模拟数据仅用于测试
+        factor_loadings = np.random.uniform(0.5, 1.5, n_stocks)
         
-        return pd.DataFrame(stock_returns, index=dates, columns=stocks)
+        # 生成因子收益率 - 模拟数据仅用于测试
+        factor_returns = np.random.normal(0, 0.01, n_days)
+        
+        # 生成特异性收益率 - 模拟数据仅用于测试
+        idiosyncratic_returns = np.random.normal(0, 0.03, (n_days, n_stocks))
+        
+        # 计算总收益率 - 模拟数据仅用于测试
+        returns = np.outer(factor_returns, factor_loadings) + idiosyncratic_returns
+        
+        return pd.DataFrame(returns, index=dates, columns=stocks)
     
     def _calculate_network_statistics(self, corr_matrix: pd.DataFrame) -> Dict[str, float]:
         """计算网络统计指标"""
@@ -237,12 +243,12 @@ class NetworkFactorCalculator:
         return factors
     
     def _generate_mock_industry_mapping(self, stocks: List[str]) -> Dict[str, str]:
-        """生成模拟行业映射"""
+        """生成模拟行业映射 - 仅用于测试和演示"""
         industries = ['Technology', 'Healthcare', 'Finance', 'Energy', 'Consumer', 'Industrial', 'Materials', 'Utilities']
         
         mapping = {}
         for i, stock in enumerate(stocks):
-            mapping[stock] = industries[i % len(industries)]
+            mapping[stock] = industries[i % len(industries)]  # 循环分配行业 - 模拟数据仅用于测试
         
         return mapping
     
@@ -343,12 +349,12 @@ class NetworkFactorCalculator:
         return factors
     
     def _generate_mock_supply_chain_mapping(self, stocks: List[str]) -> Dict[str, List[str]]:
-        """生成模拟供应链映射"""
-        np.random.seed(42)
+        """生成模拟供应链映射 - 仅用于测试和演示"""
+        np.random.seed(42)  # 设置随机种子 - 模拟数据仅用于测试
         mapping = {}
         
         for stock in stocks:
-            # 随机选择2-5个供应商/客户
+            # 随机选择2-5个供应商/客户 - 模拟数据仅用于演示
             n_connections = np.random.randint(2, 6)
             connections = np.random.choice([s for s in stocks if s != stock], 
                                         size=min(n_connections, len(stocks)-1), 
@@ -434,13 +440,13 @@ class NetworkFactorCalculator:
         return factors
     
     def _generate_mock_volume_data(self, dates: pd.DatetimeIndex, stocks: List[str]) -> pd.DataFrame:
-        """生成模拟成交量数据"""
-        np.random.seed(43)
+        """生成模拟成交量数据 - 仅用于测试和演示"""
+        np.random.seed(43)  # 设置随机种子 - 模拟数据仅用于测试
         
-        # 生成成交量数据（对数正态分布）
+        # 生成成交量数据（对数正态分布） - 模拟数据仅用于演示
         volume_data = {}
         for stock in stocks:
-            base_volume = np.random.uniform(1e6, 1e8)  # 基础成交量
+            base_volume = np.random.uniform(1e6, 1e8)  # 基础成交量 - 仅用于测试
             volumes = np.random.lognormal(np.log(base_volume), 0.5, len(dates))
             volume_data[stock] = volumes
         

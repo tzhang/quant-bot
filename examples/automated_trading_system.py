@@ -318,7 +318,7 @@ class IBOrderExecutor:
         return execution_results
     
     def _execute_mock(self, signals):
-        """模拟交易执行"""
+        """模拟交易执行 - 仅用于测试和演示"""
         print("🎭 执行模拟交易...")
         
         execution_results = {
@@ -326,7 +326,7 @@ class IBOrderExecutor:
             'failed_orders': 0,
             'total_invested': 0,
             'orders': [],
-            'mode': 'SIMULATION'
+            'mode': 'SIMULATION'  # 标记为模拟模式
         }
         
         for signal in signals:
@@ -389,23 +389,16 @@ class IBOrderExecutor:
             }
     
     def _get_mock_price(self, symbol):
-        """
-        获取模拟价格（实际应用中应连接实时数据源）
-        
-        Args:
-            symbol: 股票代码
-        
-        Returns:
-            float: 模拟价格
-        """
-        # 模拟价格，实际应用中需要连接实时数据API
+        """获取模拟价格 - 仅用于测试和演示"""
+        # 模拟价格数据 - 实际应用中应使用真实市场数据 - 仅用于演示
         mock_prices = {
-            'AAPL': 150.0, 'GOOGL': 2500.0, 'MSFT': 300.0, 'AMZN': 3200.0,
-            'TSLA': 800.0, 'META': 250.0, 'NVDA': 400.0, 'NFLX': 400.0,
-            'JPM': 140.0, 'BAC': 35.0, 'WMT': 140.0, 'PG': 150.0,
-            'JNJ': 160.0, 'UNH': 450.0, 'HD': 320.0, 'V': 220.0
+            'AAPL': 150.0,
+            'MSFT': 300.0,
+            'GOOGL': 2500.0,
+            'TSLA': 200.0,
+            'NVDA': 800.0
         }
-        return mock_prices.get(symbol, 100.0)  # 默认价格
+        return mock_prices.get(symbol, 100.0)  # 默认价格 - 模拟数据仅用于测试
     
     def get_portfolio_summary(self):
         """

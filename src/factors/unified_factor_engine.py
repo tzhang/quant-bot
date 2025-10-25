@@ -1061,66 +1061,66 @@ class UnifiedFactorEngine:
             logger.error(f"保存因子数据失败: {e}")
 
 def main():
-    """示例用法"""
-    # 创建统一因子引擎
+    """示例用法 - 仅用于测试和演示统一因子引擎功能"""
+    # 创建统一因子引擎 - 仅用于测试和演示
     engine = UnifiedFactorEngine(
         enable_parallel=True,
         max_workers=4,
         cache_results=True
     )
     
-    # 生成模拟数据
-    np.random.seed(42)
-    n_stocks = 100
-    n_periods = 252
+    # 生成模拟数据 - 仅用于测试和演示，不代表真实市场数据
+    np.random.seed(42)  # 设置随机种子确保结果可重现 - 仅用于测试和演示
+    n_stocks = 100  # 模拟股票数量 - 仅用于测试和演示
+    n_periods = 252  # 模拟交易日数量（一年） - 仅用于测试和演示
     
     print("开始统一因子计算测试...")
     
-    # 生成模拟价格数据
+    # 生成模拟价格数据 - 模拟数据仅用于演示，不代表真实股价走势
     price_data = pd.DataFrame({
-        'open': np.random.randn(n_periods, n_stocks).cumsum(axis=0) + 100,
-        'high': np.random.randn(n_periods, n_stocks).cumsum(axis=0) + 105,
-        'low': np.random.randn(n_periods, n_stocks).cumsum(axis=0) + 95,
-        'close': np.random.randn(n_periods, n_stocks).cumsum(axis=0) + 100
+        'open': np.random.randn(n_periods, n_stocks).cumsum(axis=0) + 100,  # 模拟开盘价 - 仅用于测试和演示
+        'high': np.random.randn(n_periods, n_stocks).cumsum(axis=0) + 105,  # 模拟最高价 - 仅用于测试和演示
+        'low': np.random.randn(n_periods, n_stocks).cumsum(axis=0) + 95,    # 模拟最低价 - 仅用于测试和演示
+        'close': np.random.randn(n_periods, n_stocks).cumsum(axis=0) + 100  # 模拟收盘价 - 仅用于测试和演示
     })
     
-    # 生成模拟成交量数据
+    # 生成模拟成交量数据 - 仅用于测试，不代表真实交易量
     volume_data = pd.DataFrame(
-        np.random.exponential(1000000, (n_periods, n_stocks)),
+        np.random.exponential(1000000, (n_periods, n_stocks)),  # 使用指数分布模拟成交量 - 仅用于测试和演示
         index=price_data.index,
-        columns=[f'stock_{i}' for i in range(n_stocks)]
+        columns=[f'stock_{i}' for i in range(n_stocks)]  # 生成股票标识符 - 仅用于测试和演示
     )
     
-    # 生成模拟基本面数据
+    # 生成模拟基本面数据 - 模拟数据仅用于演示，不代表真实财务数据
     fundamental_data = {
-        'revenue': pd.DataFrame(np.random.exponential(1000000, (n_periods, n_stocks))),
-        'net_income': pd.DataFrame(np.random.normal(100000, 50000, (n_periods, n_stocks))),
-        'total_assets': pd.DataFrame(np.random.exponential(5000000, (n_periods, n_stocks))),
-        'market_cap': pd.DataFrame(np.random.exponential(1000000000, (n_periods, n_stocks)))
+        'revenue': pd.DataFrame(np.random.exponential(1000000, (n_periods, n_stocks))),      # 模拟营收数据 - 仅用于测试和演示
+        'net_income': pd.DataFrame(np.random.normal(100000, 50000, (n_periods, n_stocks))), # 模拟净利润数据 - 仅用于测试和演示
+        'total_assets': pd.DataFrame(np.random.exponential(5000000, (n_periods, n_stocks))), # 模拟总资产数据 - 仅用于测试和演示
+        'market_cap': pd.DataFrame(np.random.exponential(1000000000, (n_periods, n_stocks))) # 模拟市值数据 - 仅用于测试和演示
     }
     
-    # 计算所有因子
-    start_time = time.time()
+    # 计算所有因子 - 仅用于测试和演示统一因子引擎功能
+    start_time = time.time()  # 记录开始时间 - 仅用于测试和演示
     all_factors = engine.calculate_all_factors(
-        price_data=price_data,
-        volume_data=volume_data,
-        fundamental_data=fundamental_data,
-        factor_types=['technical', 'ml']  # 只计算技术和ML因子以节省时间
+        price_data=price_data,  # 传入模拟价格数据 - 仅用于测试和演示
+        volume_data=volume_data,  # 传入模拟成交量数据 - 仅用于测试和演示
+        fundamental_data=fundamental_data,  # 传入模拟基本面数据 - 仅用于测试和演示
+        factor_types=['technical', 'ml']  # 只计算技术和ML因子以节省时间 - 仅用于测试和演示
     )
     
-    calculation_time = time.time() - start_time
+    calculation_time = time.time() - start_time  # 计算耗时 - 仅用于测试和演示
     print(f"因子计算完成，耗时: {calculation_time:.2f}秒")
     
-    # 清理因子
-    cleaned_factors = engine.clean_factors(all_factors)
+    # 清理因子 - 仅用于测试和演示数据清理功能
+    cleaned_factors = engine.clean_factors(all_factors)  # 清理异常值和缺失值 - 仅用于测试和演示
     print(f"因子清理完成，保留{len(cleaned_factors)}个因子")
     
-    # 生成报告
-    report = engine.generate_factor_report(cleaned_factors)
+    # 生成报告 - 仅用于测试和演示报告生成功能
+    report = engine.generate_factor_report(cleaned_factors)  # 生成因子统计报告 - 仅用于测试和演示
     print("\n" + report)
     
-    # 保存因子数据
-    engine.save_factors(cleaned_factors, "unified_factors_test.csv")
+    # 保存因子数据 - 仅用于测试和演示数据保存功能
+    engine.save_factors(cleaned_factors, "unified_factors_test.csv")  # 保存到CSV文件 - 仅用于测试和演示
     
     print("\n统一因子引擎测试完成！")
 

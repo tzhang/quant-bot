@@ -1419,29 +1419,34 @@
                     try {
                         const latest = data[data.length - 1];
                         
+                        // 安全地格式化数值
+                        const cpuUsage = (typeof latest.cpu_usage === 'number' && !isNaN(latest.cpu_usage)) ? latest.cpu_usage.toFixed(1) : '0.0';
+                        const memoryUsage = (typeof latest.memory_usage === 'number' && !isNaN(latest.memory_usage)) ? latest.memory_usage.toFixed(1) : '0.0';
+                        const diskUsage = (typeof latest.disk_usage === 'number' && !isNaN(latest.disk_usage)) ? latest.disk_usage.toFixed(1) : '0.0';
+                        
                         // 添加数据更新动画效果
                         container.style.opacity = '0.7';
                         
                         container.innerHTML = `
                             <div class="metric" style="animation: slideIn 0.3s ease-out;">
                                 <span class="metric-label">CPU使用率</span>
-                                <span class="metric-value ${latest.cpu_usage > 80 ? 'metric-warning' : ''}">${latest.cpu_usage.toFixed(1)}%</span>
+                                <span class="metric-value ${(latest.cpu_usage || 0) > 80 ? 'metric-warning' : ''}">${cpuUsage}%</span>
                             </div>
                             <div class="metric" style="animation: slideIn 0.3s ease-out 0.1s;">
                                 <span class="metric-label">内存使用率</span>
-                                <span class="metric-value ${latest.memory_usage > 80 ? 'metric-warning' : ''}">${latest.memory_usage.toFixed(1)}%</span>
+                                <span class="metric-value ${(latest.memory_usage || 0) > 80 ? 'metric-warning' : ''}">${memoryUsage}%</span>
                             </div>
                             <div class="metric" style="animation: slideIn 0.3s ease-out 0.2s;">
                                 <span class="metric-label">磁盘使用率</span>
-                                <span class="metric-value ${latest.disk_usage > 80 ? 'metric-warning' : ''}">${latest.disk_usage.toFixed(1)}%</span>
+                                <span class="metric-value ${(latest.disk_usage || 0) > 80 ? 'metric-warning' : ''}">${diskUsage}%</span>
                             </div>
                             <div class="metric" style="animation: slideIn 0.3s ease-out 0.3s;">
                                 <span class="metric-label">活跃连接</span>
-                                <span class="metric-value">${latest.active_connections}</span>
+                                <span class="metric-value">${latest.active_connections || 0}</span>
                             </div>
                             <div class="metric" style="animation: slideIn 0.3s ease-out 0.4s;">
                                 <span class="metric-label">错误数</span>
-                                <span class="metric-value ${latest.error_count > 0 ? 'metric-error' : ''}">${latest.error_count}</span>
+                                <span class="metric-value ${(latest.error_count || 0) > 0 ? 'metric-error' : ''}">${latest.error_count || 0}</span>
                             </div>
                         `;
                         
@@ -1512,6 +1517,9 @@
                     try {
                         const latest = data[data.length - 1];
                         
+                        // 安全地格式化数值 - win_rate已经是百分比形式
+                        const winRateStr = (typeof latest.win_rate === 'number' && !isNaN(latest.win_rate)) ? latest.win_rate.toFixed(1) : '0.0';
+                        
                         // 添加数据更新动画效果
                         container.style.opacity = '0.7';
                         
@@ -1530,17 +1538,17 @@
                             </div>
                             <div class="metric" style="animation: slideIn 0.3s ease-out 0.3s;">
                                 <span class="metric-label">胜率</span>
-                                <span class="metric-value ${latest.win_rate < 0.5 ? 'metric-warning' : ''}">${(latest.win_rate * 100).toFixed(1)}%</span>
+                                <span class="metric-value ${(latest.win_rate || 0) < 0.5 ? 'metric-warning' : ''}">${winRateStr}%</span>
                             </div>
                             <div class="metric" style="animation: slideIn 0.3s ease-out 0.4s;">
                                 <span class="metric-label">总盈利</span>
-                                <span class="metric-value ${latest.total_profit >= 0 ? 'profit-positive' : 'profit-negative'}">
-                                    $${latest.total_profit.toLocaleString()}
+                                <span class="metric-value ${(latest.total_profit || 0) >= 0 ? 'profit-positive' : 'profit-negative'}">
+                                    $${(latest.total_profit || 0).toLocaleString()}
                                 </span>
                             </div>
                             <div class="metric" style="animation: slideIn 0.3s ease-out 0.5s;">
                                 <span class="metric-label">投资组合价值</span>
-                                <span class="metric-value">$${latest.portfolio_value.toLocaleString()}</span>
+                                <span class="metric-value">$${(latest.portfolio_value || 0).toLocaleString()}</span>
                             </div>
                         `;
                         
@@ -1625,12 +1633,12 @@
                         html += `
                             <div class="market-item" style="animation: slideIn 0.3s ease-out;">
                                 <div class="market-symbol">${symbol}</div>
-                                <div class="market-price ${priceClass}">$${info.price.toFixed(2)}</div>
+                                <div class="market-price ${priceClass}">$${(typeof info.price === 'number' && !isNaN(info.price)) ? info.price.toFixed(2) : '0.00'}</div>
                                 <div class="market-change ${changeClass}">
-                                    ${changeSign}${info.change.toFixed(2)} (${changeSign}${info.change_percent.toFixed(2)}%)
+                                    ${changeSign}${(typeof info.change === 'number' && !isNaN(info.change)) ? info.change.toFixed(2) : '0.00'} (${changeSign}${(typeof info.change_percent === 'number' && !isNaN(info.change_percent)) ? info.change_percent.toFixed(2) : '0.00'}%)
                                 </div>
                                 <div class="market-volume ${volumeClass}">
-                                    成交量: ${info.volume.toLocaleString()}
+                                    成交量: ${(info.volume || 0).toLocaleString()}
                                 </div>
                             </div>
                         `;
@@ -1906,7 +1914,10 @@
             data.forEach(item => {
                 const time = new Date(item.timestamp).toLocaleTimeString();
                 tradingChart.data.labels.push(time);
-                tradingChart.data.datasets[0].data.push(item.portfolio_value);
+                
+                // 安全地处理portfolio_value
+                const portfolioValue = (typeof item.portfolio_value === 'number' && !isNaN(item.portfolio_value)) ? item.portfolio_value : 0;
+                tradingChart.data.datasets[0].data.push(portfolioValue);
                 
                 // 保持最多20个数据点
                 if (tradingChart.data.labels.length > 20) {
@@ -1990,7 +2001,8 @@
         // 渲染订单数据的辅助函数
         function renderOrderData(data, tbody) {
             scheduleDOMUpdate(() => {
-                if (!data || data.length === 0) {
+                // 检查数据类型和有效性
+                if (!data || !Array.isArray(data) || data.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #666;"><div class="empty-state">📋 暂无订单数据</div></td></tr>';
                     return;
                 }
@@ -2002,14 +2014,16 @@
                                       order.status === 'PENDING' ? 'status-pending' : 
                                       order.status === 'CANCELLED' ? 'status-cancelled' : 'status-partial';
                     
-                    const profitLossClass = order.profit_loss > 0 ? 'profit-positive' : 
-                                          order.profit_loss < 0 ? 'profit-negative' : '';
+                    // 安全地处理profit_loss
+                    const profitLoss = (typeof order.profit_loss === 'number' && !isNaN(order.profit_loss)) ? order.profit_loss : 0;
+                    const profitLossClass = profitLoss > 0 ? 'profit-positive' : 
+                                          profitLoss < 0 ? 'profit-negative' : '';
                     
                     // 添加风险警告样式
                     let riskClass = '';
-                    if (order.profit_loss < -1000) {
+                    if (profitLoss < -1000) {
                         riskClass = 'high-risk';
-                    } else if (order.profit_loss < -500) {
+                    } else if (profitLoss < -500) {
                         riskClass = 'medium-risk';
                     }
                     
@@ -2019,12 +2033,12 @@
                             <td>${order.symbol}</td>
                             <td class="side-${order.side.toLowerCase()}">${order.side}</td>
                             <td>${order.quantity}</td>
-                            <td>$${order.price.toFixed(2)}</td>
+                            <td>$${(typeof order.price === 'number' && !isNaN(order.price)) ? order.price.toFixed(2) : '0.00'}</td>
                             <td>${order.order_type}</td>
                             <td><span class="status-badge ${statusClass}">${order.status}</span></td>
                             <td>${time}</td>
                             <td class="${profitLossClass}">
-                                ${order.profit_loss !== null ? '$' + order.profit_loss.toFixed(2) : '-'}
+                                ${order.profit_loss !== null && typeof order.profit_loss === 'number' && !isNaN(order.profit_loss) ? '$' + order.profit_loss.toFixed(2) : '-'}
                             </td>
                         </tr>
                     `;

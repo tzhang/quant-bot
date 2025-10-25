@@ -30,13 +30,13 @@ from src.ml.feature_validation import (
 )
 
 def create_sample_data(n_samples=1000):
-    """创建示例金融数据"""
+    """创建示例金融数据 - 仅用于测试和演示"""
     print("创建示例金融数据...")
     
     # 生成时间序列
     dates = pd.date_range(start='2020-01-01', periods=n_samples, freq='D')
     
-    # 生成基础价格数据
+    # 生成基础价格数据 - 模拟数据仅用于演示
     np.random.seed(42)
     price = 100 + np.cumsum(np.random.randn(n_samples) * 0.02)
     volume = np.random.lognormal(10, 0.5, n_samples)

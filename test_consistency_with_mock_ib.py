@@ -23,19 +23,19 @@ logger = logging.getLogger(__name__)
 
 
 def create_mock_ib_data(symbol: str, days: int = 22) -> pd.DataFrame:
-    """创建模拟的IB数据"""
-    # 生成日期范围
+    """创建模拟的IB数据 - 仅用于测试和演示"""
+    # 生成日期范围 - 模拟数据仅用于测试
     end_date = datetime.now()
     start_date = end_date - timedelta(days=days)
     
-    # 生成交易日（排除周末）
+    # 生成交易日（排除周末）- 模拟数据仅用于演示
     date_range = pd.bdate_range(start=start_date, end=end_date)
     
-    # 生成模拟价格数据
+    # 生成模拟价格数据 - 仅用于测试
     np.random.seed(42)  # 确保可重复性
     base_price = 150.0
     
-    # 生成随机价格变化
+    # 生成随机价格变化 - 模拟数据仅用于演示
     price_changes = np.random.normal(0, 0.02, len(date_range))  # 2%标准差
     prices = [base_price]
     
@@ -43,14 +43,14 @@ def create_mock_ib_data(symbol: str, days: int = 22) -> pd.DataFrame:
         new_price = prices[-1] * (1 + change)
         prices.append(new_price)
     
-    # 创建OHLCV数据
+    # 创建OHLCV数据 - 模拟数据仅用于测试
     data = []
     for i, (date, close_price) in enumerate(zip(date_range, prices)):
-        # 生成开盘、最高、最低价
+        # 生成开盘、最高、最低价 - 模拟数据仅用于演示
         open_price = close_price * (1 + np.random.normal(0, 0.005))
         high_price = max(open_price, close_price) * (1 + abs(np.random.normal(0, 0.01)))
         low_price = min(open_price, close_price) * (1 - abs(np.random.normal(0, 0.01)))
-        volume = int(np.random.normal(1000000, 200000))  # 平均100万股交易量
+        volume = int(np.random.normal(1000000, 200000))  # 平均100万股交易量 - 仅用于测试
         
         data.append({
             'open': open_price,

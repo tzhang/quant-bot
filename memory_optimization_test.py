@@ -103,7 +103,7 @@ class MemoryMonitor:
         return consumers
 
 def create_memory_efficient_data(num_symbols: int, days: int, chunk_size: int = 10) -> Dict[str, pd.DataFrame]:
-    """创建内存高效的测试数据"""
+    """创建内存高效的测试数据 - 仅用于测试和演示"""
     print(f"创建 {num_symbols} 个股票 {days} 天的数据 (分块处理)...")
     
     market_data = {}
@@ -117,9 +117,9 @@ def create_memory_efficient_data(num_symbols: int, days: int, chunk_size: int = 
             symbol = f"STOCK_{i:03d}"
             dates = pd.date_range(start=start_date, periods=days, freq='D')
             
-            # 使用更节省内存的数据类型
+            # 使用更节省内存的数据类型 - 模拟数据仅用于演示
             np.random.seed(i)
-            returns = np.random.normal(0.001, 0.02, days).astype(np.float32)
+            returns = np.random.normal(0.001, 0.02, days).astype(np.float32)  # 模拟收益率仅用于测试
             prices = np.zeros(days, dtype=np.float32)
             prices[0] = 100.0
             
@@ -129,10 +129,10 @@ def create_memory_efficient_data(num_symbols: int, days: int, chunk_size: int = 
             # 使用适当的数据类型
             market_data[symbol] = pd.DataFrame({
                 'open': prices,
-                'high': (prices * (1 + np.random.uniform(0, 0.02, days))).astype(np.float32),
-                'low': (prices * (1 - np.random.uniform(0, 0.02, days))).astype(np.float32),
+                'high': (prices * (1 + np.random.uniform(0, 0.02, days))).astype(np.float32),  # 模拟高价仅用于测试
+                'low': (prices * (1 - np.random.uniform(0, 0.02, days))).astype(np.float32),   # 模拟低价仅用于测试
                 'close': prices,
-                'volume': np.random.randint(10000, 100000, days, dtype=np.int32)
+                'volume': np.random.randint(10000, 100000, days, dtype=np.int32)  # 模拟成交量仅用于测试
             }, index=dates)
         
         # 强制垃圾回收

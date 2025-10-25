@@ -5,8 +5,9 @@ from src.factors import FactorEngine
 
 
 def make_dummy_ohlcv(n: int = 300, seed: int = 42) -> pd.DataFrame:
+    """生成模拟OHLCV数据 - 仅用于测试和演示"""
     rng = np.random.default_rng(seed)
-    # Generate returns with small drift
+    # Generate returns with small drift - 模拟数据仅用于测试
     rets = rng.normal(loc=0.0005, scale=0.01, size=n)
     prices = 100 * np.exp(np.cumsum(rets))
     close = pd.Series(prices)

@@ -83,39 +83,39 @@ class ComprehensiveFactorTest:
         self._generate_test_data()
     
     def _generate_test_data(self):
-        """生成测试数据"""
+        """生成测试数据 - 仅用于测试和演示"""
         try:
             logger.info("开始生成测试数据...")
             
-            # 生成日期索引
+            # 生成日期索引 - 模拟数据仅用于测试
             dates = pd.date_range('2020-01-01', periods=self.n_periods, freq='D')
             
-            # 生成股票代码
+            # 生成股票代码 - 模拟数据仅用于演示
             stocks = [f'STOCK_{i:03d}' for i in range(self.n_stocks)]
             
-            # 生成价格数据 (随机游走)
+            # 生成价格数据 (随机游走) - 模拟数据仅用于演示
             np.random.seed(self.random_seed)
             returns = np.random.normal(0.001, 0.02, (self.n_periods, self.n_stocks))
             prices = 100 * np.exp(np.cumsum(returns, axis=0))
             
-            # 创建价格DataFrame
+            # 创建价格DataFrame - 模拟数据仅用于测试
             self.price_data = pd.DataFrame(prices, index=dates, columns=stocks)
             
-            # 生成OHLC数据
+            # 生成OHLC数据 - 模拟数据仅用于演示
             self.ohlc_data = pd.DataFrame(index=dates)
             self.ohlc_data['close'] = self.price_data.iloc[:, 0]  # 使用第一只股票
             self.ohlc_data['open'] = self.ohlc_data['close'].shift(1) * (1 + np.random.normal(0, 0.005, len(dates)))
             self.ohlc_data['high'] = np.maximum(self.ohlc_data['open'], self.ohlc_data['close']) * (1 + np.abs(np.random.normal(0, 0.01, len(dates))))
             self.ohlc_data['low'] = np.minimum(self.ohlc_data['open'], self.ohlc_data['close']) * (1 - np.abs(np.random.normal(0, 0.01, len(dates))))
             
-            # 生成成交量数据
+            # 生成成交量数据 - 模拟数据仅用于测试
             volumes = np.random.lognormal(10, 1, (self.n_periods, self.n_stocks))
             self.volume_data = pd.DataFrame(volumes, index=dates, columns=stocks)
             
-            # 生成收益率数据
+            # 生成收益率数据 - 模拟数据仅用于演示
             self.returns_data = self.price_data.pct_change().fillna(0)
             
-            # 生成基本面数据
+            # 生成基本面数据 - 模拟数据仅用于测试
             self.fundamental_data = {
                 'financial_metrics': pd.DataFrame({
                     'pe_ratio': np.random.uniform(5, 50, self.n_stocks),

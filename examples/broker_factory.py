@@ -149,32 +149,27 @@ class AlpacaAdapter(TradingSystemInterface):
         return performance
 
 class MockTradingSystem(TradingSystemInterface):
-    """模拟交易系统 - 用于演示和测试"""
+    """模拟交易系统 - 仅用于测试和演示"""
     
     def __init__(self, broker_name: str = "Mock"):
         self.broker_name = broker_name
         self.connected = False
         self.mock_portfolio_value = 100000.0
+        # 模拟投资组合数据 - 仅用于演示
         self.mock_positions = [
             {
                 'symbol': 'AAPL',
                 'quantity': 100,
                 'market_value': 15000.0,
-                'cost_basis': 14500.0,
-                'unrealized_pl': 500.0,
-                'unrealized_plpc': 3.45,
-                'current_price': 150.0,
-                'side': 'long'
+                'unrealized_pnl': 500.0,
+                'avg_cost': 145.0
             },
             {
-                'symbol': 'GOOGL',
-                'quantity': 50,
-                'market_value': 12500.0,
-                'cost_basis': 12000.0,
-                'unrealized_pl': 500.0,
-                'unrealized_plpc': 4.17,
-                'current_price': 250.0,
-                'side': 'long'
+                'symbol': 'GOOGL', 
+                'quantity': 10,
+                'market_value': 25000.0,
+                'unrealized_pnl': -200.0,
+                'avg_cost': 2520.0
             }
          ]
     

@@ -126,7 +126,7 @@ class TestSystemIntegration(IntegrationTestBase):
         """测试行情数据流程"""
         logger.info("测试行情数据流程")
         
-        # 模拟行情数据
+        # 模拟行情数据 - 仅用于测试和演示
         mock_instance = Mock()
         mock_firstrade.return_value = mock_instance
         mock_instance.get_quote.return_value = {

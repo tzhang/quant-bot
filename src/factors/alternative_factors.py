@@ -108,106 +108,106 @@ class AlternativeFactorCalculator:
         return factors
     
     def _generate_satellite_parking_data(self, dates: pd.DatetimeIndex, company: str) -> pd.Series:
-        """生成模拟停车场卫星数据"""
-        np.random.seed(hash(company) % 2**32)
+        """生成模拟停车场卫星数据 - 仅用于测试和演示"""
+        np.random.seed(hash(company) % 2**32)  # 仅用于测试和演示
         
-        # 基础占用率
+        # 基础占用率 - 仅用于测试和演示
         base_occupancy = 0.6
         
-        # 周末效应
+        # 周末效应 - 仅用于测试和演示
         weekend_effect = np.array([0.8 if d.weekday() >= 5 else 1.0 for d in dates])
         
-        # 季节性效应
+        # 季节性效应 - 仅用于测试和演示
         seasonal_effect = 1 + 0.2 * np.sin(2 * np.pi * np.arange(len(dates)) / 365.25)
         
-        # 随机波动
+        # 随机波动 - 仅用于测试和演示
         random_noise = np.random.normal(0, 0.1, len(dates))
         
-        occupancy = base_occupancy * weekend_effect * seasonal_effect + random_noise
-        occupancy = np.clip(occupancy, 0, 1)  # 限制在0-1之间
+        occupancy = base_occupancy * weekend_effect * seasonal_effect + random_noise  # 仅用于测试和演示
+        occupancy = np.clip(occupancy, 0, 1)  # 限制在0-1之间 - 仅用于测试和演示
         
         return pd.Series(occupancy, index=dates, name=f'{company}_parking_occupancy')
     
     def _generate_satellite_factory_data(self, dates: pd.DatetimeIndex, company: str) -> pd.Series:
-        """生成模拟工厂活动卫星数据"""
-        np.random.seed(hash(company + 'factory') % 2**32)
+        """生成模拟工厂活动卫星数据 - 仅用于测试和演示"""
+        np.random.seed(hash(company + 'factory') % 2**32)  # 仅用于测试和演示
         
-        # 基础活动强度
+        # 基础活动强度 - 仅用于测试和演示
         base_activity = 0.7
         
-        # 工作日效应
+        # 工作日效应 - 仅用于测试和演示
         workday_effect = np.array([0.3 if d.weekday() >= 5 else 1.0 for d in dates])
         
-        # 月度周期 (月末通常活动更强)
+        # 月度周期 (月末通常活动更强) - 仅用于测试和演示
         monthly_cycle = 1 + 0.15 * np.sin(2 * np.pi * np.array([d.day for d in dates]) / 30)
         
-        # 随机波动
+        # 随机波动 - 仅用于测试和演示
         random_noise = np.random.normal(0, 0.08, len(dates))
         
-        activity = base_activity * workday_effect * monthly_cycle + random_noise
-        activity = np.clip(activity, 0, 1)
+        activity = base_activity * workday_effect * monthly_cycle + random_noise  # 仅用于测试和演示
+        activity = np.clip(activity, 0, 1)  # 仅用于测试和演示
         
         return pd.Series(activity, index=dates, name=f'{company}_factory_activity')
     
     def _generate_satellite_logistics_data(self, dates: pd.DatetimeIndex, company: str) -> pd.Series:
-        """生成模拟物流中心卫星数据"""
-        np.random.seed(hash(company + 'logistics') % 2**32)
+        """生成模拟物流中心卫星数据 - 仅用于测试和演示"""
+        np.random.seed(hash(company + 'logistics') % 2**32)  # 仅用于测试和演示
         
-        # 基础物流活动
+        # 基础物流活动 - 仅用于测试和演示
         base_logistics = 0.65
         
-        # 购物季效应 (11月-12月活动增强)
+        # 购物季效应 (11月-12月活动增强) - 仅用于测试和演示
         shopping_season = np.array([1.5 if d.month in [11, 12] else 1.0 for d in dates])
         
-        # 周内效应 (周一到周三较高)
+        # 周内效应 (周一到周三较高) - 仅用于测试和演示
         weekly_pattern = np.array([1.2 if d.weekday() < 3 else 0.8 for d in dates])
         
-        # 随机波动
+        # 随机波动 - 仅用于测试和演示
         random_noise = np.random.normal(0, 0.1, len(dates))
         
-        logistics = base_logistics * shopping_season * weekly_pattern + random_noise
-        logistics = np.clip(logistics, 0, 2)
+        logistics = base_logistics * shopping_season * weekly_pattern + random_noise  # 仅用于测试和演示
+        logistics = np.clip(logistics, 0, 2)  # 仅用于测试和演示
         
         return pd.Series(logistics, index=dates, name=f'{company}_logistics_activity')
     
     def _generate_satellite_construction_data(self, dates: pd.DatetimeIndex, company: str) -> pd.Series:
-        """生成模拟建筑工地卫星数据"""
-        np.random.seed(hash(company + 'construction') % 2**32)
+        """生成模拟建筑工地卫星数据 - 仅用于测试和演示"""
+        np.random.seed(hash(company + 'construction') % 2**32)  # 仅用于测试和演示
         
-        # 基础建设进度
+        # 基础建设进度 - 仅用于测试和演示
         base_progress = 0.5
         
-        # 天气效应 (冬季建设活动减少)
+        # 天气效应 (冬季建设活动减少) - 仅用于测试和演示
         weather_effect = np.array([0.6 if d.month in [12, 1, 2] else 1.0 for d in dates])
         
-        # 渐进式增长 (项目随时间推进)
+        # 渐进式增长 (项目随时间推进) - 仅用于测试和演示
         progress_trend = 1 + 0.3 * np.arange(len(dates)) / len(dates)
         
-        # 随机波动
+        # 随机波动 - 仅用于测试和演示
         random_noise = np.random.normal(0, 0.05, len(dates))
         
-        progress = base_progress * weather_effect * progress_trend + random_noise
-        progress = np.clip(progress, 0, 1)
+        progress = base_progress * weather_effect * progress_trend + random_noise  # 仅用于测试和演示
+        progress = np.clip(progress, 0, 1)  # 仅用于测试和演示
         
         return pd.Series(progress, index=dates, name=f'{company}_construction_progress')
     
     def _generate_satellite_crop_data(self, dates: pd.DatetimeIndex, company: str) -> pd.Series:
-        """生成模拟农作物健康度卫星数据"""
-        np.random.seed(hash(company + 'crop') % 2**32)
+        """生成模拟农作物健康度卫星数据 - 仅用于测试和演示"""
+        np.random.seed(hash(company + 'crop') % 2**32)  # 仅用于测试和演示
         
-        # 基础作物健康度
+        # 基础作物健康度 - 仅用于测试和演示
         base_health = 0.75
         
-        # 季节性效应 (春夏较好，秋冬较差)
+        # 季节性效应 (春夏较好，秋冬较差) - 仅用于测试和演示
         seasonal_health = 1 + 0.3 * np.sin(2 * np.pi * (np.arange(len(dates)) - 90) / 365.25)
         
-        # 天气随机冲击
+        # 天气随机冲击 - 仅用于测试和演示
         weather_shocks = np.random.normal(0, 0.1, len(dates))
-        extreme_weather = np.random.random(len(dates)) < 0.05  # 5%概率极端天气
-        weather_shocks[extreme_weather] *= 3
+        extreme_weather = np.random.random(len(dates)) < 0.05  # 5%概率极端天气 - 仅用于测试和演示
+        weather_shocks[extreme_weather] *= 3  # 仅用于测试和演示
         
-        health = base_health * seasonal_health + weather_shocks
-        health = np.clip(health, 0, 1)
+        health = base_health * seasonal_health + weather_shocks  # 仅用于测试和演示
+        health = np.clip(health, 0, 1)  # 仅用于测试和演示
         
         return pd.Series(health, index=dates, name=f'{company}_crop_health')
     
@@ -253,97 +253,97 @@ class AlternativeFactorCalculator:
         return factors
     
     def _generate_patent_applications(self, dates: pd.DatetimeIndex, company: str) -> pd.Series:
-        """生成模拟专利申请数据"""
-        np.random.seed(hash(company + 'patent_app') % 2**32)
+        """生成模拟专利申请数据 - 仅用于测试和演示"""
+        np.random.seed(hash(company + 'patent_app') % 2**32)  # 仅用于测试和演示
         
-        # 基础申请数量 (根据公司规模调整)
+        # 基础申请数量 (根据公司规模调整) - 仅用于测试和演示
         company_scale = {'AAPL': 100, 'GOOGL': 120, 'MSFT': 110, 'AMZN': 80, 'TSLA': 60}
-        base_applications = company_scale.get(company, 50)
+        base_applications = company_scale.get(company, 50)  # 仅用于测试和演示
         
-        # 季度周期 (通常Q4申请较多)
+        # 季度周期 (通常Q4申请较多) - 仅用于测试和演示
         quarterly_pattern = np.array([1.2 if d.month in [10, 11, 12] else 1.0 for d in dates])
         
-        # 趋势增长
+        # 趋势增长 - 仅用于测试和演示
         trend_growth = 1 + 0.05 * np.arange(len(dates)) / len(dates)
         
-        # 随机波动
+        # 随机波动 - 仅用于测试和演示
         random_variation = np.random.poisson(base_applications, len(dates))
         
-        applications = random_variation * quarterly_pattern * trend_growth
+        applications = random_variation * quarterly_pattern * trend_growth  # 仅用于测试和演示
         
         return pd.Series(applications, index=dates, name=f'{company}_patent_applications')
     
     def _generate_patent_grants(self, dates: pd.DatetimeIndex, company: str) -> pd.Series:
-        """生成模拟专利授权数据"""
-        np.random.seed(hash(company + 'patent_grant') % 2**32)
+        """生成模拟专利授权数据 - 仅用于测试和演示"""
+        np.random.seed(hash(company + 'patent_grant') % 2**32)  # 仅用于测试和演示
         
-        # 专利授权通常滞后申请18-24个月
+        # 专利授权通常滞后申请18-24个月 - 仅用于测试和演示
         applications = self._generate_patent_applications(dates, company)
         
-        # 授权率约60-80%
+        # 授权率约60-80% - 仅用于测试和演示
         grant_rate = np.random.uniform(0.6, 0.8)
         
-        # 添加滞后效应
-        grants = applications.shift(6) * grant_rate  # 6个月滞后
-        grants = grants.fillna(applications.iloc[0] * grant_rate)
+        # 添加滞后效应 - 仅用于测试和演示
+        grants = applications.shift(6) * grant_rate  # 6个月滞后 - 仅用于测试和演示
+        grants = grants.fillna(applications.iloc[0] * grant_rate)  # 仅用于测试和演示
         
-        # 添加随机波动
+        # 添加随机波动 - 仅用于测试和演示
         grants *= np.random.normal(1, 0.1, len(dates))
-        grants = np.maximum(grants, 0)  # 确保非负
+        grants = np.maximum(grants, 0)  # 确保非负 - 仅用于测试和演示
         
         return pd.Series(grants, index=dates, name=f'{company}_patent_grants')
     
     def _generate_patent_quality(self, dates: pd.DatetimeIndex, company: str) -> pd.Series:
-        """生成模拟专利质量数据"""
-        np.random.seed(hash(company + 'patent_quality') % 2**32)
+        """生成模拟专利质量数据 - 仅用于测试和演示"""
+        np.random.seed(hash(company + 'patent_quality') % 2**32)  # 仅用于测试和演示
         
-        # 基础质量分数 (1-10分)
+        # 基础质量分数 (1-10分) - 仅用于测试和演示
         base_quality = np.random.uniform(6, 9)
         
-        # 质量随时间缓慢提升
+        # 质量随时间缓慢提升 - 仅用于测试和演示
         quality_trend = base_quality + 0.5 * np.arange(len(dates)) / len(dates)
         
-        # 随机波动
+        # 随机波动 - 仅用于测试和演示
         quality_noise = np.random.normal(0, 0.3, len(dates))
         
-        quality = quality_trend + quality_noise
-        quality = np.clip(quality, 1, 10)
+        quality = quality_trend + quality_noise  # 仅用于测试和演示
+        quality = np.clip(quality, 1, 10)  # 仅用于测试和演示
         
         return pd.Series(quality, index=dates, name=f'{company}_patent_quality')
     
     def _generate_tech_diversity(self, dates: pd.DatetimeIndex, company: str) -> pd.Series:
-        """生成模拟技术多样性数据"""
-        np.random.seed(hash(company + 'tech_div') % 2**32)
+        """生成模拟技术多样性数据 - 仅用于测试和演示"""
+        np.random.seed(hash(company + 'tech_div') % 2**32)  # 仅用于测试和演示
         
-        # 技术领域数量 (Shannon多样性指数)
+        # 技术领域数量 (Shannon多样性指数) - 仅用于测试和演示
         base_diversity = np.random.uniform(2, 4)
         
-        # 多样性随公司发展增加
+        # 多样性随公司发展增加 - 仅用于测试和演示
         diversity_growth = base_diversity + 0.3 * np.arange(len(dates)) / len(dates)
         
-        # 随机波动
+        # 随机波动 - 仅用于测试和演示
         diversity_noise = np.random.normal(0, 0.1, len(dates))
         
-        diversity = diversity_growth + diversity_noise
-        diversity = np.maximum(diversity, 1)
+        diversity = diversity_growth + diversity_noise  # 仅用于测试和演示
+        diversity = np.maximum(diversity, 1)  # 仅用于测试和演示
         
         return pd.Series(diversity, index=dates, name=f'{company}_tech_diversity')
     
     def _generate_innovation_intensity(self, dates: pd.DatetimeIndex, company: str) -> pd.Series:
-        """生成模拟创新强度数据"""
-        np.random.seed(hash(company + 'innovation') % 2**32)
+        """生成模拟创新强度数据 - 仅用于测试和演示"""
+        np.random.seed(hash(company + 'innovation') % 2**32)  # 仅用于测试和演示
         
-        # 创新强度 (专利数量/研发支出的比率)
+        # 创新强度 (专利数量/研发支出的比率) - 仅用于测试和演示
         base_intensity = np.random.uniform(0.5, 2.0)
         
-        # 效率随时间提升
+        # 效率随时间提升 - 仅用于测试和演示
         efficiency_trend = base_intensity * (1 + 0.1 * np.arange(len(dates)) / len(dates))
         
-        # 随机波动
+        # 随机波动 - 仅用于测试和演示
         intensity_noise = np.random.normal(0, 0.1, len(dates))
         
-        intensity = efficiency_trend + intensity_noise
-        intensity = np.maximum(intensity, 0.1)
+        intensity = efficiency_trend + intensity_noise  # 仅用于测试和演示
+        intensity = np.maximum(intensity, 0.1)  # 仅用于测试和演示
         
         return pd.Series(intensity, index=dates, name=f'{company}_innovation_intensity')
     
@@ -389,33 +389,33 @@ class AlternativeFactorCalculator:
         return factors
     
     def _generate_mock_search_trends(self, dates: pd.DatetimeIndex, keywords: List[str]) -> Dict[str, pd.Series]:
-        """生成模拟搜索趋势数据"""
+        """生成模拟搜索趋势数据 - 仅用于测试和演示"""
         factors = {}
         
         for keyword in keywords:
-            np.random.seed(hash(keyword) % 2**32)
+            np.random.seed(hash(keyword) % 2**32)  # 设置随机种子 - 模拟数据仅用于测试
             
-            # 基础搜索热度
+            # 基础搜索热度 - 模拟数据仅用于演示
             base_interest = np.random.uniform(30, 80)
             
-            # 季节性模式
+            # 季节性模式 - 模拟数据仅用于测试
             seasonal_pattern = 1 + 0.2 * np.sin(2 * np.pi * np.arange(len(dates)) / 52)
             
-            # 随机事件冲击
+            # 随机事件冲击 - 模拟数据仅用于演示
             event_shocks = np.random.normal(0, 10, len(dates))
-            rare_events = np.random.random(len(dates)) < 0.05  # 5%概率重大事件
+            rare_events = np.random.random(len(dates)) < 0.05  # 5%概率重大事件 - 仅用于测试
             event_shocks[rare_events] *= 3
             
-            # 趋势
+            # 趋势 - 仅用于测试和演示
             trend = np.random.uniform(-0.1, 0.1) * np.arange(len(dates))
             
-            search_interest = base_interest * seasonal_pattern + event_shocks + trend
-            search_interest = np.clip(search_interest, 0, 100)
+            search_interest = base_interest * seasonal_pattern + event_shocks + trend  # 仅用于测试和演示
+            search_interest = np.clip(search_interest, 0, 100)  # 仅用于测试和演示
             
-            search_series = pd.Series(search_interest, index=dates, name=f'search_{keyword.lower()}')
-            factors[f'search_{keyword.lower()}'] = search_series
-            factors[f'search_{keyword.lower()}_momentum'] = search_series.pct_change(4)
-            factors[f'search_{keyword.lower()}_volatility'] = search_series.rolling(4).std()
+            search_series = pd.Series(search_interest, index=dates, name=f'search_{keyword.lower()}')  # 仅用于测试和演示
+            factors[f'search_{keyword.lower()}'] = search_series  # 仅用于测试和演示
+            factors[f'search_{keyword.lower()}_momentum'] = search_series.pct_change(4)  # 仅用于测试和演示
+            factors[f'search_{keyword.lower()}_volatility'] = search_series.rolling(4).std()  # 仅用于测试和演示
         
         return factors
     
@@ -457,76 +457,76 @@ class AlternativeFactorCalculator:
         return factors
     
     def _generate_news_sentiment(self, dates: pd.DatetimeIndex, company: str) -> pd.Series:
-        """生成模拟新闻情感数据"""
-        np.random.seed(hash(company + 'sentiment') % 2**32)
+        """生成模拟新闻情感数据 - 仅用于测试和演示"""
+        np.random.seed(hash(company + 'sentiment') % 2**32)  # 仅用于测试和演示
         
-        # 基础情感分数 (-1到1之间)
+        # 基础情感分数 (-1到1之间) - 仅用于测试和演示
         base_sentiment = np.random.uniform(-0.1, 0.1)
         
-        # 随机情感波动
+        # 随机情感波动 - 仅用于测试和演示
         sentiment_changes = np.random.normal(0, 0.1, len(dates))
         
-        # 偶发重大事件
-        major_events = np.random.random(len(dates)) < 0.02  # 2%概率重大事件
-        sentiment_changes[major_events] += np.random.choice([-0.5, 0.5], sum(major_events))
+        # 偶发重大事件 - 仅用于测试和演示
+        major_events = np.random.random(len(dates)) < 0.02  # 2%概率重大事件 - 仅用于测试和演示
+        sentiment_changes[major_events] += np.random.choice([-0.5, 0.5], sum(major_events))  # 仅用于测试和演示
         
-        # 累积情感分数
+        # 累积情感分数 - 仅用于测试和演示
         sentiment = base_sentiment + np.cumsum(sentiment_changes * 0.1)
-        sentiment = np.clip(sentiment, -1, 1)
+        sentiment = np.clip(sentiment, -1, 1)  # 仅用于测试和演示
         
         return pd.Series(sentiment, index=dates, name=f'{company}_news_sentiment')
     
     def _generate_news_volume(self, dates: pd.DatetimeIndex, company: str) -> pd.Series:
-        """生成模拟新闻数量数据"""
-        np.random.seed(hash(company + 'volume') % 2**32)
+        """生成模拟新闻数量数据 - 仅用于测试和演示"""
+        np.random.seed(hash(company + 'volume') % 2**32)  # 仅用于测试和演示
         
-        # 基础新闻数量
+        # 基础新闻数量 - 仅用于测试和演示
         base_volume = np.random.poisson(10, len(dates))
         
-        # 工作日效应
+        # 工作日效应 - 仅用于测试和演示
         weekday_effect = np.array([0.5 if d.weekday() >= 5 else 1.0 for d in dates])
         
-        # 财报季效应
+        # 财报季效应 - 仅用于测试和演示
         earnings_season = np.array([2.0 if d.month in [1, 4, 7, 10] else 1.0 for d in dates])
         
-        volume = base_volume * weekday_effect * earnings_season
+        volume = base_volume * weekday_effect * earnings_season  # 仅用于测试和演示
         
         return pd.Series(volume, index=dates, name=f'{company}_news_volume')
     
     def _generate_positive_news_ratio(self, dates: pd.DatetimeIndex, company: str) -> pd.Series:
-        """生成模拟正面新闻比例数据"""
-        np.random.seed(hash(company + 'positive') % 2**32)
+        """生成模拟正面新闻比例数据 - 仅用于测试和演示"""
+        np.random.seed(hash(company + 'positive') % 2**32)  # 仅用于测试和演示
         
-        # 基础正面比例
+        # 基础正面比例 - 仅用于测试和演示
         base_ratio = np.random.uniform(0.4, 0.7)
         
-        # 随机波动
+        # 随机波动 - 仅用于测试和演示
         ratio_noise = np.random.normal(0, 0.1, len(dates))
         
-        # 市场情绪影响
+        # 市场情绪影响 - 仅用于测试和演示
         market_sentiment = np.sin(2 * np.pi * np.arange(len(dates)) / 365) * 0.1
         
-        ratio = base_ratio + ratio_noise + market_sentiment
-        ratio = np.clip(ratio, 0, 1)
+        ratio = base_ratio + ratio_noise + market_sentiment  # 仅用于测试和演示
+        ratio = np.clip(ratio, 0, 1)  # 仅用于测试和演示
         
         return pd.Series(ratio, index=dates, name=f'{company}_positive_news_ratio')
     
     def _generate_news_attention(self, dates: pd.DatetimeIndex, company: str) -> pd.Series:
-        """生成模拟新闻关注度数据"""
-        np.random.seed(hash(company + 'attention') % 2**32)
+        """生成模拟新闻关注度数据 - 仅用于测试和演示"""
+        np.random.seed(hash(company + 'attention') % 2**32)  # 仅用于测试和演示
         
-        # 基础关注度
+        # 基础关注度 - 仅用于测试和演示
         base_attention = np.random.uniform(50, 100)
         
-        # 与新闻数量相关
+        # 与新闻数量相关 - 仅用于测试和演示
         news_volume = self._generate_news_volume(dates, company)
-        volume_effect = news_volume / news_volume.mean()
+        volume_effect = news_volume / news_volume.mean()  # 仅用于测试和演示
         
-        # 随机波动
+        # 随机波动 - 仅用于测试和演示
         attention_noise = np.random.normal(0, 10, len(dates))
         
-        attention = base_attention * volume_effect + attention_noise
-        attention = np.maximum(attention, 0)
+        attention = base_attention * volume_effect + attention_noise  # 仅用于测试和演示
+        attention = np.maximum(attention, 0)  # 仅用于测试和演示
         
         return pd.Series(attention, index=dates, name=f'{company}_news_attention')
     

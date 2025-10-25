@@ -647,56 +647,56 @@ class MultiFactorStrategy:
         return report
 
 def main():
-    """示例用法"""
+    """示例用法 - 仅用于测试和演示多因子策略功能"""
     print("多因子组合策略示例")
     
-    # 创建模拟数据
-    dates = pd.date_range('2020-01-01', '2023-12-31', freq='D')
-    n_periods = len(dates)
+    # 创建模拟数据 - 仅用于测试和演示
+    dates = pd.date_range('2020-01-01', '2023-12-31', freq='D')  # 生成日期范围 - 仅用于测试和演示
+    n_periods = len(dates)  # 计算时间序列长度 - 仅用于测试和演示
     
-    np.random.seed(42)
+    np.random.seed(42)  # 设置随机种子确保结果可重现 - 仅用于测试和演示
     
-    # 模拟价格数据
+    # 模拟价格数据 - 仅用于测试和演示，不代表真实市场数据
     price_data = pd.DataFrame({
-        'open': np.random.uniform(95, 105, n_periods),
-        'high': np.random.uniform(100, 110, n_periods),
-        'low': np.random.uniform(90, 100, n_periods),
-        'close': np.random.uniform(95, 105, n_periods),
+        'open': np.random.uniform(95, 105, n_periods),   # 生成开盘价 - 仅用于测试和演示
+        'high': np.random.uniform(100, 110, n_periods),  # 生成最高价 - 仅用于测试和演示
+        'low': np.random.uniform(90, 100, n_periods),    # 生成最低价 - 仅用于测试和演示
+        'close': np.random.uniform(95, 105, n_periods),  # 生成收盘价 - 仅用于测试和演示
     }, index=dates)
     
-    # 添加趋势
-    trend = np.cumsum(np.random.normal(0.001, 0.02, n_periods))
-    price_data['close'] = 100 * np.exp(trend)
-    price_data['open'] = price_data['close'] * np.random.uniform(0.99, 1.01, n_periods)
-    price_data['high'] = price_data[['open', 'close']].max(axis=1) * np.random.uniform(1.0, 1.02, n_periods)
-    price_data['low'] = price_data[['open', 'close']].min(axis=1) * np.random.uniform(0.98, 1.0, n_periods)
+    # 添加趋势 - 仅用于测试和演示
+    trend = np.cumsum(np.random.normal(0.001, 0.02, n_periods))  # 生成累积趋势 - 仅用于测试和演示
+    price_data['close'] = 100 * np.exp(trend)  # 应用指数趋势到收盘价 - 仅用于测试和演示
+    price_data['open'] = price_data['close'] * np.random.uniform(0.99, 1.01, n_periods)  # 调整开盘价 - 仅用于测试和演示
+    price_data['high'] = price_data[['open', 'close']].max(axis=1) * np.random.uniform(1.0, 1.02, n_periods)  # 调整最高价 - 仅用于测试和演示
+    price_data['low'] = price_data[['open', 'close']].min(axis=1) * np.random.uniform(0.98, 1.0, n_periods)  # 调整最低价 - 仅用于测试和演示
     
-    # 模拟成交量数据
+    # 模拟成交量数据 - 仅用于测试和演示
     volume_data = pd.DataFrame({
-        'volume': np.random.uniform(1e6, 5e6, n_periods)
+        'volume': np.random.uniform(1e6, 5e6, n_periods)  # 生成成交量数据 - 仅用于测试和演示
     }, index=dates)
     
-    # 模拟基本面数据
+    # 模拟基本面数据 - 仅用于测试和演示
     fundamental_data = pd.DataFrame({
-        'revenue': np.random.uniform(1e9, 5e9, n_periods),
-        'net_income': np.random.uniform(1e8, 5e8, n_periods),
-        'total_assets': np.random.uniform(1e10, 5e10, n_periods),
-        'total_equity': np.random.uniform(5e9, 2e10, n_periods),
-        'market_cap': price_data['close'] * 1e6,
+        'revenue': np.random.uniform(1e9, 5e9, n_periods),        # 模拟营收数据 - 仅用于测试和演示
+        'net_income': np.random.uniform(1e8, 5e8, n_periods),     # 模拟净利润数据 - 仅用于测试和演示
+        'total_assets': np.random.uniform(1e10, 5e10, n_periods), # 模拟总资产数据 - 仅用于测试和演示
+        'total_equity': np.random.uniform(5e9, 2e10, n_periods),  # 模拟股东权益数据 - 仅用于测试和演示
+        'market_cap': price_data['close'] * 1e6,                  # 计算市值数据 - 仅用于测试和演示
     }, index=dates)
     
-    # 运行策略
-    strategy = MultiFactorStrategy()
-    results = strategy.run_strategy(
+    # 运行策略 - 仅用于测试和演示
+    strategy = MultiFactorStrategy()  # 创建多因子策略实例 - 仅用于测试和演示
+    results = strategy.run_strategy(  # 执行策略回测 - 仅用于测试和演示
         price_data=price_data,
         volume_data=volume_data,
         fundamental_data=fundamental_data,
         weight_method='ic_weighted'
     )
     
-    # 打印报告
+    # 打印报告 - 仅用于测试和演示
     if 'report' in results:
-        print(results['report'])
+        print(results['report'])  # 显示策略报告 - 仅用于测试和演示
 
 if __name__ == "__main__":
     main()

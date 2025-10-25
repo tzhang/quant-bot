@@ -42,7 +42,7 @@ from src.ml.feature_validation import FeatureValidationPipeline
 
 
 def create_sample_data():
-    """创建示例数据"""
+    """创建示例数据 - 仅用于测试和演示"""
     print("创建示例股票数据...")
     
     # 设置随机种子
@@ -55,7 +55,7 @@ def create_sample_data():
     
     n_samples = len(dates)
     
-    # 模拟股票价格数据
+    # 模拟股票价格数据 - 仅用于演示
     price_base = 100
     returns = np.random.randn(n_samples) * 0.02  # 2%日波动率
     returns[0] = 0

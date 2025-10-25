@@ -25,7 +25,7 @@ class EnhancedAlphaTest:
     
     def generate_realistic_data(self, n_stocks: int = 50, n_days: int = 252) -> dict:
         """
-        生成更真实的市场数据
+        生成更真实的市场数据 - 仅用于测试和演示
         """
         print(f"生成真实市场数据: {n_stocks}只股票, {n_days}个交易日")
         
@@ -35,10 +35,10 @@ class EnhancedAlphaTest:
         
         np.random.seed(42)
         
-        # 生成更真实的价格数据
+        # 生成更真实的价格数据 - 模拟数据仅用于演示
         initial_prices = np.random.uniform(20, 200, n_stocks)
         
-        # 市场因子 (模拟大盘走势)
+        # 市场因子 (模拟大盘走势) - 仅用于演示
         market_trend = np.cumsum(np.random.normal(0.0008, 0.015, n_days))
         market_volatility = 0.01 + 0.005 * np.sin(np.arange(n_days) * 2 * np.pi / 60)  # 周期性波动
         

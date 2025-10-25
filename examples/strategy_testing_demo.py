@@ -26,7 +26,7 @@ def generate_sample_data(
     symbol: str = "AAPL"
 ) -> pd.DataFrame:
     """
-    生成示例数据（如果无法获取真实数据）
+    生成示例数据 - 仅用于测试和演示（如果无法获取真实数据）
     
     Args:
         start_date: 开始日期
@@ -41,7 +41,7 @@ def generate_sample_data(
     # 创建日期范围
     date_range = pd.date_range(start=start_date, end=end_date, freq='D')
     
-    # 生成随机价格数据（模拟股价走势）
+    # 生成随机价格数据（模拟股价走势） - 仅用于演示
     np.random.seed(42)  # 确保结果可重现
     
     # 初始价格

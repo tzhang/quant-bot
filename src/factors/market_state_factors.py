@@ -112,32 +112,32 @@ class MarketStateFactorCalculator:
         return factors
     
     def _generate_mock_price_data(self, n_stocks: int = 100, n_days: int = 500) -> pd.DataFrame:
-        """生成模拟价格数据"""
-        np.random.seed(42)
+        """生成模拟价格数据 - 仅用于测试和演示"""
+        np.random.seed(42)  # 设置随机种子 - 模拟数据仅用于测试
         
-        dates = pd.date_range(start='2022-01-01', periods=n_days, freq='D')
-        stocks = [f'STOCK_{i:03d}' for i in range(n_stocks)]
+        dates = pd.date_range(start='2022-01-01', periods=n_days, freq='D')  # 生成日期序列 - 仅用于测试和演示
+        stocks = [f'STOCK_{i:03d}' for i in range(n_stocks)]  # 生成股票代码 - 仅用于测试和演示
         
-        # 生成具有市场状态变化的价格数据
+        # 生成具有市场状态变化的价格数据 - 模拟数据仅用于演示
         price_data = {}
         
-        # 模拟市场状态变化
-        market_states = np.random.choice([0, 1], size=n_days, p=[0.3, 0.7])  # 0=熊市, 1=牛市
+        # 模拟市场状态变化 - 仅用于测试
+        market_states = np.random.choice([0, 1], size=n_days, p=[0.3, 0.7])  # 0=熊市, 1=牛市 - 模拟数据仅用于测试
         
         for i, stock in enumerate(stocks):
-            initial_price = np.random.uniform(10, 200)
+            initial_price = np.random.uniform(10, 200)  # 模拟初始价格 - 仅用于演示
             prices = [initial_price]
             
             for day in range(1, n_days):
-                if market_states[day] == 1:  # 牛市
-                    mu = np.random.normal(0.001, 0.0005)  # 正向漂移
-                    sigma = np.random.uniform(0.01, 0.02)  # 较低波动率
-                else:  # 熊市
-                    mu = np.random.normal(-0.001, 0.0005)  # 负向漂移
-                    sigma = np.random.uniform(0.02, 0.04)  # 较高波动率
+                if market_states[day] == 1:  # 牛市 - 模拟数据仅用于测试
+                    mu = np.random.normal(0.001, 0.0005)  # 正向漂移 - 仅用于测试和演示
+                    sigma = np.random.uniform(0.01, 0.02)  # 较低波动率 - 仅用于测试和演示
+                else:  # 熊市 - 模拟数据仅用于演示
+                    mu = np.random.normal(-0.001, 0.0005)  # 负向漂移 - 仅用于测试和演示
+                    sigma = np.random.uniform(0.02, 0.04)  # 较高波动率 - 仅用于测试和演示
                 
-                return_val = np.random.normal(mu, sigma)
-                new_price = prices[-1] * (1 + return_val)
+                return_val = np.random.normal(mu, sigma)  # 生成收益率 - 仅用于测试
+                new_price = prices[-1] * (1 + return_val)  # 计算新价格 - 仅用于测试和演示
                 prices.append(new_price)
             
             price_data[stock] = prices
@@ -145,21 +145,21 @@ class MarketStateFactorCalculator:
         return pd.DataFrame(price_data, index=dates)
     
     def _generate_mock_market_index(self, dates: pd.DatetimeIndex) -> pd.Series:
-        """生成模拟市场指数"""
-        np.random.seed(46)
+        """生成模拟市场指数 - 仅用于测试和演示"""
+        np.random.seed(46)  # 设置随机种子 - 模拟数据仅用于测试
         
-        initial_value = 1000
+        initial_value = 1000  # 初始指数值 - 仅用于测试和演示
         values = [initial_value]
         
-        # 模拟市场指数走势
+        # 模拟市场指数走势 - 仅用于演示
         for i in range(1, len(dates)):
-            # 添加一些趋势和周期性
-            trend = 0.0002 * np.sin(i / 50)  # 长期趋势
-            cycle = 0.001 * np.sin(i / 10)   # 短期周期
-            noise = np.random.normal(0, 0.015)  # 随机噪声
+            # 添加一些趋势和周期性 - 模拟数据仅用于测试
+            trend = 0.0002 * np.sin(i / 50)  # 长期趋势 - 仅用于测试和演示
+            cycle = 0.001 * np.sin(i / 10)   # 短期周期 - 仅用于测试和演示
+            noise = np.random.normal(0, 0.015)  # 随机噪声 - 仅用于测试和演示
             
-            return_val = trend + cycle + noise
-            new_value = values[-1] * (1 + return_val)
+            return_val = trend + cycle + noise  # 计算收益率 - 仅用于测试和演示
+            new_value = values[-1] * (1 + return_val)  # 计算新指数值 - 仅用于测试和演示
             values.append(new_value)
         
         return pd.Series(values, index=dates, name='market_index')
@@ -388,13 +388,13 @@ class MarketStateFactorCalculator:
         return factors
     
     def _generate_mock_volume_data(self, dates: pd.DatetimeIndex, stocks: List[str]) -> pd.DataFrame:
-        """生成模拟成交量数据"""
-        np.random.seed(47)
+        """生成模拟成交量数据 - 仅用于测试和演示"""
+        np.random.seed(47)  # 设置随机种子 - 模拟数据仅用于测试
         
         volume_data = {}
         for stock in stocks:
-            base_volume = np.random.uniform(1e5, 1e7)
-            volumes = np.random.lognormal(np.log(base_volume), 0.5, len(dates))
+            base_volume = np.random.uniform(1e5, 1e7)  # 模拟基础成交量 - 仅用于演示
+            volumes = np.random.lognormal(np.log(base_volume), 0.5, len(dates))  # 生成成交量数据 - 仅用于测试
             volume_data[stock] = volumes
         
         return pd.DataFrame(volume_data, index=dates)

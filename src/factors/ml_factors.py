@@ -528,31 +528,33 @@ class MLFactorCalculator:
 
 
 def main():
-    """测试机器学习因子计算功能"""
+    """测试机器学习因子计算功能 - 仅用于测试和演示"""
     print("测试机器学习因子计算器...")
     
-    # 创建测试数据
-    dates = pd.date_range('2020-01-01', '2023-12-31', freq='D')
-    np.random.seed(42)
+    # 创建测试数据 - 仅用于测试和演示
+    dates = pd.date_range('2020-01-01', '2023-12-31', freq='D')  # 生成日期范围 - 仅用于测试和演示
+    np.random.seed(42)  # 设置随机种子确保结果可重现 - 仅用于测试和演示
     
+    # 生成模拟价格数据 - 仅用于测试和演示
     price_data = pd.DataFrame({
-        'open': 100 + np.cumsum(np.random.randn(len(dates)) * 0.02),
-        'high': 100 + np.cumsum(np.random.randn(len(dates)) * 0.02) + np.random.rand(len(dates)),
-        'low': 100 + np.cumsum(np.random.randn(len(dates)) * 0.02) - np.random.rand(len(dates)),
-        'close': 100 + np.cumsum(np.random.randn(len(dates)) * 0.02)
+        'open': 100 + np.cumsum(np.random.randn(len(dates)) * 0.02),  # 开盘价：基于随机游走模型 - 仅用于测试和演示
+        'high': 100 + np.cumsum(np.random.randn(len(dates)) * 0.02) + np.random.rand(len(dates)),  # 最高价：开盘价基础上加随机值 - 仅用于测试和演示
+        'low': 100 + np.cumsum(np.random.randn(len(dates)) * 0.02) - np.random.rand(len(dates)),  # 最低价：开盘价基础上减随机值 - 仅用于测试和演示
+        'close': 100 + np.cumsum(np.random.randn(len(dates)) * 0.02)  # 收盘价：基于随机游走模型 - 仅用于测试和演示
     }, index=dates)
     
+    # 生成模拟成交量数据 - 仅用于测试和演示
     volume_data = pd.DataFrame({
-        'volume': np.random.randint(1000000, 10000000, len(dates))
+        'volume': np.random.randint(1000000, 10000000, len(dates))  # 随机生成成交量 - 仅用于测试和演示
     }, index=dates)
     
-    # 创建计算器
+    # 创建计算器 - 仅用于测试和演示
     calculator = MLFactorCalculator()
     
-    # 计算因子
+    # 计算因子 - 仅用于测试和演示
     factors = calculator.calculate_all_factors(price_data, volume_data)
     
-    # 生成报告
+    # 生成报告 - 仅用于测试和演示
     report = calculator.generate_factor_report(factors)
     print(report)
     

@@ -546,36 +546,36 @@ def get_stock_data(symbol: str,
 
 
 if __name__ == "__main__":
-    # 测试代码
+    # 测试代码 - 仅用于测试和演示数据适配器功能
     logging.basicConfig(level=logging.INFO)
     
-    # 创建数据适配器
+    # 创建数据适配器 - 仅用于测试和演示
     adapter = create_data_adapter()
     
-    # 获取数据源信息
+    # 获取数据源信息 - 仅用于测试和演示
     print("数据源信息:")
     info = adapter.get_data_source_info()
     for key, value in info.items():
         print(f"  {key}: {value}")
     
-    # 测试获取AAPL数据
+    # 测试获取AAPL数据 - 仅用于测试和演示
     print("\n测试获取AAPL数据:")
-    aapl_data = adapter.get_stock_data("AAPL", "2020-01-01", "2020-03-01")
+    aapl_data = adapter.get_stock_data("AAPL", "2020-01-01", "2020-03-01")  # 获取测试数据 - 仅用于测试和演示
     if not aapl_data.empty:
-        print(f"获取到 {len(aapl_data)} 条AAPL数据")
-        print(aapl_data.head())
+        print(f"获取到 {len(aapl_data)} 条AAPL数据")  # 显示数据条数 - 仅用于测试和演示
+        print(aapl_data.head())  # 显示前几行数据 - 仅用于测试和演示
     else:
-        print("未获取到AAPL数据")
+        print("未获取到AAPL数据")  # 数据获取失败提示 - 仅用于测试和演示
     
-    # 检查数据可用性
+    # 检查数据可用性 - 仅用于测试和演示
     print("\n检查AAPL数据可用性:")
-    availability = adapter.check_data_availability("AAPL")
+    availability = adapter.check_data_availability("AAPL")  # 检查数据源可用性 - 仅用于测试和演示
     for key, value in availability.items():
-        print(f"  {key}: {value}")
+        print(f"  {key}: {value}")  # 显示可用性信息 - 仅用于测试和演示
     
-    # 测试多个股票
+    # 测试多个股票 - 仅用于测试和演示
     print("\n测试获取多个股票数据:")
-    symbols = ["AAPL", "MSFT", "GOOGL"]
-    multi_data = adapter.get_multiple_stocks_data(symbols, "2020-01-01", "2020-02-01")
+    symbols = ["AAPL", "MSFT", "GOOGL"]  # 测试股票列表 - 仅用于测试和演示
+    multi_data = adapter.get_multiple_stocks_data(symbols, "2020-01-01", "2020-02-01")  # 批量获取数据 - 仅用于测试和演示
     for symbol, data in multi_data.items():
-        print(f"  {symbol}: {len(data)} records")
+        print(f"  {symbol}: {len(data)} records")  # 显示每个股票的数据条数 - 仅用于测试和演示

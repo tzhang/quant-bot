@@ -22,11 +22,11 @@ from backtesting.enhanced_backtest_engine import (
 from backtesting.adaptive_execution_strategy import ExecutionStrategy
 
 def create_test_data(symbol: str, days: int, start_price: float = 100.0) -> pd.DataFrame:
-    """创建测试市场数据"""
+    """创建测试市场数据 - 仅用于测试和演示"""
     start_date = datetime(2023, 1, 1)
     dates = pd.date_range(start_date, periods=days, freq='D')
     
-    # 生成随机价格数据
+    # 生成随机价格数据 - 模拟数据仅用于演示
     np.random.seed(hash(symbol) % 2**32)  # 为每个symbol使用不同的随机种子
     returns = np.random.normal(0.0005, 0.02, days)
     prices = start_price * np.exp(np.cumsum(returns))

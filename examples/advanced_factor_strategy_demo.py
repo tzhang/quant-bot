@@ -39,7 +39,7 @@ plt.rcParams['axes.unicode_minus'] = False
 
 def generate_sample_data(n_stocks=50, n_days=1000):
     """
-    生成示例数据
+    生成示例数据 - 仅用于测试和演示
     
     Args:
         n_stocks: 股票数量
@@ -56,7 +56,7 @@ def generate_sample_data(n_stocks=50, n_days=1000):
     # 生成股票代码
     stock_codes = [f'STOCK_{i:03d}' for i in range(n_stocks)]
     
-    # 生成价格数据
+    # 生成价格数据 - 模拟数据仅用于演示
     np.random.seed(42)
     
     # 基础价格走势

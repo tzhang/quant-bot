@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-量化交易监控面板
-纯Python实现，使用外部HTML模板文件
+量化交易监控面板 - 使用真实数据源
 """
 
 import os
@@ -17,11 +16,16 @@ from dataclasses import dataclass, asdict
 from functools import wraps
 import traceback
 
-# Flask和SocketIO相关导入
+# 添加项目根目录到路径
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, emit
 import psutil
-import random
+
+# 导入真实数据收集器
+from real_data_collector import RealDataCollector
+from src.trading.ib_trading_manager import IBTradingManager
 
 # 配置日志
 logging.basicConfig(
@@ -108,7 +112,8 @@ class TradingMetrics:
     total_trades: int
     successful_trades: int
     win_rate: float
-    total_profit: float
+    total_pnl: float  # 改名为total_pnl以匹配前端
+    portfolio_value: float  # 新增portfolio_value字段
     active_positions: int
     timestamp: str
 
@@ -159,247 +164,12 @@ class MarketEvent:
     impact: str  # low, medium, high
     timestamp: str
 
-class DataCollector:
-    """数据收集器"""
-    
-    def __init__(self):
-        self.is_running = False
-        self.data_cache = {}
-        self.error_manager = ErrorRecoveryManager()
-        self.performance_stats = {
-            'data_points_collected': 0,
-            'collection_errors': 0,
-            'last_collection_time': None
-        }
-        
-    def start_collection(self):
-        """启动数据收集"""
-        self.is_running = True
-        logger.info("数据收集已启动")
-        
-    def stop_collection(self):
-        """停止数据收集"""
-        self.is_running = False
-        logger.info("数据收集已停止")
-        
-    def reset_data(self):
-        """重置数据"""
-        self.data_cache.clear()
-        self.error_manager = ErrorRecoveryManager()
-        self.performance_stats = {
-            'data_points_collected': 0,
-            'collection_errors': 0,
-            'last_collection_time': None
-        }
-        logger.info("数据已重置")
-        
-    @retry_with_backoff(max_retries=3)
-    def collect_data(self) -> Dict[str, Any]:
-        """收集所有数据"""
-        try:
-            current_time = datetime.now().isoformat()
-            
-            data = {
-                'system_metrics': self.get_system_metrics(),
-                'trading_metrics': self.get_trading_metrics(),
-                'market_data': self.get_market_data(),
-                'trading_info': self.get_trading_info(),
-                'order_info': self.get_order_info(),
-                'risk_events': self.get_risk_events(),
-                'market_events': self.get_market_events(),
-                'timestamp': current_time
-            }
-            
-            self.data_cache = data
-            self.performance_stats['data_points_collected'] += 1
-            self.performance_stats['last_collection_time'] = current_time
-            
-            return data
-            
-        except Exception as e:
-            self.error_manager.log_error(e, "数据收集")
-            self.performance_stats['collection_errors'] += 1
-            raise
-            
-    def get_system_metrics(self) -> SystemMetrics:
-        """获取系统指标"""
-        try:
-            cpu_percent = psutil.cpu_percent(interval=1)
-            memory = psutil.virtual_memory()
-            disk = psutil.disk_usage('/')
-            
-            # 模拟活跃连接数
-            active_connections = random.randint(5, 50)
-            
-            error_stats = self.error_manager.get_error_stats()
-            
-            return SystemMetrics(
-                cpu_usage=cpu_percent,
-                memory_usage=memory.percent,
-                disk_usage=disk.percent,
-                active_connections=active_connections,
-                error_count=error_stats['error_count'],
-                warning_count=error_stats['warning_count'],
-                timestamp=datetime.now().isoformat()
-            )
-            
-        except Exception as e:
-            self.error_manager.log_error(e, "系统指标收集")
-            # 返回默认值
-            return SystemMetrics(0, 0, 0, 0, 0, 0, datetime.now().isoformat())
-            
-    def get_trading_metrics(self) -> TradingMetrics:
-        """获取交易指标"""
-        try:
-            # 模拟交易数据
-            total_trades = random.randint(100, 1000)
-            successful_trades = random.randint(int(total_trades * 0.6), int(total_trades * 0.9))
-            win_rate = (successful_trades / total_trades) * 100 if total_trades > 0 else 0
-            total_profit = random.uniform(-10000, 50000)
-            active_positions = random.randint(0, 20)
-            
-            return TradingMetrics(
-                total_trades=total_trades,
-                successful_trades=successful_trades,
-                win_rate=win_rate,
-                total_profit=total_profit,
-                active_positions=active_positions,
-                timestamp=datetime.now().isoformat()
-            )
-            
-        except Exception as e:
-            self.error_manager.log_error(e, "交易指标收集")
-            return TradingMetrics(0, 0, 0, 0, 0, datetime.now().isoformat())
-            
-    def get_market_data(self) -> List[MarketData]:
-        """获取市场数据"""
-        try:
-            symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'NVDA']
-            market_data = []
-            
-            for symbol in symbols:
-                price = random.uniform(100, 500)
-                change = random.uniform(-10, 10)
-                change_percent = (change / price) * 100
-                volume = random.randint(1000000, 10000000)
-                
-                market_data.append(MarketData(
-                    symbol=symbol,
-                    price=price,
-                    change=change,
-                    change_percent=change_percent,
-                    volume=volume,
-                    timestamp=datetime.now().isoformat()
-                ))
-                
-            return market_data
-            
-        except Exception as e:
-            self.error_manager.log_error(e, "市场数据收集")
-            return []
-            
-    def get_trading_info(self) -> List[TradingInfo]:
-        """获取交易信息"""
-        try:
-            info_list = []
-            
-            # 生成一些示例交易信息
-            messages = [
-                ("订单执行", "AAPL买入订单已成功执行", "success"),
-                ("策略信号", "检测到TSLA强势突破信号", "info"),
-                ("风险提醒", "当前持仓集中度较高", "warning"),
-                ("市场分析", "科技股板块表现强劲", "info")
-            ]
-            
-            for title, message, level in messages:
-                info_list.append(TradingInfo(
-                    title=title,
-                    message=message,
-                    level=level,
-                    timestamp=datetime.now().isoformat()
-                ))
-                
-            return info_list
-            
-        except Exception as e:
-            self.error_manager.log_error(e, "交易信息收集")
-            return []
-            
-    def get_order_info(self) -> List[OrderInfo]:
-        """获取订单信息"""
-        try:
-            orders = []
-            symbols = ['AAPL', 'GOOGL', 'MSFT']
-            
-            for i, symbol in enumerate(symbols):
-                orders.append(OrderInfo(
-                    order_id=f"ORD{1000 + i}",
-                    symbol=symbol,
-                    action=random.choice(['BUY', 'SELL']),
-                    quantity=random.randint(10, 1000),
-                    price=random.uniform(100, 500),
-                    order_type=random.choice(['MKT', 'LMT', 'STP']),
-                    status=random.choice(['Filled', 'Pending', 'Cancelled']),
-                    timestamp=datetime.now().isoformat(),
-                    pnl=random.uniform(-1000, 1000)
-                ))
-                
-            return orders
-            
-        except Exception as e:
-            self.error_manager.log_error(e, "订单信息收集")
-            return []
-            
-    def get_risk_events(self) -> List[RiskEvent]:
-        """获取风险事件"""
-        try:
-            events = []
-            
-            # 随机生成风险事件
-            if random.random() < 0.3:  # 30%概率生成风险事件
-                risk_types = ["持仓集中", "波动率异常", "流动性不足", "市场异动"]
-                severities = ["low", "medium", "high"]
-                
-                events.append(RiskEvent(
-                    risk_type=random.choice(risk_types),
-                    severity=random.choice(severities),
-                    description=f"检测到{random.choice(risk_types)}风险，建议关注",
-                    timestamp=datetime.now().isoformat()
-                ))
-                
-            return events
-            
-        except Exception as e:
-            self.error_manager.log_error(e, "风险事件收集")
-            return []
-            
-    def get_market_events(self) -> List[MarketEvent]:
-        """获取市场事件"""
-        try:
-            events = []
-            
-            # 随机生成市场事件
-            if random.random() < 0.2:  # 20%概率生成市场事件
-                event_types = ["财报发布", "政策变化", "技术突破", "行业动态"]
-                impacts = ["low", "medium", "high"]
-                
-                events.append(MarketEvent(
-                    event_type=random.choice(event_types),
-                    description=f"{random.choice(event_types)}可能影响市场走势",
-                    impact=random.choice(impacts),
-                    timestamp=datetime.now().isoformat()
-                ))
-                
-            return events
-            
-        except Exception as e:
-            self.error_manager.log_error(e, "市场事件收集")
-            return []
+# DataCollector类已被RealDataCollector替代，删除模拟数据生成代码
 
 class MonitoringDashboard:
-    """监控面板主类"""
+    """监控面板主类 - 使用真实数据源"""
     
-    def __init__(self, host='0.0.0.0', port=8080, debug=False):
+    def __init__(self, host='0.0.0.0', port=8080, debug=False, ib_manager=None):
         self.host = host
         self.port = port
         self.debug = debug
@@ -413,8 +183,8 @@ class MonitoringDashboard:
         # 初始化SocketIO
         self.socketio = SocketIO(self.app, cors_allowed_origins="*")
         
-        # 初始化数据收集器
-        self.data_collector = DataCollector()
+        # 初始化真实数据收集器
+        self.data_collector = RealDataCollector(ib_manager)
         
         # 设置路由
         self._setup_routes()
@@ -558,15 +328,99 @@ class MonitoringDashboard:
             """客户端断开连接事件"""
             logger.info(f"客户端已断开连接: {request.sid}")
             
+        # 添加通用事件监听器用于调试
+        @self.socketio.on_error_default
+        def default_error_handler(e):
+            logger.error(f"SocketIO错误: {e}")
+            
+        # 添加ping测试事件
+        @self.socketio.on('ping')
+        def handle_ping(data=None):
+            logger.info(f"收到ping事件: {data}")
+            emit('pong', {'message': 'pong response', 'timestamp': datetime.now().isoformat()})
+            
         @self.socketio.on('request_data')
         def handle_data_request(data=None):
             """处理数据请求"""
             try:
-                if self.data_collector.is_running:
-                    data = self.data_collector.collect_data()
-                    # 转换数据类为字典
+                logger.info(f"=== 收到WebSocket事件 request_data ===")
+                logger.info(f"事件数据: {data}")
+                logger.info(f"数据类型: {type(data)}")
+                
+                if not self.data_collector.is_running:
+                    logger.warning("数据收集器未运行")
+                    emit('status', {'message': '数据收集未启动'})
+                    return
+                
+                # 获取请求的数据类型
+                request_type = data.get('type') if data else None
+                logger.info(f"解析的请求类型: {request_type}")
+                
+                if request_type == 'system_metrics':
+                    metrics = self.data_collector.get_system_metrics()
+                    logger.info(f"发送系统指标数据: {metrics}")
+                    emit('system_metrics', [asdict(metrics)])
+                    
+                elif request_type == 'trading_metrics':
+                    metrics = self.data_collector.get_trading_metrics()
+                    logger.info(f"发送交易指标数据: {metrics}")
+                    emit('trading_metrics', [asdict(metrics)])
+                    
+                elif request_type == 'market_data':
+                    market_data = self.data_collector.get_market_data()
+                    logger.info(f"发送市场数据: {len(market_data)} 条记录")
+                    emit('market_data', [asdict(item) for item in market_data])
+                    
+                elif request_type == 'important_info':
+                    # 合并交易信息和风险事件作为重要信息
+                    trading_info = self.data_collector.get_trading_info()
+                    risk_events = self.data_collector.get_risk_events()
+                    market_events = self.data_collector.get_market_events()
+                    
+                    important_info = []
+                    # 添加交易信息
+                    for info in trading_info:
+                        important_info.append({
+                            'type': 'trade',
+                            'title': info.title,
+                            'message': info.message,
+                            'level': info.level,
+                            'timestamp': info.timestamp
+                        })
+                    
+                    # 添加风险事件
+                    for event in risk_events:
+                        important_info.append({
+                            'type': 'risk',
+                            'title': f'{event.risk_type}风险',
+                            'message': event.description,
+                            'level': event.severity,
+                            'timestamp': event.timestamp
+                        })
+                    
+                    # 添加市场事件
+                    for event in market_events:
+                        important_info.append({
+                            'type': 'market',
+                            'title': f'{event.event_type}事件',
+                            'message': event.description,
+                            'level': event.impact,
+                            'timestamp': event.timestamp
+                        })
+                    
+                    logger.info(f"发送重要信息: {len(important_info)} 条记录")
+                    emit('important_info', important_info)
+                    
+                elif request_type == 'orders':
+                    orders = self.data_collector.get_order_info()
+                    logger.info(f"发送订单数据: {len(orders)} 条记录")
+                    emit('orders', [asdict(item) for item in orders])
+                    
+                else:
+                    # 如果没有指定类型，返回所有数据
+                    collected_data = self.data_collector.collect_data()
                     serializable_data = {}
-                    for key, value in data.items():
+                    for key, value in collected_data.items():
                         if isinstance(value, list):
                             serializable_data[key] = [asdict(item) if hasattr(item, '__dict__') else item for item in value]
                         elif hasattr(value, '__dict__'):
@@ -574,9 +428,9 @@ class MonitoringDashboard:
                         else:
                             serializable_data[key] = value
                     
+                    logger.info(f"发送所有数据: {list(serializable_data.keys())}")
                     emit('data_update', serializable_data)
-                else:
-                    emit('status', {'message': '数据收集未启动'})
+                    
             except Exception as e:
                 logger.error(f"处理数据请求失败: {str(e)}")
                 emit('error', {'message': str(e)})
@@ -601,20 +455,20 @@ class MonitoringDashboard:
         """数据收集循环"""
         while self.is_running and self.data_collector.is_running:
             try:
-                data = self.data_collector.collect_data()
-                
-                # 转换数据类为字典以便序列化
-                serializable_data = {}
-                for key, value in data.items():
-                    if isinstance(value, list):
-                        serializable_data[key] = [asdict(item) if hasattr(item, '__dict__') else item for item in value]
-                    elif hasattr(value, '__dict__'):
-                        serializable_data[key] = asdict(value)
-                    else:
-                        serializable_data[key] = value
+                # 收集各类数据
+                data = {
+                    'system_metrics': self.data_collector.get_system_metrics(),
+                    'trading_metrics': self.data_collector.get_trading_metrics(),
+                    'market_data': self.data_collector.get_market_data(),
+                    'positions': self.data_collector.get_positions(),
+                    'trading_info': [],  # 暂时为空
+                    'order_info': [],    # 暂时为空
+                    'risk_events': [],   # 暂时为空
+                    'market_events': []  # 暂时为空
+                }
                 
                 # 广播数据更新
-                self.socketio.emit('data_update', serializable_data)
+                self.socketio.emit('data_update', data)
                 
                 time.sleep(5)  # 每5秒收集一次数据
                 
@@ -625,6 +479,13 @@ class MonitoringDashboard:
     def start(self):
         """启动监控面板"""
         try:
+            # 启动数据收集器
+            self.data_collector.start_collection()
+            logger.info("数据收集器已启动")
+            
+            # 启动数据收集线程
+            self._start_data_collection_thread()
+            
             logger.info(f"启动监控面板服务器 http://{self.host}:{self.port}")
             self.socketio.run(self.app, host=self.host, port=self.port, debug=self.debug)
         except Exception as e:
@@ -646,11 +507,25 @@ def main():
     parser.add_argument('--host', default='0.0.0.0', help='服务器主机地址')
     parser.add_argument('--port', type=int, default=8080, help='服务器端口')
     parser.add_argument('--debug', action='store_true', help='启用调试模式')
+    parser.add_argument('--client-id', type=int, default=2, help='IB客户端ID')
     
     args = parser.parse_args()
     
     try:
-        dashboard = MonitoringDashboard(host=args.host, port=args.port, debug=args.debug)
+        # 初始化IB交易管理器
+        ib_manager = None
+        try:
+            ib_manager = IBTradingManager(client_id=args.client_id)
+            logger.info(f"IB交易管理器初始化成功，客户端ID: {args.client_id}")
+        except Exception as e:
+            logger.warning(f"IB交易管理器初始化失败: {e}，将使用模拟数据")
+        
+        dashboard = MonitoringDashboard(
+            host=args.host, 
+            port=args.port, 
+            debug=args.debug,
+            ib_manager=ib_manager
+        )
         dashboard.start()
     except KeyboardInterrupt:
         logger.info("收到中断信号，正在关闭监控面板...")

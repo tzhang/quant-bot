@@ -30,10 +30,10 @@ plt.rcParams['axes.unicode_minus'] = False
 
 
 def create_sample_data():
-    """创建示例数据"""
+    """创建示例数据 - 仅用于测试和演示"""
     np.random.seed(42)
     
-    # 生成2年的日度数据
+    # 生成2年的日度数据 - 模拟数据仅用于演示
     dates = pd.date_range('2022-01-01', periods=500, freq='D')
     n = len(dates)
     

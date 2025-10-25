@@ -42,13 +42,13 @@ except ImportError as e:
 
 
 def generate_sample_data(n_days=252, n_assets=5):
-    """生成示例数据"""
+    """生成示例数据 - 仅用于测试和演示"""
     print("📊 生成示例数据...")
     
     # 生成日期索引
     dates = pd.date_range(start='2023-01-01', periods=n_days, freq='D')
     
-    # 生成价格数据
+    # 生成价格数据 - 模拟数据仅用于演示
     np.random.seed(42)
     returns = np.random.normal(0.001, 0.02, (n_days, n_assets))
     
