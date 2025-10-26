@@ -39,7 +39,7 @@ except ImportError as e:
 class IBConfig:
     """IB配置类"""
     host: str = "127.0.0.1"
-    port: int = 7497  # 模拟交易端口
+    port: int = 4001  # IB Gateway模拟交易端口
     client_id: int = None  # 将使用随机生成的客户端ID
     timeout: int = 30
 

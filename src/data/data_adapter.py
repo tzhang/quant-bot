@@ -59,10 +59,19 @@ except ImportError as e:
     IBDataProvider = None
 
 try:
-    from src.data.ib_data_provider import IBDataProvider, IBConfig
+    import yfinance as yf
     YFINANCE_AVAILABLE = True
 except ImportError:
     YFINANCE_AVAILABLE = False
+    yf = None
+
+try:
+    from .alpaca_data_provider import AlpacaDataProvider
+    ALPACA_AVAILABLE = True
+except ImportError as e:
+    ALPACA_AVAILABLE = False
+    logger.warning(f"Alpaca provider not available: {e}")
+    AlpacaDataProvider = None
 
 
 class DataAdapter:
@@ -81,7 +90,8 @@ class DataAdapter:
                  qlib_data_dir: Optional[str] = None,
                  enable_openbb: bool = True,
                  enable_ib: bool = True,
-                 fallback_to_yfinance: bool = True):
+                 enable_alpaca: bool = False,
+                 fallback_to_yfinance: bool = False):  # 默认禁用yfinance
         """
         初始化数据适配器
         
@@ -90,11 +100,13 @@ class DataAdapter:
             qlib_data_dir: Qlib数据目录
             enable_openbb: 是否启用OpenBB数据源
             enable_ib: 是否启用Interactive Brokers数据源
-            fallback_to_yfinance: 当其他数据源不可用时是否回退到yfinance
+            enable_alpaca: 是否启用Alpaca数据源
+            fallback_to_yfinance: 当其他数据源不可用时是否回退到yfinance (默认禁用)
         """
         self.prefer_qlib = prefer_qlib and QLIB_AVAILABLE
         self.enable_openbb = enable_openbb and OPENBB_AVAILABLE
         self.enable_ib = enable_ib and IB_AVAILABLE
+        self.enable_alpaca = enable_alpaca and ALPACA_AVAILABLE
         self.fallback_to_yfinance = fallback_to_yfinance and YFINANCE_AVAILABLE
         
         # 初始化Qlib提供器
@@ -127,6 +139,16 @@ class DataAdapter:
                 logger.warning(f"Failed to initialize IB provider: {e}")
                 self.enable_ib = False
         
+        # 初始化Alpaca提供器
+        self.alpaca_provider = None
+        if self.enable_alpaca:
+            try:
+                self.alpaca_provider = AlpacaDataProvider()
+                logger.info("Alpaca data provider initialized successfully")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Alpaca provider: {e}")
+                self.enable_alpaca = False
+        
         # 检查可用的数据源
         self._log_available_sources()
     
@@ -139,6 +161,8 @@ class DataAdapter:
             sources.append("OpenBB (secondary)")
         if self.enable_ib and self.ib_provider:
             sources.append("Interactive Brokers (real-time)")
+        if self.enable_alpaca and self.alpaca_provider:
+            sources.append("Alpaca (real-time)")
         if self.fallback_to_yfinance:
             sources.append("yfinance (fallback)")
         
@@ -171,38 +195,27 @@ class DataAdapter:
         if force_source:
             return self._get_data_from_source(symbol, start_date, end_date, force_source)
         
+        # 数据源优先级配置 (移除yfinance依赖)
+        primary_sources = ['ib', 'qlib', 'openbb']  # 主要数据源
+        fallback_sources = ['alpha_vantage', 'quandl']  # 备用数据源 (移除yahoo)
+        
         # 按优先级尝试各数据源
         
-        # 1. 首先尝试Qlib
-        if self.prefer_qlib and self.qlib_provider:
+        # 1. 首先尝试Alpaca (如果启用)
+        if self.enable_alpaca and self.alpaca_provider:
             try:
-                data = self.qlib_provider.get_stock_data(
-                    symbol.lower(), start_date, end_date
-                )
+                logger.info(f"Trying Alpaca for {symbol}")
+                data = self.alpaca_provider.get_stock_data(symbol, start_date, end_date)
                 
                 if not data.empty:
-                    logger.info(f"Retrieved {len(data)} records for {symbol} from Qlib")
+                    logger.info(f"Retrieved {len(data)} records for {symbol} from Alpaca")
                     return data
                 else:
-                    logger.warning(f"No Qlib data found for {symbol}")
+                    logger.warning(f"No Alpaca data found for {symbol}")
             except Exception as e:
-                logger.warning(f"Qlib data retrieval failed for {symbol}: {e}")
+                logger.warning(f"Alpaca data retrieval failed for {symbol}: {e}")
         
-        # 2. 回退到OpenBB
-        if self.enable_openbb and self.openbb_provider:
-            try:
-                logger.info(f"Trying OpenBB for {symbol}")
-                data = self.openbb_provider.get_stock_data(symbol, start_date, end_date)
-                
-                if not data.empty:
-                    logger.info(f"Retrieved {len(data)} records for {symbol} from OpenBB")
-                    return data
-                else:
-                    logger.warning(f"No OpenBB data found for {symbol}")
-            except Exception as e:
-                logger.warning(f"OpenBB data retrieval failed for {symbol}: {e}")
-        
-        # 3. 尝试Interactive Brokers
+        # 2. 尝试Interactive Brokers (实时数据优先)
         if self.enable_ib and self.ib_provider:
             try:
                 logger.info(f"Trying Interactive Brokers for {symbol}")
@@ -216,12 +229,51 @@ class DataAdapter:
             except Exception as e:
                 logger.warning(f"IB data retrieval failed for {symbol}: {e}")
         
-        # 4. 最后回退到yfinance
-        if self.fallback_to_yfinance:
-            logger.info(f"Falling back to yfinance for {symbol}")
-            return self._get_yfinance_data(symbol, start_date, end_date)
+        # 3. 回退到Qlib
+        if self.prefer_qlib and self.qlib_provider:
+            try:
+                data = self.qlib_provider.get_stock_data(
+                    symbol.lower(), start_date, end_date
+                )
+                
+                if not data.empty:
+                    logger.info(f"Retrieved {len(data)} records for {symbol} from Qlib")
+                    return data
+                else:
+                    logger.warning(f"No Qlib data found for {symbol}")
+            except Exception as e:
+                logger.warning(f"Qlib data retrieval failed for {symbol}: {e}")
+
+        # 4. 回退到OpenBB
+        if self.enable_openbb and self.openbb_provider:
+            try:
+                logger.info(f"Trying OpenBB for {symbol}")
+                data = self.openbb_provider.get_stock_data(symbol, start_date, end_date)
+                
+                if not data.empty:
+                    logger.info(f"Retrieved {len(data)} records for {symbol} from OpenBB")
+                    return data
+                else:
+                    logger.warning(f"No OpenBB data found for {symbol}")
+            except Exception as e:
+                logger.warning(f"OpenBB data retrieval failed for {symbol}: {e}")
         
-        logger.error(f"No data source available for {symbol}")
+        # 5. 最后回退到yfinance (如果启用)
+        if self.fallback_to_yfinance and YFINANCE_AVAILABLE:
+            try:
+                logger.info(f"Trying yfinance fallback for {symbol}")
+                data = self._get_yfinance_data(symbol, start_date, end_date)
+                
+                if not data.empty:
+                    logger.info(f"Retrieved {len(data)} records for {symbol} from yfinance")
+                    return data
+                else:
+                    logger.warning(f"No yfinance data found for {symbol}")
+            except Exception as e:
+                logger.warning(f"yfinance data retrieval failed for {symbol}: {e}")
+        
+        # 6. 如果所有数据源都失败，返回空DataFrame并记录警告
+        logger.warning(f"All data sources failed for {symbol}. Consider checking data source configurations.")
         return pd.DataFrame()
     
     def _get_data_from_source(self, 
@@ -247,6 +299,8 @@ class DataAdapter:
             return self.openbb_provider.get_stock_data(symbol, start_date, end_date)
         elif source.lower() == "ib" and self.ib_provider:
             return self.ib_provider.get_stock_data(symbol, start_date, end_date)
+        elif source.lower() == "alpaca" and self.alpaca_provider:
+            return self.alpaca_provider.get_stock_data(symbol, start_date, end_date)
         elif source.lower() == "yfinance":
             return self._get_yfinance_data(symbol, start_date, end_date)
         else:
@@ -258,7 +312,7 @@ class DataAdapter:
                           start_date: Optional[str] = None, 
                           end_date: Optional[str] = None) -> pd.DataFrame:
         """
-        使用yfinance获取数据
+        从yfinance获取股票数据，包含请求频率控制
         
         Args:
             symbol: 股票代码
@@ -268,7 +322,7 @@ class DataAdapter:
         Returns:
             股票数据DataFrame
         """
-        if not YFINANCE_AVAILABLE:
+        if not YFINANCE_AVAILABLE or yf is None:
             logger.error("yfinance is not available")
             return pd.DataFrame()
         
@@ -279,9 +333,36 @@ class DataAdapter:
             if end_date is None:
                 end_date = datetime.now().strftime("%Y-%m-%d")
             
-            # 获取数据
-            ticker = yf.Ticker(symbol)
-            data = ticker.history(start=start_date, end=end_date)
+            # 实现请求频率控制，避免API限速
+            import time
+            current_time = time.time()
+            
+            # 检查上次请求时间，确保至少间隔1秒
+            if hasattr(self, '_last_yfinance_request'):
+                time_diff = current_time - self._last_yfinance_request
+                if time_diff < 1.0:  # 1秒间隔
+                    sleep_time = 1.0 - time_diff
+                    logger.info(f"Rate limiting: sleeping for {sleep_time:.2f} seconds")
+                    time.sleep(sleep_time)
+            
+            self._last_yfinance_request = time.time()
+            
+            logger.info(f"Fetching data from yfinance for {symbol}")
+            
+            # 获取历史数据，增加重试机制
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    ticker = yf.Ticker(symbol)
+                    data = ticker.history(start=start_date, end=end_date, auto_adjust=True, prepost=True)
+                    break
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        wait_time = (attempt + 1) * 2  # 递增等待时间
+                        logger.warning(f"yfinance request failed (attempt {attempt + 1}), retrying in {wait_time}s: {e}")
+                        time.sleep(wait_time)
+                    else:
+                        raise e
             
             if data.empty:
                 logger.warning(f"No yfinance data found for {symbol}")
@@ -290,15 +371,23 @@ class DataAdapter:
             # 标准化列名
             data.columns = [col.lower() for col in data.columns]
             
+            # 确保包含必要的列
+            required_columns = ['open', 'high', 'low', 'close', 'volume']
+            missing_columns = [col for col in required_columns if col not in data.columns]
+            
+            if missing_columns:
+                logger.warning(f"Missing columns in yfinance data for {symbol}: {missing_columns}")
+                return pd.DataFrame()
+            
             # 移除不需要的列
             columns_to_keep = ['open', 'high', 'low', 'close', 'volume']
             data = data[[col for col in columns_to_keep if col in data.columns]]
             
-            logger.info(f"Retrieved {len(data)} records for {symbol} from yfinance")
+            logger.info(f"Successfully retrieved {len(data)} records from yfinance for {symbol}")
             return data
             
         except Exception as e:
-            logger.error(f"yfinance data retrieval failed for {symbol}: {e}")
+            logger.error(f"Error fetching yfinance data for {symbol}: {e}")
             return pd.DataFrame()
     
     def get_multiple_stocks_data(self, 
@@ -502,6 +591,7 @@ def create_data_adapter(prefer_qlib: bool = True,
                        qlib_data_dir: Optional[str] = None,
                        enable_openbb: bool = True,
                        enable_ib: bool = True,
+                       enable_alpaca: bool = False,
                        fallback_to_yfinance: bool = True) -> DataAdapter:
     """
     创建数据适配器实例
@@ -511,6 +601,7 @@ def create_data_adapter(prefer_qlib: bool = True,
         qlib_data_dir: Qlib数据目录
         enable_openbb: 是否启用OpenBB
         enable_ib: 是否启用Interactive Brokers
+        enable_alpaca: 是否启用Alpaca
         fallback_to_yfinance: 是否启用yfinance回退
     
     Returns:
@@ -521,6 +612,7 @@ def create_data_adapter(prefer_qlib: bool = True,
         qlib_data_dir=qlib_data_dir,
         enable_openbb=enable_openbb,
         enable_ib=enable_ib,
+        enable_alpaca=enable_alpaca,
         fallback_to_yfinance=fallback_to_yfinance
     )
 

@@ -366,8 +366,32 @@ def test_alpaca_connection():
     """测试Alpaca连接"""
     print("测试Alpaca连接...")
     
+    # 从环境变量或配置文件获取API密钥
+    import os
+    import yaml
+    
+    api_key = os.getenv('ALPACA_API_KEY')
+    secret_key = os.getenv('ALPACA_SECRET_KEY')
+    base_url = os.getenv('ALPACA_BASE_URL', 'https://paper-api.alpaca.markets')
+    
+    # 如果环境变量没有，尝试从配置文件读取
+    if not api_key or not secret_key:
+        try:
+            with open('trading_config.yaml', 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+                alpaca_config = config.get('data_sources', {}).get('api_keys', {}).get('alpaca', {})
+                api_key = alpaca_config.get('api_key')
+                secret_key = alpaca_config.get('secret_key')
+                base_url = alpaca_config.get('base_url', base_url)
+        except Exception as e:
+            print(f"无法读取配置文件: {e}")
+    
+    if not api_key or not secret_key:
+        print("❌ 未找到API密钥，请运行 python quick_alpaca_setup.py 进行配置")
+        return
+    
     # 创建适配器
-    alpaca = AlpacaAdapter()
+    alpaca = AlpacaAdapter(api_key=api_key, secret_key=secret_key, base_url=base_url)
     
     # 连接测试
     if alpaca.connect():

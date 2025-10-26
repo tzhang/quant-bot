@@ -136,8 +136,17 @@ class BacktestEngine:
         portfolio_value = np.full(n, self.initial_capital)
         trades = []
         
-        # 计算价格波动率
-        returns = data["Close"].pct_change()
+        # 计算价格波动率 - 兼容不同列名格式
+        close_col = None
+        for col in ['Close', 'close', 'CLOSE']:
+            if col in data.columns:
+                close_col = col
+                break
+        
+        if close_col is None:
+            raise ValueError("No 'Close' price column found in data")
+        
+        returns = data[close_col].pct_change()
         volatility = returns.rolling(20).std() * np.sqrt(252)
         
         current_position = 0.0
@@ -145,7 +154,7 @@ class BacktestEngine:
         shares = 0.0
         
         for i in range(1, n):
-            current_price = data["Close"].iloc[i]
+            current_price = data[close_col].iloc[i]
             signal = signals.iloc[i]
             current_vol = volatility.iloc[i] if not pd.isna(volatility.iloc[i]) else 0.02
             
@@ -214,7 +223,7 @@ class BacktestEngine:
         turnover = position_changes.sum() / len(data) * 252  # 年化换手率
         
         # 计算基准收益（买入持有）
-        benchmark_returns = data["Close"].pct_change().fillna(0)
+        benchmark_returns = data[close_col].pct_change().fillna(0)
         
         return {
             "portfolio_value": pd.Series(portfolio_value, index=data.index),

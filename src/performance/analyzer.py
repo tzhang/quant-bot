@@ -131,9 +131,26 @@ class PerformanceAnalyzer:
         price_col: str = "Close",
         save_path: Optional[str] = None,
     ):
+        # 兼容不同列名格式
+        actual_price_col = None
+        for col in [price_col, price_col.lower(), price_col.upper()]:
+            if col in df.columns:
+                actual_price_col = col
+                break
+        
+        if actual_price_col is None:
+            # 尝试其他常见的价格列名
+            for col in ['Close', 'close', 'CLOSE', 'price', 'Price', 'PRICE']:
+                if col in df.columns:
+                    actual_price_col = col
+                    break
+        
+        if actual_price_col is None:
+            raise KeyError(f"No price column found. Available columns: {list(df.columns)}")
+        
         sig = self._ensure_series(signal).reindex(df.index).fillna(0.0).clip(0.0, 1.0)
         # Robustly coerce price column to 1D numeric Series
-        price = self._ensure_series(df[price_col])
+        price = self._ensure_series(df[actual_price_col])
         fig, ax1 = plt.subplots(figsize=(10, 4))
         ax1.plot(price.index, price.values, color="black", label="Price")
         ax1.set_ylabel("Price")

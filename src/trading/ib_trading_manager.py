@@ -79,10 +79,10 @@ class IBTradingManager:
         # 交易配置
         self.trading_config = TradingConfig(
             host=self.config.get('host', '127.0.0.1'),
-            paper_port=self.config.get('paper_port', 7497),
-            live_port=self.config.get('live_port', 7496),
+            paper_port=self.config.get('paper_port', 4001),
+            live_port=self.config.get('live_port', 4000),
             client_id=self.config.get('client_id', 1),
-            trading_mode=TradingMode.PAPER if self.config.get('paper_trading', True) else TradingMode.LIVE
+            trading_mode=TradingMode.LIVE if not self.config.get('paper_trading', False) else TradingMode.PAPER
         )
         
         # 风险限制

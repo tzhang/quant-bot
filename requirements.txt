@@ -257,6 +257,9 @@ transformers>=4.35.0  # Hugging Face变换器（可选）
 fredapi>=0.5.1  # 美联储经济数据
 pandas-datareader>=0.10.0  # 多源数据获取
 
+# 券商API
+alpaca-trade-api>=3.1.1  # Alpaca Markets API
+
 # 期权定价
 py_vollib>=1.0.1  # 期权波动率库
 mibian>=0.1.3  # Black-Scholes期权定价

@@ -318,7 +318,7 @@ def main():
     parser.add_argument("--trading", action="store_true", help="启用实时交易功能")
     parser.add_argument("--paper", action="store_true", help="使用模拟交易模式")
     parser.add_argument("--ib-host", type=str, default="127.0.0.1", help="IB TWS主机地址")
-    parser.add_argument("--ib-port", type=int, help="IB TWS端口 (模拟:7497, 实盘:7496)")
+    parser.add_argument("--ib-port", type=int, help="IB Gateway端口 (模拟:4001, 实盘:4000)")
     parser.add_argument("--client-id", type=int, default=1, help="IB客户端ID")
     
     # 策略参数
@@ -340,7 +340,7 @@ def main():
             if args.ib_port:
                 port = args.ib_port
             else:
-                port = 7497 if args.paper else 7496
+                port = 4001 if args.paper else 4000
             
             trading_config = {
                 'host': args.ib_host,

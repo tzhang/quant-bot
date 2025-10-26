@@ -82,8 +82,22 @@ class DataSourceConfig:
     """数据源配置类"""
     
     def __init__(self):
-        # Yahoo Finance
-        self.yahoo_enabled = os.getenv('YAHOO_FINANCE_ENABLED', 'True').lower() == 'true'
+        # Interactive Brokers (最高优先级)
+        self.ib_enabled = os.getenv('IB_ENABLED', 'True').lower() == 'true'
+        self.ib_host = os.getenv('IB_HOST', '127.0.0.1')
+        self.ib_port = int(os.getenv('IB_PORT', '4001'))  # IB Gateway模拟交易端口
+        self.ib_client_id = int(os.getenv('IB_CLIENT_ID', '1'))
+        
+        # Qlib (第二优先级)
+        self.qlib_enabled = os.getenv('QLIB_ENABLED', 'True').lower() == 'true'
+        
+        # OpenBB (第三优先级)
+        self.openbb_enabled = os.getenv('OPENBB_ENABLED', 'True').lower() == 'true'
+        
+        # Yahoo Finance (默认禁用，由于API限速问题)
+        self.yahoo_enabled = os.getenv('YAHOO_FINANCE_ENABLED', 'False').lower() == 'true'
+        self.yahoo_rate_limit = float(os.getenv('YAHOO_RATE_LIMIT', '1.0'))  # 秒
+        self.yahoo_max_retries = int(os.getenv('YAHOO_MAX_RETRIES', '3'))
         
         # Alpha Vantage
         self.alpha_vantage_key = os.getenv('ALPHA_VANTAGE_API_KEY', '')
@@ -92,6 +106,10 @@ class DataSourceConfig:
         # Quandl
         self.quandl_key = os.getenv('QUANDL_API_KEY', '')
         self.quandl_enabled = bool(self.quandl_key)
+        
+        # 数据源优先级配置
+        self.primary_sources = ['ib', 'qlib', 'openbb']  # 主要数据源
+        self.fallback_sources = ['yahoo', 'alpha_vantage', 'quandl']  # 备用数据源
         
         # 数据更新配置
         self.data_update_interval = int(os.getenv('DATA_UPDATE_INTERVAL', '60'))  # 分钟
