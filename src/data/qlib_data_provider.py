@@ -1,6 +1,6 @@
 """
 Qlib数据提供器适配器
-集成微软Qlib的数据包，避免频繁调用yfinance API
+集成微软Qlib的数据包，提供高质量的股票数据
 """
 
 import os
@@ -27,7 +27,7 @@ class QlibDataProvider:
     Qlib数据提供器
     
     提供统一的接口来访问Qlib预处理的股票数据，
-    避免频繁调用yfinance API下载数据
+    提供高质量、高性能的金融数据服务
     """
     
     def __init__(self, data_dir: Optional[str] = None):

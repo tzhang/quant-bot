@@ -52,7 +52,7 @@ class BacktestEngine:
         current_capital: float = None
     ) -> float:
         """
-        计算仓位大小
+        计算仓位大小（考虑交易成本）
         
         Args:
             signal: 交易信号强度
@@ -63,22 +63,32 @@ class BacktestEngine:
         Returns:
             仓位比例
         """
+        # 基础仓位计算
         if self.position_sizing == "fixed":
-            return signal * self.max_position
-        
+            base_position = signal * self.max_position
         elif self.position_sizing == "volatility":
             if volatility is None or volatility == 0:
-                return signal * self.max_position
-            # 基于波动率的仓位调整
-            vol_adj = min(0.02 / volatility, 1.0)  # 目标2%日波动率
-            return signal * self.max_position * vol_adj
-        
+                base_position = signal * self.max_position
+            else:
+                # 基于波动率的仓位调整
+                vol_adj = min(0.02 / volatility, 1.0)  # 目标2%日波动率
+                base_position = signal * self.max_position * vol_adj
         elif self.position_sizing == "kelly":
             # 简化的凯利公式（需要历史胜率和盈亏比数据）
             # 这里使用保守的固定比例
-            return signal * min(self.max_position * 0.5, 0.25)
+            base_position = signal * min(self.max_position * 0.5, 0.25)
+        else:
+            base_position = signal * self.max_position
         
-        return signal * self.max_position
+        # 考虑交易成本的调整
+        if abs(base_position) > 0.001 and current_capital is not None:
+            # 估算交易成本比例
+            cost_ratio = self.commission + self.slippage
+            # 调整仓位以预留交易成本
+            adjusted_position = base_position * (1 - cost_ratio)
+            return max(0, adjusted_position)  # 确保不为负
+        
+        return base_position
 
     def _apply_risk_management(
         self, 
@@ -129,6 +139,24 @@ class BacktestEngine:
         # 确保信号和数据对齐
         signals = signals.reindex(data.index, fill_value=0.0)
         
+        # 添加调试信息
+        print(f"BacktestEngine.run 开始:")
+        print(f"  数据长度: {len(data)}")
+        print(f"  信号长度: {len(signals)}")
+        print(f"  数据索引范围: {data.index[0]} - {data.index[-1]}")
+        print(f"  信号索引范围: {signals.index[0]} - {signals.index[-1]}")
+        print(f"  信号前5个值: {signals.head().tolist()}")
+        print(f"  信号非零数量: {(signals != 0).sum()}")
+        
+        # 找到第一个非零信号的位置
+        first_nonzero = signals[signals != 0].index
+        if len(first_nonzero) > 0:
+            first_idx = signals.index.get_loc(first_nonzero[0])
+            print(f"  第一个非零信号位置: {first_idx}, 值: {signals.iloc[first_idx]}")
+            print(f"  信号第50-55个值: {signals.iloc[50:55].tolist()}")
+        else:
+            print(f"  没有找到非零信号！")
+        
         # 初始化结果数组
         n = len(data)
         positions = np.zeros(n)
@@ -145,6 +173,9 @@ class BacktestEngine:
         
         if close_col is None:
             raise ValueError("No 'Close' price column found in data")
+        
+        print(f"  使用价格列: {close_col}")
+        print(f"  价格范围: {data[close_col].min():.2f} - {data[close_col].max():.2f}")
         
         returns = data[close_col].pct_change()
         volatility = returns.rolling(20).std() * np.sqrt(252)
@@ -174,38 +205,79 @@ class BacktestEngine:
             # 仓位变化
             position_change = target_position - current_position
             
+            # 添加调试信息（前10次）
+            if i <= 10:
+                print(f"  步骤 {i}: 信号={signal:.4f}, 目标仓位={target_position:.4f}, 当前仓位={current_position:.4f}, 仓位变化={position_change:.4f}")
+            
             if abs(position_change) > 0.001:  # 最小交易阈值
-                # 计算交易成本
-                trade_value = abs(position_change) * cash[i-1]
+                # 计算当前组合总价值
+                current_portfolio_value = cash[i-1] + shares * current_price
+                
+                # 计算目标股票价值
+                target_stock_value = target_position * current_portfolio_value
+                current_stock_value = shares * current_price
+                
+                # 计算需要交易的股票价值
+                trade_value = abs(target_stock_value - current_stock_value)
                 transaction_cost = trade_value * (self.commission + self.slippage)
+                
+                # 添加调试日志（扩展到前20次）
+                if i <= 20 or len(trades) < 5:  # 打印前20次或前5次交易的详细信息
+                    print(f"交易 {i}: 信号={signals.iloc[i]:.4f}, 目标仓位={target_position:.4f}, 当前仓位={current_position:.4f}")
+                    print(f"  当前价格={current_price:.2f}, 组合价值={current_portfolio_value:.2f}")
+                    print(f"  目标股票价值={target_stock_value:.2f}, 当前股票价值={current_stock_value:.2f}")
+                    print(f"  交易价值={trade_value:.2f}, 交易成本={transaction_cost:.2f}")
+                    print(f"  现金={cash[i-1]:.2f}, 股票数量={shares:.4f}")
                 
                 # 更新现金和股票
                 if position_change > 0:  # 买入
-                    cost = position_change * cash[i-1] + transaction_cost
-                    if cost <= cash[i-1]:
-                        cash[i] = cash[i-1] - cost
-                        shares += (position_change * cash[i-1]) / current_price
+                    # 计算需要买入的股票数量
+                    buy_value = target_stock_value - current_stock_value
+                    total_cost = buy_value + transaction_cost
+                    
+                    if total_cost <= cash[i-1]:
+                        cash[i] = cash[i-1] - total_cost
+                        shares += buy_value / current_price
                         current_position = target_position
                         entry_price = current_price
+                        if i <= 20 or len(trades) < 5:
+                            print(f"  买入成功: 新现金={cash[i]:.2f}, 新股票数量={shares:.4f}")
+                        
+                        # 记录交易
+                        trades.append({
+                            'date': data.index[i],
+                            'price': current_price,
+                            'position_change': position_change,
+                            'position': current_position,
+                            'cost': transaction_cost
+                        })
                     else:
+                        # 资金不足，保持原仓位
                         cash[i] = cash[i-1]
                         current_position = positions[i-1]
+                        if i <= 20 or len(trades) < 5:
+                            print(f"  买入失败: 资金不足")
                 else:  # 卖出
-                    proceeds = abs(position_change) * cash[i-1] - transaction_cost
+                    # 计算需要卖出的股票数量
+                    sell_value = current_stock_value - target_stock_value
+                    proceeds = sell_value - transaction_cost
+                    
                     cash[i] = cash[i-1] + proceeds
-                    shares -= (abs(position_change) * cash[i-1]) / current_price
+                    shares -= sell_value / current_price
                     current_position = target_position
                     if current_position == 0:
                         entry_price = 0.0
-                
-                # 记录交易
-                trades.append({
-                    'date': data.index[i],
-                    'price': current_price,
-                    'position_change': position_change,
-                    'position': current_position,
-                    'cost': transaction_cost
-                })
+                    if i <= 20 or len(trades) < 5:
+                        print(f"  卖出成功: 新现金={cash[i]:.2f}, 新股票数量={shares:.4f}")
+                    
+                    # 记录交易
+                    trades.append({
+                        'date': data.index[i],
+                        'price': current_price,
+                        'position_change': position_change,
+                        'position': current_position,
+                        'cost': transaction_cost
+                    })
             else:
                 cash[i] = cash[i-1]
             

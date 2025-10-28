@@ -277,25 +277,26 @@ class DataProvider:
     def _fetch_yahoo_data(self, symbol: str) -> Optional[MarketData]:
         """从Yahoo Finance获取数据"""
         try:
-            import yfinance as yf
-            
-            ticker = yf.Ticker(symbol)
-            hist = ticker.history(period="1d", interval="1m")
-            
-            if hist.empty:
-                return None
-            
-            latest = hist.iloc[-1]
-            
-            return MarketData(
-                symbol=symbol,
-                timestamp=datetime.now(),
-                open=float(latest['Open']),
-                high=float(latest['High']),
-                low=float(latest['Low']),
-                close=float(latest['Close']),
-                volume=int(latest['Volume'])
-            )
+            # import yfinance as yf  # 已移除，不再使用yfinance
+            logger.warning("yfinance已移除，无法获取股票价格数据")
+            return None  # 返回None而不是空DataFrame
+            # ticker = yf.Ticker(symbol)
+            # hist = ticker.history(period="1d", interval="1m")
+            # 
+            # if hist.empty:
+            #     return None
+            # 
+            # latest = hist.iloc[-1]
+            # 
+            # return MarketData(
+            #     symbol=symbol,
+            #     timestamp=datetime.now(),
+            #     open=float(latest['Open']),
+            #     high=float(latest['High']),
+            #     low=float(latest['Low']),
+            #     close=float(latest['Close']),
+            #     volume=int(latest['Volume'])
+            # )
             
         except Exception as e:
             logger.error(f"Yahoo Finance数据获取失败: {e}")

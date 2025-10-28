@@ -26,7 +26,7 @@ from collections import Counter
 try:
     import requests
     from bs4 import BeautifulSoup
-    import yfinance as yf
+    # import yfinance as yf  # 已移除，不再使用yfinance
     from textblob import TextBlob
     import nltk
     from nltk.sentiment import SentimentIntensityAnalyzer

@@ -58,12 +58,9 @@ except ImportError as e:
     logger.warning(f"IB provider not available: {e}")
     IBDataProvider = None
 
-try:
-    import yfinance as yf
-    YFINANCE_AVAILABLE = True
-except ImportError:
-    YFINANCE_AVAILABLE = False
-    yf = None
+# yfinance已被移除，不再使用
+YFINANCE_AVAILABLE = False
+yf = None
 
 try:
     from .alpaca_data_provider import AlpacaDataProvider
@@ -90,8 +87,7 @@ class DataAdapter:
                  qlib_data_dir: Optional[str] = None,
                  enable_openbb: bool = True,
                  enable_ib: bool = True,
-                 enable_alpaca: bool = False,
-                 fallback_to_yfinance: bool = False):  # 默认禁用yfinance
+                 enable_alpaca: bool = False):  # 移除yfinance参数
         """
         初始化数据适配器
         
@@ -101,13 +97,13 @@ class DataAdapter:
             enable_openbb: 是否启用OpenBB数据源
             enable_ib: 是否启用Interactive Brokers数据源
             enable_alpaca: 是否启用Alpaca数据源
-            fallback_to_yfinance: 当其他数据源不可用时是否回退到yfinance (默认禁用)
         """
         self.prefer_qlib = prefer_qlib and QLIB_AVAILABLE
         self.enable_openbb = enable_openbb and OPENBB_AVAILABLE
         self.enable_ib = enable_ib and IB_AVAILABLE
         self.enable_alpaca = enable_alpaca and ALPACA_AVAILABLE
-        self.fallback_to_yfinance = fallback_to_yfinance and YFINANCE_AVAILABLE
+        # yfinance已被移除，不再使用
+        self.fallback_to_yfinance = False
         
         # 初始化Qlib提供器
         self.qlib_provider = None
@@ -163,8 +159,7 @@ class DataAdapter:
             sources.append("Interactive Brokers (real-time)")
         if self.enable_alpaca and self.alpaca_provider:
             sources.append("Alpaca (real-time)")
-        if self.fallback_to_yfinance:
-            sources.append("yfinance (fallback)")
+        # yfinance已被移除，不再使用
         
         if sources:
             logger.info(f"Available data sources: {', '.join(sources)}")
@@ -258,19 +253,8 @@ class DataAdapter:
             except Exception as e:
                 logger.warning(f"OpenBB data retrieval failed for {symbol}: {e}")
         
-        # 5. 最后回退到yfinance (如果启用)
-        if self.fallback_to_yfinance and YFINANCE_AVAILABLE:
-            try:
-                logger.info(f"Trying yfinance fallback for {symbol}")
-                data = self._get_yfinance_data(symbol, start_date, end_date)
-                
-                if not data.empty:
-                    logger.info(f"Retrieved {len(data)} records for {symbol} from yfinance")
-                    return data
-                else:
-                    logger.warning(f"No yfinance data found for {symbol}")
-            except Exception as e:
-                logger.warning(f"yfinance data retrieval failed for {symbol}: {e}")
+        # 5. yfinance已被移除，不再使用
+        # 原yfinance回退逻辑已被移除
         
         # 6. 如果所有数据源都失败，返回空DataFrame并记录警告
         logger.warning(f"All data sources failed for {symbol}. Consider checking data source configurations.")
@@ -302,7 +286,8 @@ class DataAdapter:
         elif source.lower() == "alpaca" and self.alpaca_provider:
             return self.alpaca_provider.get_stock_data(symbol, start_date, end_date)
         elif source.lower() == "yfinance":
-            return self._get_yfinance_data(symbol, start_date, end_date)
+            logger.warning("yfinance已被移除，无法获取数据")
+            return pd.DataFrame()
         else:
             logger.error(f"Data source '{source}' not available")
             return pd.DataFrame()
@@ -312,83 +297,18 @@ class DataAdapter:
                           start_date: Optional[str] = None, 
                           end_date: Optional[str] = None) -> pd.DataFrame:
         """
-        从yfinance获取股票数据，包含请求频率控制
+        yfinance数据获取方法已被移除
         
         Args:
             symbol: 股票代码
             start_date: 开始日期
             end_date: 结束日期
-        
+            
         Returns:
-            股票数据DataFrame
+            空DataFrame，因为yfinance已被移除
         """
-        if not YFINANCE_AVAILABLE or yf is None:
-            logger.error("yfinance is not available")
-            return pd.DataFrame()
-        
-        try:
-            # 设置默认日期范围
-            if start_date is None:
-                start_date = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
-            if end_date is None:
-                end_date = datetime.now().strftime("%Y-%m-%d")
-            
-            # 实现请求频率控制，避免API限速
-            import time
-            current_time = time.time()
-            
-            # 检查上次请求时间，确保至少间隔1秒
-            if hasattr(self, '_last_yfinance_request'):
-                time_diff = current_time - self._last_yfinance_request
-                if time_diff < 1.0:  # 1秒间隔
-                    sleep_time = 1.0 - time_diff
-                    logger.info(f"Rate limiting: sleeping for {sleep_time:.2f} seconds")
-                    time.sleep(sleep_time)
-            
-            self._last_yfinance_request = time.time()
-            
-            logger.info(f"Fetching data from yfinance for {symbol}")
-            
-            # 获取历史数据，增加重试机制
-            max_retries = 3
-            for attempt in range(max_retries):
-                try:
-                    ticker = yf.Ticker(symbol)
-                    data = ticker.history(start=start_date, end=end_date, auto_adjust=True, prepost=True)
-                    break
-                except Exception as e:
-                    if attempt < max_retries - 1:
-                        wait_time = (attempt + 1) * 2  # 递增等待时间
-                        logger.warning(f"yfinance request failed (attempt {attempt + 1}), retrying in {wait_time}s: {e}")
-                        time.sleep(wait_time)
-                    else:
-                        raise e
-            
-            if data.empty:
-                logger.warning(f"No yfinance data found for {symbol}")
-                return pd.DataFrame()
-            
-            # 标准化列名
-            data.columns = [col.lower() for col in data.columns]
-            
-            # 确保包含必要的列
-            required_columns = ['open', 'high', 'low', 'close', 'volume']
-            missing_columns = [col for col in required_columns if col not in data.columns]
-            
-            if missing_columns:
-                logger.warning(f"Missing columns in yfinance data for {symbol}: {missing_columns}")
-                return pd.DataFrame()
-            
-            # 移除不需要的列
-            columns_to_keep = ['open', 'high', 'low', 'close', 'volume']
-            data = data[[col for col in columns_to_keep if col in data.columns]]
-            
-            logger.info(f"Successfully retrieved {len(data)} records from yfinance for {symbol}")
-            return data
-            
-        except Exception as e:
-            logger.error(f"Error fetching yfinance data for {symbol}: {e}")
-            return pd.DataFrame()
+        logger.warning("yfinance已被移除，无法获取数据")
+        return pd.DataFrame()
     
     def get_multiple_stocks_data(self, 
                                symbols: List[str], 
@@ -554,9 +474,9 @@ class DataAdapter:
         info = {
             "qlib_available": bool(self.qlib_provider),
             "openbb_available": bool(self.openbb_provider),
-            "yfinance_available": YFINANCE_AVAILABLE,
-            "preferred_source": "qlib" if self.prefer_qlib else "openbb" if self.enable_openbb else "yfinance",
-            "fallback_enabled": self.fallback_to_yfinance
+            # "yfinance_available": False,  # yfinance已移除，不再使用
+            "preferred_source": "qlib" if self.prefer_qlib else "openbb" if self.enable_openbb else "none",
+            "fallback_enabled": False  # yfinance回退已禁用
         }
         
         # Qlib信息
@@ -591,8 +511,7 @@ def create_data_adapter(prefer_qlib: bool = True,
                        qlib_data_dir: Optional[str] = None,
                        enable_openbb: bool = True,
                        enable_ib: bool = True,
-                       enable_alpaca: bool = False,
-                       fallback_to_yfinance: bool = True) -> DataAdapter:
+                       enable_alpaca: bool = False) -> DataAdapter:  # 移除yfinance参数
     """
     创建数据适配器实例
     
@@ -602,7 +521,6 @@ def create_data_adapter(prefer_qlib: bool = True,
         enable_openbb: 是否启用OpenBB
         enable_ib: 是否启用Interactive Brokers
         enable_alpaca: 是否启用Alpaca
-        fallback_to_yfinance: 是否启用yfinance回退
     
     Returns:
         DataAdapter实例
@@ -612,8 +530,7 @@ def create_data_adapter(prefer_qlib: bool = True,
         qlib_data_dir=qlib_data_dir,
         enable_openbb=enable_openbb,
         enable_ib=enable_ib,
-        enable_alpaca=enable_alpaca,
-        fallback_to_yfinance=fallback_to_yfinance
+        enable_alpaca=enable_alpaca
     )
 
 

@@ -17,12 +17,13 @@ from datetime import datetime, timedelta
 import logging
 
 # 尝试导入可选依赖
-try:
-    import yfinance as yf
-    HAS_YFINANCE = True
-except ImportError:
-    HAS_YFINANCE = False
-    warnings.warn("yfinance not available. Some sentiment factors may not work.")
+# try:
+#     import yfinance as yf  # 已移除，不再使用yfinance
+#     HAS_YFINANCE = True
+# except ImportError:
+#     HAS_YFINANCE = False
+#     warnings.warn("yfinance not available. Some sentiment factors may not work.")
+HAS_YFINANCE = False  # 不再使用yfinance
 
 try:
     from textblob import TextBlob

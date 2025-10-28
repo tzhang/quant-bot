@@ -161,7 +161,7 @@ def show_system_overview():
         st.metric("系统版本", "v3.0.0", "性能优化版")
     
     with col2:
-        st.metric("数据源", "4个", "Qlib + OpenBB + yfinance + IB")
+        st.metric("数据源", "3个", "IB TWS API + Qlib + OpenBB")
     
     with col3:
         st.metric("缓存文件", "31个", "智能缓存系统")
@@ -258,8 +258,8 @@ def show_data_management():
     with col1:
         data_sources = st.multiselect(
             "选择数据源",
-            ["yfinance", "OpenBB", "Qlib", "Interactive Brokers"],
-            default=["yfinance", "OpenBB"]
+            ["IB TWS API", "OpenBB", "Qlib"],
+            default=["IB TWS API", "Qlib"]
         )
     
     with col2:

@@ -423,9 +423,11 @@ class SentimentDataManager:
                 logger.warning(f"IB TWS API 获取新闻失败: {e}")
             
             # 回退到 yfinance
-            import yfinance as yf
-            ticker = yf.Ticker(symbol)
-            news = ticker.news
+            # import yfinance as yf  # 已移除，不再使用yfinance
+            logger.warning("yfinance已移除，无法获取Yahoo Finance新闻数据")
+            return []  # 返回空列表
+            # ticker = yf.Ticker(symbol)
+            # news = ticker.news
             
             if not news:
                 return []
@@ -511,9 +513,11 @@ class SentimentDataManager:
                         logger.warning(f"IB TWS API 获取情绪指标 {symbol} 失败: {e}")
                     
                     # 回退到 yfinance
-                    import yfinance as yf
-                    ticker = yf.Ticker(f"^{symbol}")
-                    hist = ticker.history(period='5d')
+            # import yfinance as yf  # 已移除，不再使用yfinance
+            logger.warning("yfinance已移除，无法获取市场情绪指标数据")
+            continue  # 跳过当前指标
+            # ticker = yf.Ticker(f"^{symbol}")
+            # hist = ticker.history(period='5d')
                     
                     if not hist.empty:
                         current_value = hist['Close'].iloc[-1]
@@ -663,8 +667,10 @@ class SentimentDataManager:
                 logger.warning(f"IB TWS API 获取分析师评级失败: {e}")
             
             # 回退到 yfinance
-            import yfinance as yf
-            ticker = yf.Ticker(symbol)
+            # import yfinance as yf  # 已移除，不再使用yfinance
+            logger.warning("yfinance已移除，无法获取分析师评级数据")
+            return ratings_data  # 返回空的评级数据
+            # ticker = yf.Ticker(symbol)
             
             # 获取分析师推荐
             try:

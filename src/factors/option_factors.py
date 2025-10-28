@@ -22,7 +22,7 @@ import math
 
 # 期权定价库
 try:
-    import yfinance as yf
+    # import yfinance as yf  # 已移除，不再使用yfinance
     from py_vollib.black_scholes import black_scholes
     from py_vollib.black_scholes.greeks import delta, gamma, theta, vega, rho
     from py_vollib.black_scholes.implied_volatility import implied_volatility

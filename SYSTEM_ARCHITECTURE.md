@@ -110,6 +110,25 @@ class DataManager:
   - yfinance (Yahoo Finance)
   - 自定义数据源
 
+#### DataAdapter (v1.6.0 新增)
+- **位置**: `src/data/data_adapter.py`
+- **职责**: 智能数据源适配和回退
+- **功能**:
+  - Alpaca API到yfinance的多级回退机制
+  - 列名兼容性自动处理
+  - API限流智能处理
+  - 数据质量验证和修复
+  - 多数据源统一接口
+
+**核心方法**:
+```python
+class DataAdapter:
+    def get_data_with_fallback(self, symbols, start_date, end_date)  # 智能回退获取数据
+    def normalize_column_names(self, data)                          # 列名标准化
+    def handle_api_limits(self, api_call)                          # API限流处理
+    def validate_data_quality(self, data)                          # 数据质量验证
+```
+
 ### 4. 因子计算层
 
 #### FactorEngine
@@ -209,16 +228,22 @@ class BacktestEngine:
 
 ## 数据流架构
 
-### 1. 数据获取流程
+### 1. 数据获取流程 (v1.6.0 更新)
 
 ```
-用户请求 → DataManager → DataFetcher → 数据源API
-                ↓
-            缓存检查 ← CacheManager
-                ↓
-            数据验证 ← DataValidator
-                ↓
-            返回数据
+用户请求 → DataManager → DataAdapter (新增) → 智能数据源选择
+                           ↓
+                    Alpaca API 尝试 → 成功 → 返回数据
+                           ↓ (失败)
+                    yfinance 回退 → 成功 → 列名标准化 → 返回数据
+                           ↓ (失败)
+                    其他数据源 → 最终回退
+                           ↓
+                    缓存检查 ← CacheManager
+                           ↓
+                    数据验证 ← DataValidator
+                           ↓
+                    返回数据
 ```
 
 ### 2. 因子计算流程
@@ -360,6 +385,48 @@ export QUANT_LOG_LEVEL="INFO"
 - **异常捕获**: 全局异常处理机制
 - **错误恢复**: 自动错误恢复策略
 - **错误报告**: 详细错误信息记录
+
+## MVP演示系统架构 (v1.6.0 新增)
+
+### 1. MVP演示流程
+
+```
+用户启动 → mvp_demo.py → 数据获取 (DataAdapter智能回退)
+                           ↓
+                    策略执行 → 多策略并行回测
+                           ↓
+                    性能分析 → 6种专业图表生成
+                           ↓
+                    结果输出 → PNG图表文件保存
+```
+
+### 2. MVP核心组件
+
+#### MVPDemo
+- **位置**: `mvp_demo.py`
+- **职责**: MVP演示系统主控制器
+- **功能**:
+  - 端到端量化交易演示
+  - 多策略性能对比
+  - 专业图表自动生成
+  - 用户友好的错误处理
+
+**核心方法**:
+```python
+class MVPDemo:
+    def run_complete_demo(self)           # 运行完整演示
+    def generate_all_charts(self, results) # 生成所有图表
+    def save_results(self, results)       # 保存结果
+```
+
+### 3. 生成的图表类型
+
+- **净值曲线图**: 策略累计收益表现
+- **回撤分析图**: 最大回撤和回撤恢复
+- **收益分布图**: 收益率分布直方图
+- **滚动指标图**: 滚动夏普比率等指标
+- **风险收益散点图**: 风险收益关系分析
+- **月度收益热力图**: 月度收益表现热力图
 
 ## 部署架构
 

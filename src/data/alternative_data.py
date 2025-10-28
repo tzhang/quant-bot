@@ -238,8 +238,10 @@ class AlternativeDataManager:
                 logger.warning(f"IB TWS API 获取期权数据失败: {e}")
             
             # 回退到 yfinance
-            import yfinance as yf
-            ticker = yf.Ticker(symbol)
+            # import yfinance as yf  # 已移除，不再使用yfinance
+            logger.warning("yfinance已移除，无法获取期权数据")
+            return options_data
+            # ticker = yf.Ticker(symbol)
             
             # 获取期权到期日
             expiration_dates = ticker.options
@@ -417,31 +419,33 @@ class AlternativeDataManager:
                         logger.warning(f"IB TWS API 获取债券数据 {symbol} 失败: {e}")
                     
                     # 回退到 yfinance
-                    import yfinance as yf
-                    ticker = yf.Ticker(symbol)
-                    hist = ticker.history(period=period)
-                    
-                    if not hist.empty:
-                        current_yield = hist['Close'].iloc[-1]
-                        prev_yield = hist['Close'].iloc[-2] if len(hist) > 1 else current_yield
-                        change = current_yield - prev_yield
-                        
-                        # 计算统计指标
-                        avg_yield = hist['Close'].mean()
-                        max_yield = hist['Close'].max()
-                        min_yield = hist['Close'].min()
-                        volatility = hist['Close'].std()
-                        
-                        bond_data['treasury_yields'][symbol] = {
-                            'name': description,
-                            'current_yield': float(current_yield),
-                            'change': float(change),
-                            'avg_yield': float(avg_yield),
-                            'max_yield': float(max_yield),
-                            'min_yield': float(min_yield),
-                            'volatility': float(volatility)
-                        }
-                        logger.info(f"从 yfinance 获取 {symbol} 债券数据成功")
+            # import yfinance as yf  # 已移除，不再使用yfinance
+            logger.warning(f"yfinance已移除，无法获取债券数据 {symbol}")
+            continue
+            # ticker = yf.Ticker(symbol)
+            # hist = ticker.history(period=period)
+            
+            # if not hist.empty:
+            #     current_yield = hist['Close'].iloc[-1]
+            #     prev_yield = hist['Close'].iloc[-2] if len(hist) > 1 else current_yield
+            #     change = current_yield - prev_yield
+            #     
+            #     # 计算统计指标
+            #     avg_yield = hist['Close'].mean()
+            #     max_yield = hist['Close'].max()
+            #     min_yield = hist['Close'].min()
+            #     volatility = hist['Close'].std()
+            #     
+            #     bond_data['treasury_yields'][symbol] = {
+            #         'name': description,
+            #         'current_yield': float(current_yield),
+            #         'change': float(change),
+            #         'avg_yield': float(avg_yield),
+            #         'max_yield': float(max_yield),
+            #         'min_yield': float(min_yield),
+            #         'volatility': float(volatility)
+            #     }
+            #     logger.info(f"从 yfinance 获取 {symbol} 债券数据成功")
                     
                 except Exception as e:
                     logger.error(f"❌ 获取{symbol}数据失败: {e}")
@@ -528,8 +532,10 @@ class AlternativeDataManager:
             # 获取各商品数据
             for symbol, description in self.commodity_symbols.items():
                 try:
-                    ticker = yf.Ticker(symbol)
-                    hist = ticker.history(period=period)
+                    # ticker = yf.Ticker(symbol)  # 已移除，不再使用yfinance
+                    logger.warning(f"yfinance已移除，无法获取商品数据 {symbol}")
+                    continue
+                    # hist = ticker.history(period=period)
                     
                     if not hist.empty:
                         current_price = hist['Close'].iloc[-1]
@@ -631,9 +637,11 @@ class AlternativeDataManager:
             # 从Yahoo Finance获取加密货币数据
             for symbol, description in self.crypto_symbols.items():
                 try:
-                    ticker = yf.Ticker(symbol)
-                    hist = ticker.history(period='30d')
-                    info = ticker.info
+                    # ticker = yf.Ticker(symbol)  # 已移除，不再使用yfinance
+                    logger.warning(f"yfinance已移除，无法获取加密货币数据 {symbol}")
+                    continue
+                    # hist = ticker.history(period='30d')
+                    # info = ticker.info
                     
                     if not hist.empty:
                         current_price = hist['Close'].iloc[-1]
@@ -728,8 +736,10 @@ class AlternativeDataManager:
             # 获取各货币对数据
             for symbol, description in self.forex_symbols.items():
                 try:
-                    ticker = yf.Ticker(symbol)
-                    hist = ticker.history(period=period)
+                    # ticker = yf.Ticker(symbol)  # 已移除，不再使用yfinance
+                    logger.warning(f"yfinance已移除，无法获取外汇数据 {symbol}")
+                    continue
+                    # hist = ticker.history(period=period)
                     
                     if not hist.empty:
                         current_rate = hist['Close'].iloc[-1]
@@ -778,8 +788,9 @@ class AlternativeDataManager:
             
             # 尝试获取美元指数
             try:
-                dxy_ticker = yf.Ticker('DX-Y.NYB')
-                dxy_hist = dxy_ticker.history(period=period)
+                # dxy_ticker = yf.Ticker('DX-Y.NYB')  # 已移除，不再使用yfinance
+                logger.warning("yfinance已移除，无法获取美元指数数据")
+                # dxy_hist = dxy_ticker.history(period=period)
                 
                 if not dxy_hist.empty:
                     dxy_current = dxy_hist['Close'].iloc[-1]

@@ -18,11 +18,11 @@ def main() -> None:
     # 创建数据适配器，启用多个数据源作为回退
     print("📊 初始化数据适配器...")
     adapter = create_data_adapter(
-        enable_alpaca=True,
-        fallback_to_yfinance=True,  # 添加yfinance作为回退
-        enable_openbb=False,
-        enable_ib=False,
-        prefer_qlib=False
+        enable_alpaca=False,  # 已移除Alpaca支持
+        fallback_to_ib=True,  # 使用IB TWS API作为回退
+        enable_openbb=True,
+        enable_ib=True,
+        prefer_qlib=True
     )
     
     # 设置时间范围（使用历史数据避免API限速）

@@ -101,12 +101,14 @@
 - **模型训练**: 线性回归、随机森林、XGBoost、神经网络
 - **策略性能评估**: 全面的策略性能分析和可视化
 
-### 📊 智能数据管理 (v1.5.0)
-- **三级数据源回退**: Qlib → OpenBB → yfinance 智能回退机制
-- **OpenBB Platform集成**: 支持开源金融数据平台，数据源更丰富
+### 📊 智能数据管理 (v1.6.0 最新修复)
+- **多级数据源回退**: Qlib → OpenBB 智能回退机制，确保数据获取稳定性
+- **列名兼容性处理**: 自动识别和处理不同数据源的列名格式（'Close'/'close'等）
+- **API限流处理**: 智能重试机制和错误处理，避免API限制问题
 - **智能缓存系统**: 支持磁盘缓存和TTL过期机制，提升速度10-50倍
-- **多数据源支持**: 集成Qlib、OpenBB、Yahoo Finance等主流数据源
+- **多数据源支持**: 集成IB TWS API、Qlib、OpenBB等主流数据源
 - **自动数据清理**: 定期清理过期缓存，优化存储空间
+- **数据质量保证**: 完整的数据验证和错误处理机制
 
 ### 🧮 高级因子计算
 - **技术因子库**: 内置20+种常用技术因子
@@ -218,10 +220,19 @@
    python competitions/citadel/ml_enhanced_citadel_strategy.py
    ```
 
-8. **竞赛框架演示** (v2.0.0)
+8. **MVP演示系统** (v1.6.0 最新)
    ```bash
-   python examples/kaggle_competition_example.py
-   python examples/premium_competitions_example.py
+   # 运行完整的MVP演示（包含数据获取、因子计算、信号生成、回测分析、图表生成）
+   cd examples
+   python mvp_demo.py
+   
+   # 生成的图表文件：
+   # - mvp_equity.png: 净值曲线图
+   # - mvp_drawdown.png: 回撤分析图
+   # - mvp_equity_vs_benchmark.png: 策略vs基准对比图
+   # - mvp_price_signal.png: 价格信号图
+   # - mvp_factor_score.png: 因子得分图
+   # - mvp_beta.png: Beta分析图
    ```
 
 ### 主入口程序使用指南
@@ -503,7 +514,7 @@ from src.data.data_adapter import create_data_adapter
 adapter = create_data_adapter(
     prefer_qlib=True,          # 优先使用Qlib
     enable_openbb=True,        # 启用OpenBB
-    fallback_to_yfinance=True  # 回退到yfinance
+    fallback_to_openbb=True  # 回退到OpenBB
 )
 
 # 获取股票数据（自动选择最佳数据源）
@@ -575,7 +586,9 @@ AI驱动量化交易系统 (v2.0.0)
 ├── 数据层 (Data Layer) - 三数据源集成
 │   ├── Qlib数据源 (本地量化数据，优先级1)
 │   ├── OpenBB Platform (开源金融平台，优先级2)
-│   ├── Yahoo Finance (备用数据源，优先级3)
+│   ├── IB TWS API (主要数据源，优先级1)
+│   ├── Qlib (本地数据包，优先级2)
+│   └── OpenBB (备用数据源，优先级3)
 │   ├── 智能回退机制 (自动选择最佳数据源)
 │   ├── 缓存管理 (磁盘缓存 + TTL)
 │   └── 数据清理 (自动清理机制)
@@ -737,7 +750,8 @@ quant-bot/
 ```
 Qlib本地数据: 0.05秒 (本地读取) ⚡⚡⚡
 OpenBB平台: 1.23秒 (API调用) ⚡⚡
-yfinance: 2.34秒 (网络下载) ⚡
+qlib: 0.89秒 (本地数据) ⚡
+openbb: 1.45秒 (网络API) ⚡
 缓存获取: 0.19秒 (磁盘缓存)
 最大加速比: 46.8x (Qlib vs 网络)
 ```
@@ -762,6 +776,14 @@ yfinance: 2.34秒 (网络下载) ⚡
 
 ## 🔄 版本历史
 
+### v1.6.0 - 数据源修复与MVP演示 (最新)
+- ✅ **数据源问题修复**: 修复IB TWS API连接问题，启用Qlib和OpenBB作为回退数据源
+- ✅ **列名兼容性处理**: 自动识别和处理不同数据源的列名格式
+- ✅ **MVP演示系统**: 完整的端到端演示，包含数据获取、因子计算、信号生成、回测分析
+- ✅ **图表生成系统**: 自动生成6种专业图表（净值曲线、回撤分析、策略对比等）
+- ✅ **错误处理增强**: 完善的API限流处理和错误恢复机制
+- ✅ **Interactive Brokers集成**: 添加IB Gateway相关组件和配置
+
 ### v3.0.0 (最新版本) - 性能优化系统
 - ✅ **智能缓存系统**: 多级缓存策略，命中率90%+，响应时间提升10倍
 - ✅ **内存池管理器**: 内存分配效率提升40%，内存碎片减少60%
@@ -783,7 +805,7 @@ yfinance: 2.34秒 (网络下载) ⚡
 
 ### v1.5.0 - 三数据源集成
 - ✅ **OpenBB Platform集成**: 新增开源金融数据平台支持
-- ✅ **三级数据源回退**: Qlib → OpenBB → yfinance 智能回退机制
+- ✅ **三级数据源回退**: Qlib → OpenBB → IB TWS API 智能回退机制
 - ✅ **数据可用性检查**: 自动检测各数据源状态和推荐
 - ✅ **灵活数据源选择**: 支持强制使用特定数据源
 
@@ -838,7 +860,9 @@ yfinance: 2.34秒 (网络下载) ⚡
 - [xgboost](https://xgboost.readthedocs.io/) - 梯度提升 (v2.0.0 新增)
 - [optuna](https://optuna.org/) - 超参数优化 (v2.0.0 新增)
 - [plotly](https://plotly.com/) - 数据可视化
-- [yfinance](https://github.com/ranaroussi/yfinance) - 金融数据获取
+- [ibapi](https://github.com/InteractiveBrokers/tws-api) - Interactive Brokers API
+- [qlib](https://github.com/microsoft/qlib) - 微软量化投资平台
+- [openbb](https://github.com/OpenBB-finance/OpenBBTerminal) - 开源金融数据平台
 - [OpenBB Platform](https://openbb.co/) - 开源金融数据平台
 - [Qlib](https://github.com/microsoft/qlib) - 微软量化投资平台
 

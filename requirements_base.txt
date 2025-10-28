@@ -5,9 +5,18 @@ scipy>=1.11.0
 requests>=2.31.0
 
 # 数据获取
-yfinance>=0.2.28
+# yfinance>=0.2.28  # 已移除，不再使用
 beautifulsoup4>=4.12.0
 lxml>=4.9.0
+
+# IB TWS API
+ibapi>=9.81.1.post1
+
+# Qlib
+qlib>=0.9.0
+
+# OpenBB
+openbb>=4.0.0
 
 # 数据库
 SQLAlchemy>=2.0.0

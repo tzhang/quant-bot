@@ -74,9 +74,22 @@ class MomentumStrategy(BaseStrategy):
         Returns:
             交易信号序列，0表示空仓，1表示满仓
         """
+        print(f"[MomentumStrategy] 输入数据形状: {df.shape}")
+        print(f"[MomentumStrategy] 列名: {df.columns.tolist()}")
+        print(f"[MomentumStrategy] 前5行收盘价: {df['Close'].head()}")
+        
         ema_fast = df["Close"].ewm(span=self.fast, adjust=False).mean()
         ema_slow = df["Close"].ewm(span=self.slow, adjust=False).mean()
+        
+        print(f"[MomentumStrategy] EMA快线前5个值: {ema_fast.head()}")
+        print(f"[MomentumStrategy] EMA慢线前5个值: {ema_slow.head()}")
+        
         sig = (ema_fast > ema_slow).astype(float)
+        
+        print(f"[MomentumStrategy] 信号前5个值: {sig.head()}")
+        print(f"[MomentumStrategy] 信号非零数量: {(sig > 0).sum()}")
+        print(f"[MomentumStrategy] 信号范围: [{sig.min()}, {sig.max()}]")
+        
         return sig.clip(0.0, 1.0)
 
 

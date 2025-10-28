@@ -27,8 +27,8 @@ import requests
 
 # 尝试导入yfinance作为备用数据源
 try:
-    import yfinance as yf
-    YF_AVAILABLE = True
+    # import yfinance as yf  # 已移除，不再使用yfinance
+    YF_AVAILABLE = False
 except ImportError:
     YF_AVAILABLE = False
     print("Warning: yfinance not available, using alternative data sources")

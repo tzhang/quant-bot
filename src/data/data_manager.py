@@ -199,44 +199,13 @@ class DataManager:
                     logger.info(f"成功从Qlib获取数据: {symbol}, {len(data)}条记录")
                     return data
                 else:
-                    logger.warning(f"Qlib未获取到数据: {symbol}，尝试yfinance")
+                    logger.warning(f"Qlib未获取到数据: {symbol}")
             except Exception as e:
-                logger.warning(f"Qlib获取数据失败 {symbol}: {e}，尝试yfinance")
+                logger.warning(f"Qlib获取数据失败 {symbol}: {e}")
         
-        # 第三优先级：回退到yfinance获取数据
-        try:
-            # 导入yfinance作为最后的回退选项
-            try:
-                import yfinance as yf
-                ticker = yf.Ticker(symbol)
-            except ImportError:
-                logger.error("yfinance不可用，无法获取数据")
-                return pd.DataFrame()
-            
-            if data_type == 'daily':
-                data = ticker.history(start=start_date, end=end_date)
-            elif data_type == 'intraday':
-                # 获取1分钟数据（最近7天）
-                data = ticker.history(period="7d", interval="1m")
-            else:
-                raise ValueError(f"不支持的数据类型: {data_type}")
-            
-            if data.empty:
-                logger.warning(f"未获取到数据: {symbol}")
-                return pd.DataFrame()
-            
-            # 数据清洗
-            data = self._clean_data(data)
-            
-            # 保存到缓存
-            self._save_to_cache(data, cache_key)
-            
-            logger.info(f"成功从yfinance获取数据: {symbol}, {len(data)}条记录")
-            return data
-            
-        except Exception as e:
-            logger.error(f"所有数据源获取股票数据失败 {symbol}: {e}")
-            return pd.DataFrame()
+        # 没有更多数据源可用
+        logger.error(f"所有数据源都无法获取 {symbol} 的数据")
+        return pd.DataFrame()
     
     def get_multiple_stocks_data(self, symbols: List[str], start_date: str, 
                                end_date: str) -> Dict[str, pd.DataFrame]:
@@ -321,7 +290,9 @@ class DataManager:
             return cached_data.to_dict() if isinstance(cached_data, pd.DataFrame) else cached_data
         
         try:
-            ticker = yf.Ticker(symbol)
+            # 使用IB TWS API或其他数据源获取基本面数据
+            logger.warning("基本面数据功能需要配置专业数据源")
+            return {}
             
             # 获取基本面信息
             info = ticker.info
@@ -432,7 +403,7 @@ class DataManager:
         # 添加数据源信息
         data_source_info = {
             'qlib_available': QLIB_AVAILABLE and self.data_adapter is not None,
-            'primary_source': 'Qlib' if (QLIB_AVAILABLE and self.data_adapter) else 'yfinance'
+            'primary_source': 'Qlib' if (QLIB_AVAILABLE and self.data_adapter) else 'IB TWS API'
         }
         
         # 如果有数据适配器，获取其信息

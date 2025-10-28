@@ -148,9 +148,35 @@ make data-fetch-nasdaq
    BATCH_SIZE=500 make data-fetch-nasdaq  # 减少内存使用
    ```
 
+## 数据源配置
+
+系统支持多种数据源，按优先级排序：
+
+1. **IB TWS API** - 主要数据源，实时数据
+2. **Qlib** - 学术研究数据源
+3. **OpenBB** - 开源金融数据平台
+
+### 配置示例
+
+```python
+config = {
+    'DATA_SOURCE_PRIORITY': ['ib', 'qlib', 'openbb'],
+    'ENABLE_DATA_FALLBACK': True,
+    'IB_HOST': 'localhost',
+    'IB_PORT': 7497,
+    'IB_CLIENT_ID': 1
+}
+```
+
 ## 前置条件
 
-### 1. 安装依赖
+### 1. IB TWS API 配置
+
+- 安装 Interactive Brokers TWS 或 IB Gateway
+- 启用 API 连接
+- 配置端口和客户端ID
+
+### 2. 安装依赖
 
 ```bash
 # 安装Python依赖
@@ -160,7 +186,7 @@ make install
 pip install yfinance pandas requests
 ```
 
-### 2. 数据库准备
+### 3. 数据库准备
 
 ```bash
 # 创建数据库并建表
@@ -170,7 +196,7 @@ make db-setup
 make db-init
 ```
 
-### 3. 环境检查
+### 4. 环境检查
 
 ```bash
 # 检查Python环境

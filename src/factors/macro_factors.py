@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union, Tuple
 import logging
 import requests
-import yfinance as yf
+# import yfinance as yf  # 已移除，不再使用yfinance
 from scipy import stats
 import warnings
 warnings.filterwarnings('ignore')

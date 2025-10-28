@@ -11,6 +11,7 @@ import os
 import sys
 import argparse
 import logging
+import pandas as pd
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 
@@ -191,14 +192,58 @@ class QuantTradingSystem:
         signals = {}
         for symbol in symbols:
             if symbol in data:
-                signal_series = strategy.signal(data[symbol])
-                signals[symbol] = signal_series
+                self.logger.info(f"[DEBUG] 开始为股票 {symbol} 生成信号")
+                self.logger.info(f"[DEBUG] 数据类型: {type(data[symbol])}")
+                self.logger.info(f"[DEBUG] 数据形状: {data[symbol].shape if hasattr(data[symbol], 'shape') else 'N/A'}")
+                self.logger.info(f"[DEBUG] 数据列名: {data[symbol].columns.tolist() if hasattr(data[symbol], 'columns') else 'N/A'}")
+                
+                try:
+                    signal_series = strategy.signal(data[symbol])
+                    self.logger.info(f"[DEBUG] 信号生成成功，类型: {type(signal_series)}")
+                    signals[symbol] = signal_series
+                except Exception as e:
+                    self.logger.error(f"[DEBUG] 信号生成失败: {e}")
+                    import traceback
+                    self.logger.error(f"[DEBUG] 错误详情: {traceback.format_exc()}")
+                    continue
         
         # 运行回测
         results = {}
         for symbol in symbols:
             if symbol in signals:
-                result = self.backtest_engine.run(data[symbol], signals[symbol])
+                # 确保信号数据是pd.Series格式
+                signal_data = signals[symbol]
+                if not isinstance(signal_data, pd.Series):
+                    self.logger.warning(f"信号数据不是pd.Series格式，尝试转换: {type(signal_data)}")
+                    signal_data = pd.Series(signal_data)
+                
+                # 添加信号调试日志
+                self.logger.info(f"开始回测股票 {symbol}，信号数据长度: {len(signal_data)}")
+                self.logger.info(f"信号数据统计:")
+                self.logger.info(f"  - 信号范围: {signal_data.min():.6f} - {signal_data.max():.6f}")
+                self.logger.info(f"  - 非零信号数量: {(signal_data != 0).sum()}")
+                self.logger.info(f"  - 正信号数量: {(signal_data > 0).sum()}")
+                self.logger.info(f"  - 负信号数量: {(signal_data < 0).sum()}")
+                self.logger.info(f"  - 信号前5个值: {signal_data.head().tolist()}")
+                
+                result = self.backtest_engine.run(data[symbol], signal_data)
+                
+                # 添加更详细的调试日志
+                self.logger.info(f"股票 {symbol} 回测结果:")
+                self.logger.info(f"  - 组合价值长度: {len(result.get('portfolio_value', []))}")
+                self.logger.info(f"  - 收益率长度: {len(result.get('returns', []))}")
+                self.logger.info(f"  - 总收益: {result.get('total_return', 0):.4f}")
+                self.logger.info(f"  - 交易次数: {result.get('total_trades', 0)}")
+                self.logger.info(f"  - 最终价值: {result.get('final_value', 0):.2f}")
+                self.logger.info(f"  - 初始资金: {self.backtest_engine.initial_capital:.2f}")
+                portfolio_values = result.get('portfolio_value', [])
+                returns = result.get('returns', [])
+                if len(portfolio_values) > 0:
+                    self.logger.info(f"  - 组合价值范围: {min(portfolio_values):.2f} - {max(portfolio_values):.2f}")
+                if len(returns) > 0:
+                    self.logger.info(f"  - 收益率范围: {min(returns):.6f} - {max(returns):.6f}")
+                    self.logger.info(f"  - 收益率非零数量: {sum(1 for r in returns if r != 0)}")
+                
                 results[symbol] = result
         
         self.logger.info("✓ 回测完成")
@@ -208,9 +253,35 @@ class QuantTradingSystem:
         """分析回测性能"""
         if not self.initialized:
             raise RuntimeError("系统未初始化，请先调用initialize()")
+        
         # 分析性能
         self.logger.info("开始性能分析...")
-        performance_metrics = self.performance_analyzer.metrics(backtest_results)
+        
+        # 合并所有股票的收益率数据
+        all_returns = []
+        for symbol, result in backtest_results.items():
+            if 'returns' in result and len(result['returns']) > 0:
+                returns_series = pd.Series(result['returns'])
+                all_returns.append(returns_series)
+        
+        if not all_returns:
+            self.logger.warning("没有找到有效的收益率数据")
+            return {
+                'cum_return': 0.0,
+                'ann_return': 0.0,
+                'ann_vol': 0.0,
+                'sharpe': 0.0,
+                'max_drawdown': 0.0,
+                'sortino': 0.0,
+                'calmar': 0.0,
+                'hit_rate': 0.0
+            }
+        
+        # 计算组合收益率（简单平均）
+        combined_returns = pd.concat(all_returns, axis=1).mean(axis=1)
+        
+        # 计算性能指标
+        performance_metrics = self.performance_analyzer.metrics(combined_returns)
         
         self.logger.info("✓ 性能分析完成")
         return performance_metrics
@@ -229,6 +300,9 @@ class QuantTradingSystem:
     
     def quick_start_demo(self):
         """快速开始演示"""
+        import sys
+        print("[DEMO_DEBUG] 进入 quick_start_demo 方法", flush=True)
+        sys.stdout.flush()
         self.logger.info("🚀 开始快速演示...")
         
         # 演示参数
@@ -236,41 +310,81 @@ class QuantTradingSystem:
         start_date = "2023-01-01"
         end_date = "2023-12-31"
         
+        print("[DEMO_DEBUG] 演示参数设置完成", flush=True)
+        sys.stdout.flush()
+        
         try:
             # 1. 获取数据
+            print("[DEMO_DEBUG] 准备获取数据")
             self.logger.info("1️⃣ 获取股票数据...")
+            self.logger.info("[DEMO_DEBUG] 开始获取数据...")
             data = self.get_data(symbols, start_date, end_date)
+            print(f"[DEMO_DEBUG] 数据获取完成，键: {list(data.keys())}")
+            self.logger.info(f"[DEMO_DEBUG] 数据获取完成，键: {list(data.keys())}")
             
             # 2. 计算因子
+            print("[DEMO_DEBUG] 准备计算因子")
             self.logger.info("2️⃣ 计算技术因子...")
-            factors = self.calculate_factors(data)
+            self.logger.info("[DEMO_DEBUG] 开始计算因子...")
+            try:
+                factors = self.calculate_factors(data)
+                print(f"[DEMO_DEBUG] 因子计算完成，键: {list(factors.keys()) if factors else 'None'}")
+                self.logger.info(f"[DEMO_DEBUG] 因子计算完成，键: {list(factors.keys()) if factors else 'None'}")
+            except Exception as e:
+                print(f"[DEMO_DEBUG] 因子计算异常: {e}")
+                self.logger.error(f"[DEMO_DEBUG] 因子计算异常: {e}")
+                import traceback
+                print(f"[DEMO_DEBUG] 异常堆栈: {traceback.format_exc()}")
+                self.logger.error(f"[DEMO_DEBUG] 异常堆栈: {traceback.format_exc()}")
+                factors = {}
             
             # 3. 运行回测
+            print("[DEMO_DEBUG] 准备运行回测")
             self.logger.info("3️⃣ 运行动量策略回测...")
-            backtest_results = self.run_backtest(
-                strategy_name="momentum",
-                symbols=symbols,
-                start_date=start_date,
-                end_date=end_date,
-                lookback_period=20
-            )
+            self.logger.info(f"[DEMO_DEBUG] 准备运行回测，数据键: {list(data.keys())}")
+            self.logger.info(f"[DEMO_DEBUG] 目标股票: {symbols}")
+            
+            try:
+                backtest_results = self.run_backtest(
+                    strategy_name="momentum",
+                    symbols=symbols,
+                    start_date=start_date,
+                    end_date=end_date,
+                    lookback_period=20
+                )
+                print(f"[DEMO_DEBUG] 回测完成，结果键: {list(backtest_results.keys()) if backtest_results else 'None'}")
+                self.logger.info(f"[DEMO_DEBUG] 回测完成，结果键: {list(backtest_results.keys()) if backtest_results else 'None'}")
+            except Exception as e:
+                print(f"[DEMO_DEBUG] 回测异常: {e}")
+                self.logger.error(f"[DEMO_DEBUG] 回测异常: {e}")
+                import traceback
+                print(f"[DEMO_DEBUG] 异常堆栈: {traceback.format_exc()}")
+                self.logger.error(f"[DEMO_DEBUG] 异常堆栈: {traceback.format_exc()}")
+                backtest_results = {}
             
             # 4. 性能分析
+            print("[DEMO_DEBUG] 准备性能分析")
             self.logger.info("4️⃣ 分析策略性能...")
             performance = self.analyze_performance(backtest_results)
             
             # 5. 风险评估
+            print("[DEMO_DEBUG] 准备风险评估")
             self.logger.info("5️⃣ 评估投资风险...")
             if 'returns' in backtest_results:
                 risk_metrics = self.assess_risk(backtest_results['returns'])
             
+            print("[DEMO_DEBUG] 演示即将完成")
             self.logger.info("🎉 快速演示完成！")
             
             # 输出结果摘要
             self.print_summary(performance if 'performance' in locals() else {})
             
         except Exception as e:
-            self.logger.error(f"演示过程中出现错误: {e}")
+            print(f"[DEMO_DEBUG] 演示过程中出现错误: {e}")
+            self.logger.error(f"[DEMO_DEBUG] 演示过程中出现错误: {e}")
+            import traceback
+            print(f"[DEMO_DEBUG] 异常堆栈: {traceback.format_exc()}")
+            self.logger.error(f"[DEMO_DEBUG] 异常堆栈: {traceback.format_exc()}")
             raise
     
     def print_summary(self, performance: Dict[str, Any]):
@@ -307,6 +421,7 @@ class QuantTradingSystem:
 
 def main():
     """主函数"""
+    print("[MAIN_TEST] 进入main函数")
     parser = argparse.ArgumentParser(description="量化交易系统")
     parser.add_argument("--demo", action="store_true", help="运行快速演示")
     parser.add_argument("--info", action="store_true", help="显示系统信息")
@@ -377,7 +492,15 @@ def main():
                 print(f"  客户端ID: {args.client_id}")
                 
         elif args.demo:
-            system.quick_start_demo()
+            print("[MAIN_DEBUG] 准备调用 quick_start_demo")
+            try:
+                system.quick_start_demo()
+                print("[MAIN_DEBUG] quick_start_demo 调用完成")
+            except Exception as e:
+                print(f"[MAIN_DEBUG] quick_start_demo 异常: {e}")
+                import traceback
+                print(f"[MAIN_DEBUG] 异常堆栈: {traceback.format_exc()}")
+                raise
             
         elif args.trading and args.strategy:
             # 启动实时交易

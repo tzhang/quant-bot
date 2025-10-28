@@ -61,48 +61,48 @@ data1 = data_manager.get_data('AAPL', '2023-01-01', '2024-01-01')
 data2 = data_manager.get_data('AAPL', '2023-01-01', '2024-01-01')
 ```
 
+## 数据源优先级
+
+系统按以下优先级获取数据：
+
+1. **IB TWS API** - 实时数据，高质量
+2. **Qlib** - 学术研究数据
+3. **OpenBB** - 开源数据平台
+
+### 智能回退机制
+
+当主要数据源不可用时，系统会自动切换到下一个数据源：
+
+```
+IB TWS API (失败) → Qlib → OpenBB
+```
+
 ## 避免API限制的最佳实践
 
-### 1. 使用缓存数据
-
+### 1. 使用数据缓存
 ```python
-import pandas as pd
-from pathlib import Path
-
-def load_cached_data(symbol='AAPL'):
-    """加载缓存的股票数据"""
-    cache_dir = Path('data_cache')
-    cache_files = list(cache_dir.glob(f'ohlcv_{symbol}_*.csv'))
-    
-    if cache_files:
-        cache_file = cache_files[0]
-        # 读取CSV文件，跳过前两行
-        df = pd.read_csv(cache_file, skiprows=2)
-        df = df.iloc[:, 1:]  # 去掉第一列
-        df.columns = ['Open', 'High', 'Low', 'Close', 'Volume']
-        df.index = pd.to_datetime(df.index)
-        df.index.name = 'Date'
-        return df
-    return None
+# 启用缓存减少API调用
+config = {
+    'ENABLE_CACHE': True,
+    'CACHE_EXPIRY_HOURS': 24
+}
 ```
 
-### 2. 批量处理时添加延迟
-
+### 2. 合理设置请求频率
 ```python
+# 控制请求频率
 import time
-
-symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA']
-for symbol in symbols:
-    try:
-        data = data_manager.get_data(symbol, '2023-01-01', '2024-01-01')
-        print(f"✅ {symbol} 数据获取成功")
-        # 添加延迟避免API限制
-        time.sleep(1)
-    except Exception as e:
-        print(f"❌ {symbol} 数据获取失败: {e}")
+time.sleep(1)  # 每次请求间隔1秒
 ```
 
-### 3. 错误处理和重试机制
+### 3. 批量获取数据
+```python
+# 一次获取多个股票数据
+symbols = ['AAPL', 'GOOGL', 'MSFT']
+data = adapter.get_batch_data(symbols)
+```
+
+### 4. 错误处理和重试机制
 
 ```python
 def safe_get_data(data_manager, symbol, start_date, end_date, max_retries=3):

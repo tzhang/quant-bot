@@ -4,7 +4,7 @@
 数据获取和缓存使用教程
 
 本教程演示如何使用量化交易系统的数据管理功能：
-1. 获取股票数据（支持Qlib和yfinance数据源）
+1. 获取股票数据（支持IB TWS API、Qlib和OpenBB数据源）
 2. 理解缓存机制
 3. 数据处理基础
 4. 常见问题解决
@@ -41,7 +41,8 @@ def tutorial_1_basic_data_fetch():
     data_source = cache_info.get('data_source', {})
     print(f"   主要数据源: {data_source.get('primary_source', 'unknown')}")
     print(f"   Qlib可用: {data_source.get('qlib_available', False)}")
-    print(f"   yfinance可用: {data_source.get('yfinance_available', False)}")
+    print(f"   OpenBB可用: {data_source.get('openbb_available', False)}")
+    print(f"   IB TWS API可用: {data_source.get('ib_available', False)}")
     if 'total_instruments' in data_source:
         print(f"   可用股票数: {data_source['total_instruments']}")
     

@@ -84,20 +84,22 @@ class DataSourceConfig:
     def __init__(self):
         # Interactive Brokers (最高优先级)
         self.ib_enabled = os.getenv('IB_ENABLED', 'True').lower() == 'true'
-        self.ib_host = os.getenv('IB_HOST', '127.0.0.1')
-        self.ib_port = int(os.getenv('IB_PORT', '4001'))  # IB Gateway模拟交易端口
+        self.ib_host = os.getenv('IB_HOST', 'localhost')
+        self.ib_port = int(os.getenv('IB_PORT', '7497'))
         self.ib_client_id = int(os.getenv('IB_CLIENT_ID', '1'))
         
         # Qlib (第二优先级)
         self.qlib_enabled = os.getenv('QLIB_ENABLED', 'True').lower() == 'true'
+        self.qlib_provider = os.getenv('QLIB_PROVIDER', 'yahoo')
         
         # OpenBB (第三优先级)
         self.openbb_enabled = os.getenv('OPENBB_ENABLED', 'True').lower() == 'true'
+        self.openbb_api_key = os.getenv('OPENBB_API_KEY', '')  # 可选
         
-        # Yahoo Finance (默认禁用，由于API限速问题)
-        self.yahoo_enabled = os.getenv('YAHOO_FINANCE_ENABLED', 'False').lower() == 'true'
-        self.yahoo_rate_limit = float(os.getenv('YAHOO_RATE_LIMIT', '1.0'))  # 秒
-        self.yahoo_max_retries = int(os.getenv('YAHOO_MAX_RETRIES', '3'))
+        # Yahoo Finance (已移除，不再使用)
+        # self.yahoo_enabled = False  # 已移除yfinance依赖
+        # self.yahoo_rate_limit = 1.0  # 已移除
+        # self.yahoo_max_retries = 3  # 已移除
         
         # Alpha Vantage
         self.alpha_vantage_key = os.getenv('ALPHA_VANTAGE_API_KEY', '')
@@ -110,6 +112,11 @@ class DataSourceConfig:
         # 数据源优先级配置
         self.primary_sources = ['ib', 'qlib', 'openbb']  # 主要数据源
         self.fallback_sources = ['yahoo', 'alpha_vantage', 'quandl']  # 备用数据源
+        
+        # 数据源配置
+        self.default_data_source = 'auto'  # auto, ib, qlib, openbb
+        self.data_source_priority = ['ib', 'qlib', 'openbb']  # 数据源优先级
+        self.enable_data_fallback = True  # 启用数据源回退
         
         # 数据更新配置
         self.data_update_interval = int(os.getenv('DATA_UPDATE_INTERVAL', '60'))  # 分钟

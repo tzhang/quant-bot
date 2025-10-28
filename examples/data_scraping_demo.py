@@ -42,7 +42,7 @@ def simulate_data_fetching():
     symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'META', 'NVDA', 'NFLX']
     
     print_section("1. 数据源配置")
-    data_sources = ['yfinance', 'OpenBB', 'Qlib']
+    data_sources = ['IB TWS API', 'OpenBB', 'Qlib']
     for i, source in enumerate(data_sources, 1):
         print(f"   {i}. {source} - 配置完成 ✅")
     

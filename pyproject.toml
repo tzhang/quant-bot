@@ -64,7 +64,7 @@ known_third_party = [
     "matplotlib",
     "seaborn",
     "plotly",
-    "yfinance",
+    # "yfinance",  # 已移除，不再使用
     "sqlalchemy",
     "redis",
     "fastapi",
@@ -96,7 +96,7 @@ error_summary = true
 # 模块特定配置
 [[tool.mypy.overrides]]
 module = [
-    "yfinance.*",
+    # "yfinance.*",  # 已移除，不再使用
     "talib.*",
     "plotly.*",
     "streamlit.*",

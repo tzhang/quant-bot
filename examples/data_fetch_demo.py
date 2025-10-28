@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 数据获取演示脚本
-演示如何正确使用DataManager获取股票数据，支持Qlib和yfinance数据源
+演示如何正确使用DataManager获取股票数据，支持IB TWS API、Qlib和OpenBB数据源
 """
 
 import sys
@@ -244,7 +244,8 @@ def main():
     data_source = cache_info.get('data_source', {})
     print(f"🔧 主要数据源: {data_source.get('primary_source', 'unknown')}")
     print(f"✅ Qlib可用: {data_source.get('qlib_available', False)}")
-    print(f"✅ yfinance可用: {data_source.get('yfinance_available', False)}")
+    print(f"✅ OpenBB可用: {data_source.get('openbb_available', False)}")
+    print(f"✅ IB TWS API可用: {data_source.get('ib_available', False)}")
     
     print("\n🎉 演示完成！")
     print("💡 提示：重复运行脚本可以体验缓存加速效果")

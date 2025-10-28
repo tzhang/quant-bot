@@ -16,7 +16,32 @@ class FactorEngine:
         self.fundamental = FundamentalFactorCalculator()
 
     def compute_technical(self, df: pd.DataFrame) -> pd.DataFrame:
-        return self.tech.calculate_all_factors(df)
+        """
+        计算技术因子
+        
+        Args:
+            df: 包含OHLCV数据的DataFrame，列名应为大写格式
+            
+        Returns:
+            技术因子DataFrame
+        """
+        # 检查必要的列
+        required_columns = ['Close', 'High', 'Low', 'Open', 'Volume']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            raise ValueError(f"Missing required columns: {missing_columns}")
+        
+        # 转换为TechnicalFactors期望的格式（小写列名的字典）
+        data = {
+            'close': df['Close'],
+            'high': df['High'], 
+            'low': df['Low'],
+            'open': df['Open'],
+            'volume': df['Volume'],
+            'returns': df['Close'].pct_change().fillna(0)
+        }
+        
+        return self.tech.calculate_all_factors(data)
 
     def compute_risk(self, df: pd.DataFrame, benchmark_returns: pd.Series = None) -> pd.DataFrame:
         """Compute risk factors; optionally include Beta if benchmark provided."""
@@ -117,9 +142,24 @@ class FactorEngine:
         benchmark_returns: pd.Series | None = None,
     ) -> pd.DataFrame:
         """Compute all factors and synthesize into FACTOR_SCORE."""
+        print(f"FactorEngine: 开始计算因子分数，数据长度={len(df)}")
+        print(f"FactorEngine: 数据列={list(df.columns)}")
+        print(f"FactorEngine: 数据前5行价格={df['Close'].head().tolist()}")
+        
         # Get all factors
         tech_factors = self.compute_technical(df)
         risk_factors = self.compute_risk(df, benchmark_returns)
+        
+        print(f"FactorEngine: 技术因子类型={type(tech_factors)}, 长度={len(tech_factors) if isinstance(tech_factors, dict) else 'N/A'}")
+        print(f"FactorEngine: 风险因子类型={type(risk_factors)}, 长度={len(risk_factors) if isinstance(risk_factors, dict) else 'N/A'}")
+        
+        if isinstance(tech_factors, dict) and tech_factors:
+            first_tech_key = list(tech_factors.keys())[0]
+            print(f"FactorEngine: 第一个技术因子 {first_tech_key} 前5个值={tech_factors[first_tech_key].head().tolist()}")
+        
+        if isinstance(risk_factors, dict) and risk_factors:
+            first_risk_key = list(risk_factors.keys())[0]
+            print(f"FactorEngine: 第一个风险因子 {first_risk_key} 前5个值={risk_factors[first_risk_key].head().tolist()}")
         
         # 处理技术因子结果
         if isinstance(tech_factors, dict):
@@ -164,6 +204,10 @@ class FactorEngine:
         factor_score = pd.Series(0.0, index=selected_factors.index)
         for col in factor_cols:
             factor_score = factor_score.add(selected_factors[col].fillna(0) * weights[col], fill_value=0)
+
+        print(f"FactorEngine: 因子分数前5个值={factor_score.head().tolist()}")
+        print(f"FactorEngine: 因子分数非零数量={(factor_score != 0).sum()}")
+        print(f"FactorEngine: 因子分数范围={factor_score.min():.6f} - {factor_score.max():.6f}")
 
         # Return combined result
         result = all_factors.copy()

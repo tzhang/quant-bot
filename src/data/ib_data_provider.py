@@ -112,13 +112,18 @@ class IBDataClient(EWrapper, EClient):
     
     def error(self, reqId: TickerId, errorCode: int, errorString: str, advancedOrderRejectJson=""):
         """错误处理"""
-        # 过滤信息性消息
+        # 过滤信息性消息和警告
         if errorCode in [2104, 2106, 2158, 2119]:  # 连接状态信息
             logger.debug(f"IB 信息: {errorString}")
+        elif errorCode in [2157]:  # Sec-def数据场连接中断
+            logger.debug(f"IB 数据场信息: {errorString}")
         elif errorCode == 162:  # 历史数据请求错误
             logger.warning(f"历史数据请求错误: {errorString}")
             if reqId in self.data_ready:
                 self.data_ready[reqId] = True
+        elif "API version" in errorString and "does not support" in errorString:
+            # API版本相关的警告，降级为调试信息
+            logger.debug(f"IB API版本信息: {errorString}")
         else:
             logger.error(f"IB 错误 [{errorCode}]: {errorString}")
     
